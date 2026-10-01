@@ -49,7 +49,7 @@ teach modeling, and decide whether a dedicated device or a commercial app is the
 *Search terms this project fits:* free AAC app, AAC for iPad, augmentative and alternative
 communication, low-cost AAC, speech generating device alternative, communication app for
 nonverbal or nonspeaking children, autism communication board, core vocabulary board,
-communication app for toddlers, open source AAC (license still to be added, see *License*), early reader spelling
+communication app for toddlers, open source AAC (MIT license), early reader spelling
 keyboard, phrase buttons for gestalt language processors.
 
 ## Features
@@ -327,5 +327,4 @@ the side/top button to start it). It stops accidental exits.
 
 ## License
 
-No license file has been added yet. Until one is, the code is public to read and try, but it
-is not formally licensed for reuse or redistribution.
+MIT. See [LICENSE](LICENSE). Free to use, change, and share, with no warranty.
