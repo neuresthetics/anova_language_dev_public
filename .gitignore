@@ -1,0 +1,10 @@
+# Personal packs never belong in this repository.
+pack.json
+!docs/example-pack/pack.json
+*.zip
+photos/
+recordings/
+packs/
+my-pack/
+out/
+word-board-usage-*

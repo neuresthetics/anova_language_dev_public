@@ -1,0 +1,29 @@
+{
+  "format": "wordboard-pack",
+  "version": 1,
+  "name": "Example pack",
+  "config": {
+    "wordsShown": "full",
+    "pages": [
+      { "id": "home", "title": "Home", "rows": 5, "cols": 8 },
+      { "id": "food", "title": "Food", "rows": 5, "cols": 8 }
+    ],
+    "words": [
+      { "id": "i", "label": "I", "say": "eye", "page": "home", "row": 1, "col": 1, "type": "people", "emoji": "🙋", "level": 1 },
+      { "id": "want", "label": "want", "page": "home", "row": 1, "col": 2, "type": "verb", "emoji": "🤲", "level": 1 },
+      { "id": "more", "label": "more", "page": "home", "row": 1, "col": 3, "type": "descriptor", "emoji": "➕", "level": 1 },
+      { "id": "all-done", "label": "all done", "page": "home", "row": 1, "col": 4, "type": "social", "emoji": "🙌", "level": 1 },
+      { "id": "big", "label": "big", "page": "home", "row": 2, "col": 3, "type": "descriptor", "emoji": "🐘", "level": 3 },
+      { "id": "food", "label": "food", "page": "home", "row": 5, "col": 1, "type": "folder", "target": "food", "emoji": "🍎" },
+      { "id": "apple", "label": "apple", "page": "food", "row": 1, "col": 1, "type": "noun", "emoji": "🍎" }
+    ],
+    "knownWords": ["cat", "dog"]
+  },
+  "stories": [
+    { "id": "my-dog", "title": "My dog", "emoji": "🐶", "pages": [
+      { "text": "I see my dog.", "scene": ["🙋", "👀", "🐶"], "sceneMain": 2 },
+      { "text": "My dog likes me!", "pic": "photos/dog.jpg", "emoji": "🐶" }
+    ] }
+  ],
+  "includeSampleStories": true
+}

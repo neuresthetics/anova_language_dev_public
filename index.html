@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Word Board">
+<meta name="theme-color" content="#1b1b1b">
+<meta name="format-detection" content="telephone=no">
+<title>Word Board</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <header id="bar">
+    <div id="msg" role="button" tabindex="0" aria-label="Message. Tap to speak it."></div>
+    <button id="btn-speak" class="action speak" type="button" aria-label="Speak message"><span class="ico" aria-hidden="true">🔊</span><span class="txt">speak</span></button>
+    <button id="btn-del" class="action del" type="button" aria-label="Delete last"><span class="ico" aria-hidden="true">⌫</span><span class="txt">delete</span></button>
+    <button id="btn-clear" class="action clear" type="button" aria-label="Clear message"><span class="ico" aria-hidden="true">✖</span><span class="txt">clear</span></button>
+  </header>
+  <nav id="nav">
+    <button id="nav-home" class="tab" type="button"><span class="ico" aria-hidden="true">🏠</span><span class="txt">home</span></button>
+    <button id="nav-kbd" class="tab" type="button"><span class="ico" aria-hidden="true">🔤</span><span class="txt">abc</span></button>
+    <button id="nav-stories" class="tab" type="button"><span class="ico" aria-hidden="true">📖</span><span class="txt">stories</span></button>
+    <div id="page-title" aria-live="polite"></div>
+    <button id="gear" type="button" aria-label="Parent settings: hold for 2 seconds">⚙︎</button>
+  </nav>
+  <main id="board"></main>
+</div>
+
+<!-- ================= PARENT SETTINGS (behind the gear gate) ================= -->
+<div id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="set-title">
+  <div class="set-head">
+    <h1 id="set-title">Parent settings</h1>
+    <button id="set-close" type="button" class="pbtn primary">Done</button>
+  </div>
+  <div class="set-body">
+
+    <section>
+      <h2>Words shown</h2>
+      <label class="row">Words on the board
+        <select id="set-wordsshown">
+          <option value="starter">Starter: about 20–24 most-used words</option>
+          <option value="middle">Middle: about 36–40 words</option>
+          <option value="full">Full: every word</option>
+          <option value="custom">Custom: tap words below to show / hide</option>
+        </select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (folder buttons always show)</label>
+      <p class="note" id="level-note"></p>
+    </section>
+
+    <section>
+      <h2>Voice</h2>
+      <label class="row">Voice
+        <select id="set-voice"></select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="set-allvoices"> show all languages and novelty voices</label>
+      <p id="voice-note" class="note"></p>
+      <label class="row">Speed <span id="rate-val" class="val"></span>
+        <input type="range" id="set-rate" min="0.5" max="1.5" step="0.05">
+      </label>
+      <label class="row">Pitch <span id="pitch-val" class="val"></span>
+        <input type="range" id="set-pitch" min="0.5" max="2" step="0.05">
+      </label>
+      <label class="row">Volume <span id="vol-val" class="val"></span>
+        <input type="range" id="set-volume" min="0.1" max="1" step="0.05">
+      </label>
+      <div class="row"><button id="set-test" type="button" class="pbtn">Test voice</button></div>
+    </section>
+
+    <section>
+      <h2>Display &amp; behaviour</h2>
+      <label class="row">Word buttons
+        <select id="set-wordcase">
+          <option value="asis">as written in words.js (lowercase)</option>
+          <option value="capital">Capitalized (Like The Board)</option>
+          <option value="upper">ALL CAPITALS</option>
+        </select>
+      </label>
+      <label class="row">Keyboard letters
+        <select id="set-keycase">
+          <option value="upper">A B C (capitals)</option>
+          <option value="lower">a b c (lowercase)</option>
+        </select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="set-pictures"> show pictures (emoji) above words</label>
+      <label class="row chk"><input type="checkbox" id="set-prediction"> word prediction on keyboard</label>
+      <label class="row chk"><input type="checkbox" id="set-sayletters"> say each letter when typed</label>
+      <label class="row chk"><input type="checkbox" id="set-highlight"> highlight each word in the bar while speaking</label>
+      <label class="row">Stories ▶ read button
+        <select id="set-storymode">
+          <option value="smooth">reads the page smoothly (highlight follows if the voice supports it)</option>
+          <option value="word">reads one word at a time (highlight always in sync)</option>
+        </select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="set-returnhome"> go back to Home after picking a word in a folder</label>
+      <label class="row">Ignore repeat taps on the same button within
+        <select id="set-tapguard">
+          <option value="0">off</option>
+          <option value="250">0.25 s</option>
+          <option value="400">0.4 s</option>
+          <option value="700">0.7 s</option>
+          <option value="1000">1 s</option>
+        </select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="set-triple"> also open settings with a triple tap on the gear (hold 2 s always works)</label>
+    </section>
+
+    <section>
+      <h2>Personal pack (this device only)</h2>
+      <p id="pack-info" class="note"></p>
+      <p class="note">A pack holds personal words, stories, photos and recordings. It is stored only in this app on this
+        device (not in the app files, not online). Keep a backup: “Export pack” and save it somewhere private.</p>
+      <div class="row btns">
+        <label class="pbtn file primary">Import pack (.zip / .json)<input type="file" id="pack-import" accept=".zip,.json,application/zip,application/json"></label>
+        <button id="pack-export" type="button" class="pbtn">Export pack (.zip)</button>
+        <button id="pack-share" type="button" class="pbtn">Share / Save to Files…</button>
+        <button id="pack-remove" type="button" class="pbtn warn">Remove pack</button>
+      </div>
+      <p id="pack-msg" class="note" aria-live="polite"></p>
+      <div id="config-problems" class="problems"></div>
+    </section>
+
+    <section>
+      <h2>Words: show / hide and photos</h2>
+      <div class="row edit-modes">
+        Tapping a word below will:
+        <label class="chk"><input type="radio" name="edit-mode" value="hide" checked> hide / show it</label>
+        <label class="chk"><input type="radio" name="edit-mode" value="photo"> add or change its photo</label>
+        <label class="chk"><input type="radio" name="edit-mode" value="nophoto"> remove its photo</label>
+      </div>
+      <p class="note">Hidden words leave a blank cell; nothing else moves. Tapping a word to hide or show it switches
+        <b>Words shown</b> to Custom, starting from the level you were on. L1 / L2 / L3 = the word's level
+        (starter / middle / full). Photos come from the camera or photo library,
+        are shrunk to 640 px and kept only on this device (they go into the pack backup when you export).
+        Empty cells show their row/column for adding words to a pack file.</p>
+      <div id="vis-pages"></div>
+    </section>
+
+    <section>
+      <h2>Stories: photos</h2>
+      <p class="note">Pages are never read aloud automatically. Adding a photo to a sample story copies that story into your pack.</p>
+      <div id="story-edit"></div>
+    </section>
+
+    <section>
+      <h2>Usage log (this iPad only)</h2>
+      <p class="note">Off by default. When on, stores only the time and the word, in this browser's local storage.
+        Nothing is sent anywhere.</p>
+      <label class="row chk"><input type="checkbox" id="set-log"> keep a usage log</label>
+      <div class="row btns">
+        <button id="log-view" type="button" class="pbtn">View log</button>
+        <button id="log-csv" type="button" class="pbtn">Export CSV</button>
+        <button id="log-json" type="button" class="pbtn">Export JSON</button>
+        <button id="log-clear" type="button" class="pbtn warn">Clear log</button>
+      </div>
+      <div id="log-out"></div>
+    </section>
+
+    <section>
+      <h2>About</h2>
+      <p id="about" class="note"></p>
+    </section>
+  </div>
+</div>
+<input type="file" id="photo-input" accept="image/*" hidden>
+
+<script src="store.js"></script>
+<script src="words.js"></script>
+<script src="stories.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
