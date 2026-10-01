@@ -10,6 +10,8 @@ It is meant for families of **nonspeaking** or minimally speaking children (for 
 autistic children, toddlers with speech delays, and early readers) who want a low-cost
 communication app to use at home. Buttons can hold single words or short phrases.
 
+**Try it now:** open [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/) in Safari on an iPad, then use Share > Add to Home Screen with "Open as Web App" turned on.
+
 This repository is the **generic app shell** with a generic starter board and two sample
 stories. Personal words, stories, photos and recordings go in a **personal pack** that is
 imported on the device and stored only there (IndexedDB). Personal packs are never
