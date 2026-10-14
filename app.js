@@ -580,11 +580,15 @@
   /* "." or "?" ends the last word (typed or from the board). It shows in the message bar and is
      kept in the spoken text, so the voice uses question intonation. */
   function punct(ch) {
+    var empty = !msg.buf.trim() && !msg.tokens.length;
     commitBuf(false);
     var t = msg.tokens[msg.tokens.length - 1];
     if (t) t.punct = ch;
     renderMsg(); renderPreds();
-    stopAll(); Speech.speak(ch === "?" ? "question mark" : "period");
+    // Text in the bar: read the whole sentence (the "?" gives question intonation).
+    // Empty bar: just name the key.
+    if (empty || !t) { stopAll(); Speech.speak(ch === "?" ? "question mark" : "period"); }
+    else speakMessage();
   }
   function predictionList(prefix) {
     if (!prefix) return [];

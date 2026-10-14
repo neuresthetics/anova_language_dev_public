@@ -537,7 +537,7 @@
         "row": 1,
         "col": 1,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐜"
       },
       {
@@ -547,7 +547,7 @@
         "row": 1,
         "col": 2,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🦇"
       },
       {
@@ -557,7 +557,7 @@
         "row": 1,
         "col": 3,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐱"
       },
       {
@@ -567,7 +567,7 @@
         "row": 1,
         "col": 4,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐮"
       },
       {
@@ -577,7 +577,7 @@
         "row": 1,
         "col": 5,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐶"
       },
       {
@@ -587,7 +587,7 @@
         "row": 1,
         "col": 6,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🦊"
       },
       {
@@ -597,7 +597,7 @@
         "row": 1,
         "col": 7,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🦉"
       },
       {
@@ -607,7 +607,7 @@
         "row": 1,
         "col": 8,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐷"
       },
       {
@@ -617,7 +617,7 @@
         "row": 2,
         "col": 1,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐀"
       },
       {
@@ -627,7 +627,7 @@
         "row": 2,
         "col": 2,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐂"
       },
       {
@@ -637,7 +637,7 @@
         "row": 2,
         "col": 3,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐦"
       },
       {
@@ -647,7 +647,7 @@
         "row": 2,
         "col": 4,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🦆"
       },
       {
@@ -657,7 +657,7 @@
         "row": 2,
         "col": 5,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐟"
       },
       {
@@ -667,7 +667,7 @@
         "row": 2,
         "col": 6,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐸"
       },
       {
@@ -677,7 +677,7 @@
         "row": 2,
         "col": 7,
         "type": "noun",
-        "level": 3,
+        "level": 1,
         "emoji": "🐴"
       },
       {
