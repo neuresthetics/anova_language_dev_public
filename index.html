@@ -115,15 +115,16 @@
     </section>
 
     <section>
-      <h2>Personal pack (this device only)</h2>
+      <h2>Board, private content and device backup</h2>
       <p id="pack-info" class="note"></p>
-      <p class="note">A pack holds personal words, stories, photos and recordings. It is stored only in this app on this
-        device (not in the app files, not online). Keep a backup: “Export pack” and save it somewhere private.</p>
+      <p class="note">All words (starter, middle and full) and the stories are built into the app and update with it; no import is needed.
+        Family photos/stories come from the private copy of the app. Photos or recordings you add here are stored only on this
+        device; “Export” saves a backup of them. Importing a pack still works (it adds photos/recordings/stories on top).</p>
       <div class="row btns">
         <label class="pbtn file primary">Import pack (.zip / .json)<input type="file" id="pack-import" accept=".zip,.json,application/zip,application/json"></label>
-        <button id="pack-export" type="button" class="pbtn">Export pack (.zip)</button>
+        <button id="pack-export" type="button" class="pbtn">Export device additions (.zip)</button>
         <button id="pack-share" type="button" class="pbtn">Share / Save to Files…</button>
-        <button id="pack-remove" type="button" class="pbtn warn">Remove pack</button>
+        <button id="pack-remove" type="button" class="pbtn warn">Remove device additions</button>
       </div>
       <p id="pack-msg" class="note" aria-live="polite"></p>
       <div id="config-problems" class="problems"></div>
@@ -176,6 +177,8 @@
 <script src="store.js"></script>
 <script src="words.js"></script>
 <script src="stories.js"></script>
+<!-- optional family-only content; present only in the private copy (missing = fine) -->
+<script src="private/overlay.js" onerror="this.remove()"></script>
 <script src="app.js"></script>
 </body>
 </html>

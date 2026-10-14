@@ -11,6 +11,7 @@ const icon = "data:image/png;base64," + fs.readFileSync(path.join(root, "icons/i
 html = html.replace(/<link rel="manifest"[^>]*>\n?/, "")
   .replace(/<link rel="apple-touch-icon" href="[^"]*">/, `<link rel="apple-touch-icon" href="${icon}">`)
   .replace(/<link rel="icon"[^>]*>/, `<link rel="icon" type="image/png" href="${icon}">`)
+  .replace(/<!-- optional family-only content[^\n]*\n<script src="private\/overlay.js"[^>]*><\/script>\n/, "")
   .replace(/<link rel="stylesheet" href="styles.css">/, () => `<style>\n${read("styles.css")}\n</style>`);
 for (const f of ["store.js", "words.js", "stories.js", "app.js"]) {
   const tag = `<script src="${f}"></script>`;

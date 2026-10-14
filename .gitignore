@@ -8,3 +8,6 @@ packs/
 my-pack/
 out/
 word-board-usage-*
+
+# Family-only overlay (private copy of the app only)
+private/

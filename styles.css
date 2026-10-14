@@ -255,3 +255,4 @@ button, [role="button"] {
 .story-row .semo-sm { width: 56px; text-align: center; font-size: 34px; }
 .story-row .story-txt { flex: 1 1 200px; }
 #settings details summary { font-weight: 700; cursor: pointer; margin: 8px 0; }
+.cell.bksp .lbl { font-size: min(70cqh, 40cqw); }

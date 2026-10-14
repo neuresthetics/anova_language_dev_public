@@ -1,0 +1,51 @@
+/* =====================================================================
+   words.js  —  the built-in board that ships with the app.
+   =====================================================================
+   Since 1.3.0 this is Anova's full board (all tiers), built into the app, so
+   no pack import is needed and new words arrive with app updates.
+   GENERATED from aac-private/pack/pack.json by aac-private/make-builtin.py.
+   Family photos and recordings do NOT go here: they live in private/overlay.js
+   (private copy only, never in the public repo). Parent setting "Words shown"
+   (starter / middle / full) masks words above the chosen level.
+
+   GOLDEN RULE (motor planning): once a word has a spot, never move it.
+   Add new words only into EMPTY cells. To take a word away for a while,
+   hide it (parent mode, or  hidden: true ). Its cell goes blank and
+   nothing else moves.
+
+   Each page is a fixed grid (rows x cols). Positions are 1-based:
+   row 1 = top row, col 1 = left column.
+
+   Word fields
+     id      unique, lowercase, no spaces (used for hide/show + usage log)
+     label   text shown on the button (always visible)
+     page    which page it lives on ("home", "animals", ...)
+     row,col its FIXED cell on that page
+     type    colour group (modified Fitzgerald key):
+               people      yellow
+               verb        green
+               descriptor  blue   (describing, colour, feeling, location words)
+               noun        orange
+               social      pink
+               negation    red
+               little      white  (little words: and, the, a ...)
+               folder      opens another page (set  target: "<page id>")
+     emoji   optional small symbol shown above the label
+     image   optional photo (media name inside a pack, e.g. "photos/cup.jpg")
+     say     optional: what the voice says, if different from the label.
+             Example: "I" has  say: "eye"  because iOS reads a lone "I" as
+             "capital I". Used for button taps, typed words, the message
+             bar and story words alike.
+     audio   optional recorded clip (media name inside a pack, e.g.
+             "recordings/milk.m4a", or a URL next to the app). Played if it
+             exists; otherwise the text-to-speech voice is used.
+     hidden  optional: true = cell shows blank, position is kept
+     level   optional priority for "Words shown" in parent settings:
+               1 = starter, 2 = middle, 3 = full. Words above the chosen
+               level are masked (blank cell, nothing moves). Without it a
+               generic default is used (common core words 1–2, others 3).
+               Folder buttons always show.
+   Config field (optional): wordsShown: "starter" | "middle" | "full" =
+   the default level for this board/pack until a parent picks one.
+   ===================================================================== */
+

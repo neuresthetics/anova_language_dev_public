@@ -1,9 +1,11 @@
 /* Word Board – AAC app shell. Plain JS, no dependencies, works offline.
-   The shell holds only generic content. Personal content (a "pack") is
-   imported in parent mode and stored on this device only (IndexedDB). */
+   Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
+   (words.js, stories.js). Family-only content comes from an optional private overlay
+   (private/overlay.js, private copy only). Photos/recordings added on the device, or an
+   imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.2.8";
+  var APP_VERSION = "1.3.0";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -47,7 +49,8 @@
       if (!mediaUrls[key]) mediaUrls[key] = URL.createObjectURL(new Blob([media[key].data], { type: media[key].type }));
       return mediaUrls[key];
     }
-    if (/^(https?:|data:|blob:)/.test(key)) return key;   // explicit URL; relative names come only from the pack
+    if (/^(https?:|data:|blob:)/.test(key)) return key;   // explicit URL
+    if (isAppFile(key)) return key;                        // built-in (media/) or private overlay (private/) file
     return null;
   }
   function mediaBuffer(key) {
@@ -55,28 +58,77 @@
     if (/^(https?:|data:)/.test(key)) {
       return fetch(key).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); });
     }
+    if (isAppFile(key)) return fetch(key).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); });
     return Promise.reject(new Error("not in pack"));
   }
+  function isAppFile(key) { return /^(media|private)\/[\w\-\/.]+$/.test(key) && key.indexOf("..") < 0; }
   function resetMediaUrls() { Object.keys(mediaUrls).forEach(function (k) { URL.revokeObjectURL(mediaUrls[k]); }); mediaUrls = {}; }
   function savePack() { return Store.put("kv", "pack", pack); }
   function ensurePack() {
     if (pack) return pack;
-    pack = { format: "wordboard-pack", version: 1, name: "My pack", created: new Date().toISOString(),
-      config: clone(window.AAC_DEFAULT_CONFIG), stories: [], includeSampleStories: true };
+    pack = { format: "wordboard-pack", version: 2, name: "On this device", created: new Date().toISOString(),
+      config: { pages: [], words: [] }, stories: [], includeSampleStories: true };
     return pack;
   }
 
   /* ------------------------------------------------------------ config */
   var config, problems = [], pageById = {}, cellMap = {}, wordByLabel = {}, stories = [];
+  /* Layers, bottom to top: built-in board (words.js) -> private overlay (private/overlay.js, if present)
+     -> things added on this device (pack in IndexedDB: photos, recordings, own words/stories).
+     Built-in positions always win for words that exist in the built-in board, so app updates can add
+     words and the device copy never freezes an old layout (a pack with  replace: true  still can). */
+  var priv = window.AAC_PRIVATE || null;
+  function mergeWords(cfg, words, opts) {
+    var byId = {}, used = {};
+    cfg.words.forEach(function (w) { byId[w.id] = w; used[w.page + ":" + w.row + "," + w.col] = 1; });
+    (words || []).forEach(function (w) {
+      if (!w || !w.id) return;
+      var have = byId[w.id];
+      if (have) {
+        ["image", "audio", "say", "emoji"].forEach(function (k) { if (w[k] && (!opts.onlyMedia || k !== "say" && k !== "emoji") && (!opts.mediaOk || opts.mediaOk(w[k], k))) have[k] = w[k]; });
+      } else if (w.label && w.page && w.row && w.col) {
+        var k = w.page + ":" + w.row + "," + w.col;
+        if (!used[k] && cfg.pages.some(function (p) { return p.id === w.page; })) { cfg.words.push(clone(w)); used[k] = 1; byId[w.id] = w; }
+      }
+    });
+  }
+  function mergePages(cfg, pages) {
+    (pages || []).forEach(function (p) { if (p && p.id && !cfg.pages.some(function (q) { return q.id === p.id; })) cfg.pages.push(clone(p)); });
+  }
   function loadConfig() {
-    var base = pack && pack.config && pack.config.pages ? pack.config : window.AAC_DEFAULT_CONFIG;
-    config = clone(base || { pages: [{ id: "home", title: "Home", rows: 5, cols: 8 }], words: [] });
+    var builtIn = window.AAC_DEFAULT_CONFIG || { pages: [{ id: "home", title: "Home", rows: 5, cols: 8 }], words: [] };
+    if (pack && pack.replace && pack.config && pack.config.pages) config = clone(pack.config);
+    else {
+      config = clone(builtIn);
+      if (priv && priv.config) { mergePages(config, priv.config.pages); mergeWords(config, priv.config.words, {}); }
+      if (priv && priv.words) mergeWords(config, priv.words, {});
+      if (pack && pack.config) {
+        mergePages(config, pack.config.pages);
+        // device layer: keep photos/recordings that really are on this device; ignore stale positions
+        mergeWords(config, pack.config.words, { onlyMedia: true, mediaOk: function (v) { return !!media[v] || /^(https?:|data:)/.test(v); } });
+        var kw = {}; (config.knownWords || []).concat(pack.config.knownWords || []).forEach(function (x) { kw[x] = 1; });
+        config.knownWords = Object.keys(kw);
+      }
+    }
     var hidden = readJSON(LS.hidden, {});
     config.words.forEach(function (w) { if (Object.prototype.hasOwnProperty.call(hidden, w.id)) w.hidden = !!hidden[w.id]; });
     validate();
-    var sample = window.AAC_STORIES || [], own = (pack && pack.stories) || [];
-    var ids = {}; own.forEach(function (s) { ids[s.id] = 1; });
-    stories = own.concat(pack && pack.includeSampleStories === false ? [] : sample.filter(function (s) { return !ids[s.id]; }));
+    // stories: private overlay first, then built-in; a device story replaces one with the same id
+    // only if a parent added photos on the device (otherwise built-in updates win).
+    var list = [], idx = {};
+    function put(s, replace) {
+      if (!s || !s.id) return;
+      if (idx[s.id] == null) { idx[s.id] = list.length; list.push(s); } else if (replace) list[idx[s.id]] = s;
+    }
+    ((priv && priv.stories) || []).forEach(function (s) { put(s, true); });
+    (window.AAC_STORIES || []).forEach(function (s) { put(s, false); });
+    ((pack && pack.stories) || []).forEach(function (s) { put(s, pack.replace || hasDevicePhotos(s)); });
+    if (pack && pack.replace && pack.includeSampleStories === false) list = list.filter(function (s) { return (pack.stories || []).some(function (x) { return x.id === s.id; }); });
+    stories = list;
+  }
+  function hasDevicePhotos(s) {
+    var keys = [s.image].concat((s.pages || []).map(function (p) { return p.image || p.pic; }));
+    return keys.some(function (k) { return k && media[k] && /-\d{10,}\.jpg$/.test(k); });
   }
   function validate() {
     problems = []; pageById = {}; cellMap = {}; wordByLabel = {};
@@ -496,16 +548,33 @@
       keys.appendChild(b);
     });
     var sp = el("button", "cell btn t-key key space nopic"); sp.type = "button"; sp.setAttribute("aria-label", "space");
-    sp.style.gridColumn = "1 / -1";
+    sp.style.gridColumn = "1 / 6";
     sp.appendChild(el("span", "lbl", "space"));
     onTap(sp, "k:space", space);
     keys.appendChild(sp);
+    var bs = el("button", "cell btn t-key key bksp nopic"); bs.type = "button"; bs.setAttribute("aria-label", "backspace");
+    bs.appendChild(el("span", "lbl", "\u232B"));
+    onTap(bs, "k:bksp", backspace);
+    bs.style.gridColumn = "6 / -1";
+    keys.appendChild(bs);
     k.appendChild(preds); k.appendChild(keys); board.appendChild(k);
     renderPreds();
   }
   function typeLetter(ch) {
     msg.buf += ch; renderMsg(); renderPreds();
     if (settings.sayLetters) { stopAll(); Speech.speak(LETTER_NAMES[ch] || ch); }
+  }
+  /* keyboard backspace: removes one character at a time ("." / "?" first, then letters,
+     including letters of a word tapped from the board). The top-bar delete is unchanged. */
+  function backspace() {
+    stopAll();
+    var lastTok = msg.tokens[msg.tokens.length - 1];
+    if (!msg.buf && lastTok && lastTok.punct) delete lastTok.punct;
+    else {
+      if (!msg.buf && lastTok) { msg.tokens.pop(); msg.buf = String(lastTok.text).toLowerCase(); }
+      msg.buf = msg.buf.slice(0, -1);
+    }
+    renderMsg(); renderPreds();
   }
   function space() { if (!msg.buf) return; commitBuf(true); renderMsg(); renderPreds(); }
   /* "." or "?" ends the last word (typed or from the board). It shows in the message bar and is
@@ -515,6 +584,7 @@
     var t = msg.tokens[msg.tokens.length - 1];
     if (t) t.punct = ch;
     renderMsg(); renderPreds();
+    stopAll(); Speech.speak(ch === "?" ? "question mark" : "period");
   }
   function predictionList(prefix) {
     if (!prefix) return [];
@@ -779,9 +849,10 @@
   function renderPackInfo() {
     var info = $("pack-info");
     var nMedia = Object.keys(media).length;
-    info.textContent = pack ?
-      "Personal pack loaded: “" + (pack.name || "pack") + "” – " + config.words.length + " words, " + ((pack.stories || []).length) + " own stories, " + nMedia + " photos/recordings. Stored only on this device." :
-      "No personal pack. Showing the generic starter board. Import a pack (.zip or .json) from the Files app.";
+    info.textContent = "Built-in board: " + config.words.length + " words, " + stories.length + " stories" +
+      (priv ? " (private family overlay loaded)" : "") + ". " +
+      (pack ? "On this device: “" + (pack.name || "pack") + "”, " + nMedia + " photos/recordings, " + ((pack.stories || []).length) + " own stories" + (pack.replace ? " (replaces the built-in board)" : "") + "." :
+        "Nothing extra stored on this device. No import needed.");
     var pr = $("config-problems"); pr.textContent = "";
     problems.forEach(function (m) { pr.appendChild(el("div", null, "⚠ " + m)); });
   }
@@ -816,7 +887,7 @@
       if (d && Array.isArray(d.pages) && Array.isArray(d.words)) d = { config: d };   // bare config also accepted
       if (!d || !d.config || !Array.isArray(d.config.pages) || !Array.isArray(d.config.words)) throw new Error("This file is not a Word Board pack (needs config.pages and config.words).");
       if (pack && !confirm("Replace the personal pack on this device with “" + (d.name || filename) + "”? (Export a backup first if you changed photos here.)")) return;
-      var np = { format: "wordboard-pack", version: 1, name: d.name || filename.replace(/\.(zip|json)$/i, ""), created: d.created || new Date().toISOString(),
+      var np = { format: "wordboard-pack", version: 1, replace: d.replace === true, name: d.name || filename.replace(/\.(zip|json)$/i, ""), created: d.created || new Date().toISOString(),
         imported: new Date().toISOString(), config: d.config, stories: d.stories || [], includeSampleStories: d.includeSampleStories !== false };
       return Store.clear("media").then(function () {
         return Promise.all(Object.keys(r.media).map(function (k) { return Store.put("media", k, r.media[k]); }));
@@ -834,11 +905,12 @@
   }
   function currentPackForExport() {
     var p = clone(pack || ensurePackCopy());
-    p.config = clone(config); // includes hide/show state
+    if (!p.replace) p.config = { pages: (p.config && p.config.pages) || [], words: (p.config && p.config.words) || [] };   // device additions only
+    else p.config = clone(config);
     p.exported = new Date().toISOString(); p.app = "Word Board " + APP_VERSION;
     return p;
   }
-  function ensurePackCopy() { return { format: "wordboard-pack", version: 1, name: "My pack", config: clone(config), stories: [], includeSampleStories: true }; }
+  function ensurePackCopy() { return { format: "wordboard-pack", version: 2, name: "On this device", config: { pages: [], words: [] }, stories: [], includeSampleStories: true }; }
   function exportPack(share) {
     var p = currentPackForExport(), enc = new TextEncoder();
     var files = [{ name: "pack.json", data: enc.encode(JSON.stringify(p, null, 2)) }];
@@ -860,11 +932,11 @@
     packMsg("Saved " + name + ". On iPad look in Files → Downloads. If nothing happened, use “Share / Save to Files”.");
   }
   function removePack() {
-    if (!confirm("Remove the personal pack (words, stories, photos, recordings) from this device? Export a backup first. The generic board will show.")) return;
+    if (!confirm("Remove the photos, recordings and stories stored on this device? Export a backup first. The built-in board stays.")) return;
     Promise.all([Store.del("kv", "pack"), Store.clear("media")]).catch(function () {}).then(function () {
       pack = null; media = {}; resetMediaUrls(); Clips.reset(); localStorage.removeItem(LS.hidden);
       loadConfig(); state.page = "home"; state.story = null;
-      renderPackInfo(); renderVisibility(); renderStoryEditor(); packMsg("Personal pack removed.");
+      renderPackInfo(); renderVisibility(); renderStoryEditor(); packMsg("Device additions removed. Built-in board shown.");
     });
   }
 
@@ -924,7 +996,7 @@
       var key = "photos/" + (target.kind === "word" ? target.id : target.story + "-p" + (target.page + 1)) + "-" + Date.now() + ".jpg", old;
       if (target.kind === "word") {
         var pw = pack.config.words.filter(function (x) { return x.id === target.id; })[0];
-        if (!pw) throw new Error("word not found");
+        if (!pw) { pw = { id: target.id }; pack.config.words.push(pw); }
         old = pw.image; pw.image = key;
       } else {
         var s = ownStory(target.story); old = s.pages[target.page].image; s.pages[target.page].image = key;

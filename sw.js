@@ -1,8 +1,10 @@
 /* Service worker: makes the app work with no network after the first visit.
    Only runs on https:// or http://localhost (browser rule). */
-var CACHE = "wordboard-v10";   // bump this whenever app files change so devices update
+var CACHE = "wordboard-v12";   // bump this whenever app files change so devices update
 var SHELL = ["./", "styles.css", "store.js", "app.js", "words.js", "stories.js", "manifest.json",
-  "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
+  "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
+  "private/overlay.js"]   // optional: only exists in the private copy; a 404 is simply skipped
+  .concat([1, 2, 3, 4, 5, 6, 7, 8].map(function (n) { return "media/stories/cat-p" + n + ".jpg"; }));
 
 /* Some file servers (e.g. tailscale serve) redirect /index.html -> /.
    Safari refuses to show a redirected response from a service worker for a page
@@ -19,7 +21,7 @@ self.addEventListener("install", function (event) {
     return Promise.all(SHELL.map(function (u) {
       return fetch(new Request(u, { cache: "reload" })).then(clean).then(function (res) {
         if (res && res.ok) return cache.put(u, res);
-      });
+      }).catch(function () {});
     }));   // personal media lives in IndexedDB, not here
   }).then(function () { return self.skipWaiting(); }));
 });
