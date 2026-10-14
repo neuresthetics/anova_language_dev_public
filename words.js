@@ -76,8 +76,8 @@
       {
         "id": "animals",
         "title": "Animals",
-        "rows": 5,
-        "cols": 8
+        "rows": 9,
+        "cols": 10
       },
       {
         "id": "vehicles",
@@ -2286,6 +2286,746 @@
         "type": "descriptor",
         "level": 1,
         "emoji": "➖"
+      },
+      {
+        "id": "sheep",
+        "label": "sheep",
+        "page": "animals",
+        "row": 3,
+        "col": 1,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐑"
+      },
+      {
+        "id": "goat",
+        "label": "goat",
+        "page": "animals",
+        "row": 3,
+        "col": 2,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐐"
+      },
+      {
+        "id": "chicken-animal",
+        "label": "chicken",
+        "page": "animals",
+        "row": 3,
+        "col": 3,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐔"
+      },
+      {
+        "id": "rooster",
+        "label": "rooster",
+        "page": "animals",
+        "row": 3,
+        "col": 4,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐓"
+      },
+      {
+        "id": "chick",
+        "label": "chick",
+        "page": "animals",
+        "row": 3,
+        "col": 5,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐤"
+      },
+      {
+        "id": "turkey",
+        "label": "turkey",
+        "page": "animals",
+        "row": 3,
+        "col": 6,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦃"
+      },
+      {
+        "id": "donkey",
+        "label": "donkey",
+        "page": "animals",
+        "row": 3,
+        "col": 7,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🫏"
+      },
+      {
+        "id": "goose",
+        "label": "goose",
+        "page": "animals",
+        "row": 3,
+        "col": 8,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🪿"
+      },
+      {
+        "id": "rabbit",
+        "label": "rabbit",
+        "page": "animals",
+        "row": 3,
+        "col": 9,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐇"
+      },
+      {
+        "id": "mouse",
+        "label": "mouse",
+        "page": "animals",
+        "row": 3,
+        "col": 10,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐁"
+      },
+      {
+        "id": "lion",
+        "label": "lion",
+        "page": "animals",
+        "row": 4,
+        "col": 1,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦁"
+      },
+      {
+        "id": "tiger",
+        "label": "tiger",
+        "page": "animals",
+        "row": 4,
+        "col": 2,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐅"
+      },
+      {
+        "id": "bear",
+        "label": "bear",
+        "page": "animals",
+        "row": 4,
+        "col": 3,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐻"
+      },
+      {
+        "id": "monkey",
+        "label": "monkey",
+        "page": "animals",
+        "row": 4,
+        "col": 4,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐒"
+      },
+      {
+        "id": "elephant",
+        "label": "elephant",
+        "page": "animals",
+        "row": 4,
+        "col": 5,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐘"
+      },
+      {
+        "id": "giraffe",
+        "label": "giraffe",
+        "page": "animals",
+        "row": 4,
+        "col": 6,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦒"
+      },
+      {
+        "id": "zebra",
+        "label": "zebra",
+        "page": "animals",
+        "row": 4,
+        "col": 7,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦓"
+      },
+      {
+        "id": "panda",
+        "label": "panda",
+        "page": "animals",
+        "row": 4,
+        "col": 8,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐼"
+      },
+      {
+        "id": "kangaroo",
+        "label": "kangaroo",
+        "page": "animals",
+        "row": 4,
+        "col": 9,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦘"
+      },
+      {
+        "id": "koala",
+        "label": "koala",
+        "page": "animals",
+        "row": 4,
+        "col": 10,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐨"
+      },
+      {
+        "id": "gorilla",
+        "label": "gorilla",
+        "page": "animals",
+        "row": 5,
+        "col": 1,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦍"
+      },
+      {
+        "id": "hippo",
+        "label": "hippo",
+        "page": "animals",
+        "row": 5,
+        "col": 2,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦛"
+      },
+      {
+        "id": "rhino",
+        "label": "rhino",
+        "page": "animals",
+        "row": 5,
+        "col": 3,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦏"
+      },
+      {
+        "id": "camel",
+        "label": "camel",
+        "page": "animals",
+        "row": 5,
+        "col": 4,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐪"
+      },
+      {
+        "id": "llama",
+        "label": "llama",
+        "page": "animals",
+        "row": 5,
+        "col": 5,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦙"
+      },
+      {
+        "id": "leopard",
+        "label": "leopard",
+        "page": "animals",
+        "row": 5,
+        "col": 6,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐆"
+      },
+      {
+        "id": "wolf",
+        "label": "wolf",
+        "page": "animals",
+        "row": 5,
+        "col": 7,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐺"
+      },
+      {
+        "id": "deer",
+        "label": "deer",
+        "page": "animals",
+        "row": 5,
+        "col": 8,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦌"
+      },
+      {
+        "id": "polar-bear",
+        "label": "polar bear",
+        "page": "animals",
+        "row": 5,
+        "col": 9,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐻‍❄️"
+      },
+      {
+        "id": "raccoon",
+        "label": "raccoon",
+        "page": "animals",
+        "row": 5,
+        "col": 10,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦝"
+      },
+      {
+        "id": "hamster",
+        "label": "hamster",
+        "page": "animals",
+        "row": 6,
+        "col": 1,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐹"
+      },
+      {
+        "id": "hedgehog",
+        "label": "hedgehog",
+        "page": "animals",
+        "row": 6,
+        "col": 2,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦔"
+      },
+      {
+        "id": "otter",
+        "label": "otter",
+        "page": "animals",
+        "row": 6,
+        "col": 3,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦦"
+      },
+      {
+        "id": "skunk",
+        "label": "skunk",
+        "page": "animals",
+        "row": 6,
+        "col": 4,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦨"
+      },
+      {
+        "id": "sloth",
+        "label": "sloth",
+        "page": "animals",
+        "row": 6,
+        "col": 5,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦥"
+      },
+      {
+        "id": "beaver",
+        "label": "beaver",
+        "page": "animals",
+        "row": 6,
+        "col": 6,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦫"
+      },
+      {
+        "id": "chipmunk",
+        "label": "chipmunk",
+        "page": "animals",
+        "row": 6,
+        "col": 7,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🐿️"
+      },
+      {
+        "id": "badger",
+        "label": "badger",
+        "page": "animals",
+        "row": 6,
+        "col": 8,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦡"
+      },
+      {
+        "id": "moose",
+        "label": "moose",
+        "page": "animals",
+        "row": 6,
+        "col": 9,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🫎"
+      },
+      {
+        "id": "bison",
+        "label": "bison",
+        "page": "animals",
+        "row": 6,
+        "col": 10,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦬"
+      },
+      {
+        "id": "penguin",
+        "label": "penguin",
+        "page": "animals",
+        "row": 7,
+        "col": 1,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐧"
+      },
+      {
+        "id": "parrot",
+        "label": "parrot",
+        "page": "animals",
+        "row": 7,
+        "col": 2,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦜"
+      },
+      {
+        "id": "eagle",
+        "label": "eagle",
+        "page": "animals",
+        "row": 7,
+        "col": 3,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦅"
+      },
+      {
+        "id": "swan",
+        "label": "swan",
+        "page": "animals",
+        "row": 7,
+        "col": 4,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦢"
+      },
+      {
+        "id": "flamingo",
+        "label": "flamingo",
+        "page": "animals",
+        "row": 7,
+        "col": 5,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦩"
+      },
+      {
+        "id": "peacock",
+        "label": "peacock",
+        "page": "animals",
+        "row": 7,
+        "col": 6,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦚"
+      },
+      {
+        "id": "dove",
+        "label": "dove",
+        "page": "animals",
+        "row": 7,
+        "col": 7,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🕊️"
+      },
+      {
+        "id": "turtle",
+        "label": "turtle",
+        "page": "animals",
+        "row": 7,
+        "col": 8,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐢"
+      },
+      {
+        "id": "snake",
+        "label": "snake",
+        "page": "animals",
+        "row": 7,
+        "col": 9,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐍"
+      },
+      {
+        "id": "lizard",
+        "label": "lizard",
+        "page": "animals",
+        "row": 7,
+        "col": 10,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦎"
+      },
+      {
+        "id": "crocodile",
+        "label": "crocodile",
+        "page": "animals",
+        "row": 8,
+        "col": 1,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐊"
+      },
+      {
+        "id": "dinosaur",
+        "label": "dinosaur",
+        "page": "animals",
+        "row": 8,
+        "col": 2,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦖"
+      },
+      {
+        "id": "whale",
+        "label": "whale",
+        "page": "animals",
+        "row": 8,
+        "col": 3,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐳"
+      },
+      {
+        "id": "dolphin",
+        "label": "dolphin",
+        "page": "animals",
+        "row": 8,
+        "col": 4,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐬"
+      },
+      {
+        "id": "shark",
+        "label": "shark",
+        "page": "animals",
+        "row": 8,
+        "col": 5,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦈"
+      },
+      {
+        "id": "seal",
+        "label": "seal",
+        "page": "animals",
+        "row": 8,
+        "col": 6,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🦭"
+      },
+      {
+        "id": "octopus",
+        "label": "octopus",
+        "page": "animals",
+        "row": 8,
+        "col": 7,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐙"
+      },
+      {
+        "id": "jellyfish",
+        "label": "jellyfish",
+        "page": "animals",
+        "row": 8,
+        "col": 8,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🪼"
+      },
+      {
+        "id": "crab",
+        "label": "crab",
+        "page": "animals",
+        "row": 8,
+        "col": 9,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦀"
+      },
+      {
+        "id": "snail",
+        "label": "snail",
+        "page": "animals",
+        "row": 8,
+        "col": 10,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐌"
+      },
+      {
+        "id": "lobster",
+        "label": "lobster",
+        "page": "animals",
+        "row": 9,
+        "col": 1,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦞"
+      },
+      {
+        "id": "shrimp",
+        "label": "shrimp",
+        "page": "animals",
+        "row": 9,
+        "col": 2,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦐"
+      },
+      {
+        "id": "squid",
+        "label": "squid",
+        "page": "animals",
+        "row": 9,
+        "col": 3,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦑"
+      },
+      {
+        "id": "bee",
+        "label": "bee",
+        "page": "animals",
+        "row": 9,
+        "col": 4,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐝"
+      },
+      {
+        "id": "butterfly",
+        "label": "butterfly",
+        "page": "animals",
+        "row": 9,
+        "col": 5,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🦋"
+      },
+      {
+        "id": "ladybug",
+        "label": "ladybug",
+        "page": "animals",
+        "row": 9,
+        "col": 6,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🐞"
+      },
+      {
+        "id": "spider",
+        "label": "spider",
+        "page": "animals",
+        "row": 9,
+        "col": 7,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🕷️"
+      },
+      {
+        "id": "worm",
+        "label": "worm",
+        "page": "animals",
+        "row": 9,
+        "col": 8,
+        "type": "noun",
+        "level": 1,
+        "emoji": "🪱"
+      },
+      {
+        "id": "caterpillar",
+        "label": "caterpillar",
+        "page": "animals",
+        "row": 9,
+        "col": 9,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🐛"
+      },
+      {
+        "id": "beetle",
+        "label": "beetle",
+        "page": "animals",
+        "row": 9,
+        "col": 10,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🪲"
+      },
+      {
+        "id": "fly",
+        "label": "fly",
+        "page": "animals",
+        "row": 1,
+        "col": 9,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🪰"
+      },
+      {
+        "id": "cricket",
+        "label": "cricket",
+        "page": "animals",
+        "row": 1,
+        "col": 10,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦗"
+      },
+      {
+        "id": "mosquito",
+        "label": "mosquito",
+        "page": "animals",
+        "row": 2,
+        "col": 8,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦟"
+      },
+      {
+        "id": "scorpion",
+        "label": "scorpion",
+        "page": "animals",
+        "row": 2,
+        "col": 9,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦂"
       }
     ],
     "knownWords": [
