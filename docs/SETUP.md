@@ -35,7 +35,8 @@ Any other static web host with https works too.
 3. Tap **Share**, then **Add to Home Screen**. If you see **Open as Web App**, leave it
    **on**. Tap **Add**.
 4. From now on, always open Word Board from this **Home Screen icon**. The Home Screen app
-   keeps its own storage, separate from Safari, so import your pack in the icon app (part 5).
+   keeps its own storage, separate from Safari, so add photos (and import a pack, if you
+   use one) in the icon app.
 5. Check offline use: hold the ⚙ gear (top right) for **2 seconds**. At the bottom,
    **About** should say *Offline copy: installed*. Tap **Done**.
 
@@ -67,9 +68,11 @@ children don't open it by accident.
    **Export JSON** to see it. It stays on this iPad.
 5. Tap **Done**.
 
-## 5. Make your own personal pack (on a computer)
+## 5. Optional: make your own personal pack (on a computer)
 
-A pack holds your child's own words, folders and stories. The easiest start is to export the
+You can skip this part. Since version 1.3.0 every word (starter, middle and full) and every
+story is built into the app, so the board is ready as soon as it opens. A pack is only for
+your child's own extra words, folders, stories, photos or recordings. The easiest start is to export the
 board you already have and edit it.
 
 1. On your computer, open your app address (from part 1) in a web browser.
@@ -89,8 +92,9 @@ board you already have and edit it.
 6. On the iPad, open Word Board **from the Home Screen icon**. Hold ⚙ for 2 seconds. Under
    **Personal pack**, tap **Import pack (.zip / .json)**, choose the file, and confirm.
 
-Importing **replaces** the board on that iPad, so tap **Export pack** first if you made
-changes on the iPad (like photos) that you want to keep. Your *Words shown* choice is kept.
+An imported pack adds its words, photos, recordings and stories **on top of** the built-in
+board. It only replaces the board if its `pack.json` has `"replace": true`. Tap **Export pack** first if you made changes on the iPad (like photos) that you
+want to keep. Your *Words shown* choice is kept.
 
 ### A tiny pack, for reference
 
@@ -172,4 +176,5 @@ on the iPad (part 4). To bundle files instead, use the build tool. It needs
    downloads the update in the background; the second open shows it. Check the version
    under ⚙ → **About**.
 
-Your pack, photos, settings and usage log stay on the iPad through updates.
+New words and stories arrive with the update; there is nothing to import. Your photos,
+settings, hidden words, usage log and any pack stay on the iPad through updates.
