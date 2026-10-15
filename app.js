@@ -5,7 +5,7 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.3.3";
+  var APP_VERSION = "1.3.4";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -26,6 +26,32 @@
     return (w && w.say) || SAY_DEFAULTS[k] || null;
   }
   var NOVELTY = /^(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|pipe organ|superstar|trinoids|whisper|wobble|zarvox|deranged|hysterical)\b/i;
+  /* Automatic voice: rank English voices by quality. en-US always wins over other English;
+     known robotic voices sink; a local voice only wins a tie. On iPad this picks a
+     Premium/Enhanced voice if one is downloaded, else Samantha (as before). */
+  var ROBOTIC = /espeak|\bfred\b|\balbert\b|zarvox|trinoids|\bralph\b|kathy|junior/i;
+  function voiceScore(v) {
+    var n = v.name || "", s = 0;
+    if (!/^en/i.test(v.lang || "")) return -1000;
+    if (/^en[-_]US/i.test(v.lang)) s += 100;
+    if (NOVELTY.test(n) || ROBOTIC.test(n)) s -= 200;
+    if (/premium/i.test(n)) s += 60;
+    else if (/enhanced/i.test(n)) s += 55;
+    if (/natural|neural/i.test(n)) s += 50;
+    if (/google us english/i.test(n)) s += 40;
+    if (/samantha/i.test(n)) s += 40;
+    if (/\b(ava|allison|aria|jenny|zoe|evan|nathan)\b/i.test(n)) s += 35;
+    if (/online/i.test(n)) s += 10;
+    if (/microsoft david desktop|microsoft zira desktop|microsoft mark/i.test(n)) s -= 20;
+    if (v.default) s += 2;
+    if (v.localService) s += 1;
+    return s;
+  }
+  function bestVoice(vs) {
+    var best = null, bs = -999;
+    (vs || []).forEach(function (v) { var sc = voiceScore(v); if (sc > bs) { bs = sc; best = v; } });
+    return best;
+  }
   var Store = window.WBStore, Zip = window.WBZip;
 
   /* ------------------------------------------------------------ helpers */
@@ -281,12 +307,7 @@
       var i;
       for (i = 0; i < vs.length; i++) if (settings.voiceURI && vs[i].voiceURI === settings.voiceURI) return vs[i];
       for (i = 0; i < vs.length; i++) if (settings.voiceName && vs[i].name === settings.voiceName) return vs[i];
-      var us = vs.filter(function (x) { return /^en[-_]US/i.test(x.lang) && !NOVELTY.test(x.name); });
-      var pool = us.length ? us : vs.filter(function (x) { return /^en/i.test(x.lang) && !NOVELTY.test(x.name); });
-      return pool.filter(function (x) { return /premium|enhanced|natural/i.test(x.name); })[0] ||
-        pool.filter(function (x) { return /samantha/i.test(x.name); })[0] ||
-        pool.filter(function (x) { return x.default; })[0] ||
-        pool.filter(function (x) { return x.localService; })[0] || pool[0] || null;
+      return bestVoice(vs);
     },
     speak: function (text, opts) {
       opts = opts || {};
@@ -785,7 +806,8 @@
       var au = /^en[-_]US/i.test(a.lang) ? 0 : 1, bu = /^en[-_]US/i.test(b.lang) ? 0 : 1;
       return au - bu || (a.lang < b.lang ? -1 : a.lang > b.lang ? 1 : 0) || (a.name < b.name ? -1 : 1);
     });
-    var auto = el("option", null, "Automatic (best en-US voice" + (cur ? ": " + cur.name : "") + ")"); auto.value = ""; sel.appendChild(auto);
+    var auto = el("option", null, "Automatic (best voice" + (cur ? ": " + cur.name : "") + ")"); auto.value = ""; sel.appendChild(auto);
+    vs.sort(function (a, b) { return voiceScore(b) - voiceScore(a); });
     vs.forEach(function (v) { var o = el("option", null, v.name + " (" + v.lang + ")" + (v.localService ? "" : " – online")); o.value = v.voiceURI; sel.appendChild(o); });
     sel.value = settings.voiceURI && vs.some(function (v) { return v.voiceURI === settings.voiceURI; }) ? settings.voiceURI : "";
     var note = $("voice-note");
@@ -1125,8 +1147,22 @@
     if ("serviceWorker" in navigator && !window.AAC_SINGLE_FILE && window.isSecureContext && /^https?:$/.test(location.protocol)) {
       navigator.serviceWorker.register("sw.js").catch(function (e) { console.info("offline support not available:", e && e.message); });
     }
-    window.WB = { state: state, msg: msg, settings: settings, get config() { return config; }, get stories() { return stories; }, get pack() { return pack; },
+    tryItNotice();
+    window.WB = { state: state, msg: msg, bestVoice: function () { return Speech.voice(); }, settings: settings, get config() { return config; }, get stories() { return stories; }, get pack() { return pack; },
       problems: function () { return problems; }, openSettings: openSettings, predictionList: predictionList, importPack: importPack };
+  }
+  /* Try-it notice: only on the public github.io copy, not when installed or in the private copy. */
+  function tryItNotice() {
+    var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+    if (!/\.github\.io$/i.test(location.hostname) || standalone || window.AAC_PRIVATE || window.AAC_SINGLE_FILE) return;
+    try { if (localStorage.getItem("wb.tryNoticeDismissed")) return; } catch (e) {}
+    var n = el("div", "try-notice"); n.id = "try-notice"; n.setAttribute("role", "note");
+    var t = el("span", null, "Voice quality depends on your device and browser: Chrome, Edge or an iPad sound best. To use it for real, ");
+    var a = el("a", null, "get your own copy"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/blob/main/docs/SETUP.md"; a.target = "_blank"; a.rel = "noopener";
+    t.appendChild(a); t.appendChild(document.createTextNode("."));
+    var x = el("button", "try-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "dismiss notice");
+    x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove(); });
+    n.appendChild(t); n.appendChild(x); document.body.appendChild(n);
   }
   function boot() {
     // Load the on-device pack BEFORE the first paint so buttons never jump from the generic layout.

@@ -3,7 +3,7 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.3.3.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
+**Current version: 1.3.4.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
 Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md).
 
 | Home (starter level) | Home (full) | Animals |
@@ -68,6 +68,12 @@ its pack.json has `"replace": true`.
   `level` field (1 = starter, 2 = middle, 3 = full) in `words.js`. A pack can set its default
   with `config.wordsShown`; once a parent picks a level it is saved on the device and kept when
   a pack is imported again.
+- **Voice.** *Automatic (best voice)* picks the best English voice on the device: en-US first,
+  then Premium/Enhanced, "Natural"/"Neural" (Edge), Google US English, Samantha (iPad), Ava,
+  Allison, Aria or Jenny; robotic voices like eSpeak, Fred or Albert come last. ⚙ → Voice lists
+  the device's English voices (best first) with a **Test voice** button; the choice is saved on
+  that device. On the public try-it page a small dismissible note says voice quality depends on
+  the device/browser (Chrome, Edge or an iPad sound best); it never shows in an installed copy.
 - **Parent settings** (hold the dim ⚙ gear for 2 seconds; triple tap is optional):
   voice, speed, pitch, volume; text case; pictures on/off; prediction; tap-repeat guard;
   story read mode; optional pack import/export; hide/show words; add photos from the

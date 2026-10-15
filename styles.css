@@ -256,3 +256,10 @@ button, [role="button"] {
 .story-row .story-txt { flex: 1 1 200px; }
 #settings details summary { font-weight: 700; cursor: pointer; margin: 8px 0; }
 .cell.bksp .lbl { font-size: min(70cqh, 40cqw); }
+
+/* try-it notice (public github.io copy only) */
+.try-notice { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 50; max-width: min(640px, 94vw);
+  display: flex; align-items: center; gap: 10px; background: rgba(40,40,40,.94); color: #eee; border: 1px solid #666;
+  border-radius: 10px; padding: 8px 10px 8px 14px; font-size: 14px; line-height: 1.35; }
+.try-notice a { color: #9cf; }
+.try-notice .try-x { flex: none; background: none; border: 1px solid #888; color: #eee; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; }
