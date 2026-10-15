@@ -5,7 +5,7 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.3.2";
+  var APP_VERSION = "1.3.3";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -197,6 +197,16 @@
   function setWordsShown(mode) {
     if (mode === "custom" && !customVis) { customVis = { base: LEVELS[wordsShownMode()] || 3, shown: {} }; writeJSON(LS.custom, customVis); }
     settings.wordsShown = mode; saveSettings();
+  }
+  /* Level menu labels are counted from the board itself (home words per level), so they never go stale. */
+  function labelLevelOptions() {
+    var n = [0, 0, 0, 0];
+    config.words.forEach(function (w) { if (w.page === "home" && w.type !== "folder" && cellMap.home && cellMap.home[w.row + "," + w.col] === w) n[wordLevel(w)]++; });
+    var all = n[1] + n[2] + n[3], text = {
+      starter: "Starter: the " + n[1] + " most-used home words",
+      middle: "Middle: " + (n[1] + n[2]) + " home words",
+      full: "Full: every word (" + all + " on home)" };
+    Array.prototype.forEach.call($("set-wordsshown").options, function (o) { if (text[o.value]) o.textContent = text[o.value]; });
   }
   function shownCount(pageId) {
     var n = 0, all = 0;
@@ -795,6 +805,7 @@
     $("set-tapguard").value = String(settings.tapGuardMs);
     $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
+    labelLevelOptions();
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
     var sw = navigator.serviceWorker && navigator.serviceWorker.controller;

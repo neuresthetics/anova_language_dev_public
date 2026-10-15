@@ -3,7 +3,7 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.3.2.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
+**Current version: 1.3.3.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
 Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md).
 
 | Home (starter level) | Home (full) | Animals |
@@ -86,7 +86,7 @@ level, and the parent decides how much of the board is visible.
 the same place at every level.*
 
 **Three levels.** Each word in `words.js` has a `level`: 1 = starter, 2 = middle, 3 = full.
-In 1.3.2 the built-in board has 275 words plus 10 folder buttons:
+In 1.3.3 the built-in board has 275 words plus 10 folder buttons:
 
 | Level | Home shows | Whole board (with *levels in folders* on) |
 |---|---|---|
