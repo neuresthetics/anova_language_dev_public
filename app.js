@@ -1161,8 +1161,12 @@
     var a = el("a", null, "get your own copy"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/blob/main/docs/SETUP.md"; a.target = "_blank"; a.rel = "noopener";
     t.appendChild(a); t.appendChild(document.createTextNode("."));
     var x = el("button", "try-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "dismiss notice");
-    x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove(); });
+    x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove();
+      document.body.classList.remove("has-try-notice"); document.documentElement.style.removeProperty("--try-h"); });
     n.appendChild(t); n.appendChild(x); document.body.appendChild(n);
+    function fit() { if (n.parentNode) document.documentElement.style.setProperty("--try-h", n.offsetHeight + "px"); }
+    document.body.classList.add("has-try-notice"); fit();
+    window.addEventListener("resize", fit);
   }
   function boot() {
     // Load the on-device pack BEFORE the first paint so buttons never jump from the generic layout.

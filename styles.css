@@ -257,9 +257,11 @@ button, [role="button"] {
 #settings details summary { font-weight: 700; cursor: pointer; margin: 8px 0; }
 .cell.bksp .lbl { font-size: min(70cqh, 40cqw); }
 
-/* try-it notice (public github.io copy only) */
-.try-notice { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 50; max-width: min(640px, 94vw);
-  display: flex; align-items: center; gap: 10px; background: rgba(40,40,40,.94); color: #eee; border: 1px solid #666;
-  border-radius: 10px; padding: 8px 10px 8px 14px; font-size: 14px; line-height: 1.35; }
+/* try-it notice (public github.io copy only): a slim banner at the very top; the app is pushed
+   down by its height while it shows, so it never covers a button. */
+.try-notice { position: fixed; left: 0; right: 0; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center; gap: 10px; background: #2b2b2b; color: #ddd;
+  border-bottom: 1px solid #555; padding: calc(4px + env(safe-area-inset-top)) 8px 4px 12px; font-size: 13px; line-height: 1.3; }
 .try-notice a { color: #9cf; }
-.try-notice .try-x { flex: none; background: none; border: 1px solid #888; color: #eee; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; }
+.try-notice .try-x { flex: none; background: none; border: 1px solid #777; color: #eee; border-radius: 6px; width: 28px; height: 26px; font-size: 14px; padding: 0; }
+body.has-try-notice #app { top: var(--try-h, 0px); }
