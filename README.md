@@ -75,6 +75,68 @@ its pack.json has `"replace": true`.
 
 No animations, no ads, no sounds except speech and recordings.
 
+## How the board grows with her language
+
+The board is built to grow without ever moving a button. Every word has a fixed place and a
+level, and the parent decides how much of the board is visible.
+
+![The same home board at starter, middle and full](docs/screenshots/growth-home-starter-middle-full.png)
+
+*Home at **Starter**, **Middle** and **Full** (left to right). The buttons that show stay in
+the same place at every level.*
+
+**Three levels.** Each word in `words.js` has a `level`: 1 = starter, 2 = middle, 3 = full.
+In 1.3.2 the built-in board has 275 words plus 10 folder buttons:
+
+| Level | Home shows | Whole board (with *levels in folders* on) |
+|---|---|---|
+| **Starter** (default) | 49 of 72 home words | 129 words |
+| **Middle** (starter + middle) | 66 of 72 | 182 words |
+| **Full** | all 72 | all 275 |
+
+Folder buttons always show at every level.
+
+![Words shown setting](docs/screenshots/growth-setting-words-shown.png)
+
+**Levels inside folders.** By default the level only applies to Home, and every folder shows
+all of its words. Tick *also use this level inside folders* (⚙ → Words shown) to mask folder
+pages too. For example, the animals folder at Starter then shows 42 of its 89 animals, each
+in its usual place:
+
+![Animals folder at Starter with levels in folders on](docs/screenshots/growth-animals-starter-levels-in-folders.png)
+
+**Turning single words on or off.** ⚙ → *Words: show / hide and photos* shows every page as a
+grid. Each word carries its level (L1/L2/L3), and empty cells show their row and column.
+With *hide / show it* selected, tapping a word flips it on or off. The first tap switches
+*Words shown* to **Custom**, starting from the level you were on, so you can add one new word
+at a time ahead of the next level. Folder buttons can be hidden here too. These choices are
+saved on that iPad.
+
+![Per-word show/hide screen](docs/screenshots/growth-settings-show-hide.png)
+
+**Positions never move.** A hidden or not-yet-shown word leaves an **empty cell** instead of
+letting other buttons slide over, so a button she has learned is in the same spot at
+Starter, Middle, Full and Custom. New words only go into empty cells. When the app loads, a
+word whose place is already taken is reported as a problem and doesn't take the place. Words
+from a pack that are also built into the app keep their built-in position, so an update
+can't scramble the layout (only a pack marked `"replace": true` uses its own layout). This is
+what lets motor memory carry over as the vocabulary grows.
+
+**Opposites sit together.** On Home the pairs are stacked: more above less, up above down, on
+above off, in above out, big above little. Open is next to close and yes is next to no. In
+the describe and actions folders they sit side by side: hot/cold, fast/slow, full/empty,
+clean/dirty, loud/quiet, give/take and sit/stand.
+
+**Adding words.** Add a word to `words.js` with an empty `row`/`col` and a `level`. It ships
+to every device with the next app update, and there's nothing to import. For words only one
+child needs, an optional personal pack (see below) can add words into empty cells on that
+iPad.
+
+**Tracking growth.** The opt-in *usage log* (⚙ → Usage log, off by default) records the time
+and word for every word button tapped and every finished typed word. It stays on the iPad,
+and you can export it as CSV or JSON. It's a simple way to see which words she uses, so you
+know when it's time to reveal more.
+
 ## Colour coding (modified Fitzgerald key)
 
 | Colour | Group | Examples |
