@@ -87,7 +87,7 @@
         "id": "sentences",
         "n": 4,
         "label": "Sentences",
-        "hint": "adds a, the, word endings, little words",
+        "hint": "adds when, word endings, more little words",
         "gate": true
       },
       {
@@ -1317,8 +1317,7 @@
         "type": "negation",
         "level": 3,
         "emoji": "🚫",
-        "hidden": true,
-        "note": "uncertain spelling (Cant) - recheck"
+        "hidden": false
       },
       {
         "id": "cares",
@@ -3090,7 +3089,7 @@
         "row": 8,
         "col": 1,
         "type": "little",
-        "level": 4,
+        "level": 3,
         "emoji": "🔹",
         "sayAlone": "uh"
       },
@@ -3101,16 +3100,16 @@
         "row": 8,
         "col": 3,
         "type": "little",
-        "level": 4,
+        "level": 3,
         "emoji": "🔷",
         "sayAlone": "thuh"
       },
       {
         "id": "when",
         "label": "when",
-        "page": "home",
-        "row": 8,
-        "col": 4,
+        "page": "little",
+        "row": 1,
+        "col": 5,
         "type": "little",
         "level": 4,
         "emoji": "🕐"
@@ -3155,7 +3154,7 @@
         "row": 9,
         "col": 9,
         "type": "folder",
-        "level": 4,
+        "level": 3,
         "emoji": "🧩",
         "target": "little"
       },
@@ -3267,7 +3266,7 @@
         "row": 3,
         "col": 1,
         "type": "little",
-        "level": 4,
+        "level": 3,
         "emoji": "🤝"
       },
       {
@@ -3277,7 +3276,7 @@
         "row": 3,
         "col": 2,
         "type": "little",
-        "level": 4,
+        "level": 3,
         "emoji": "🎁"
       },
       {
@@ -3297,7 +3296,7 @@
         "row": 3,
         "col": 4,
         "type": "little",
-        "level": 4,
+        "level": 3,
         "emoji": "📌"
       },
       {
@@ -3347,7 +3346,7 @@
         "row": 4,
         "col": 3,
         "type": "verb",
-        "level": 4,
+        "level": 3,
         "emoji": "✔️"
       },
       {
@@ -3397,7 +3396,7 @@
         "row": 5,
         "col": 1,
         "type": "people",
-        "level": 4,
+        "level": 3,
         "emoji": "👦"
       },
       {
@@ -3417,7 +3416,7 @@
         "row": 5,
         "col": 3,
         "type": "people",
-        "level": 4,
+        "level": 3,
         "emoji": "👫"
       },
       {
@@ -3437,7 +3436,7 @@
         "row": 5,
         "col": 5,
         "type": "people",
-        "level": 4,
+        "level": 3,
         "emoji": "👨‍👩‍👧"
       },
       {
@@ -3478,7 +3477,7 @@
         "row": 2,
         "col": 2,
         "type": "descriptor",
-        "level": 4,
+        "level": 3,
         "emoji": "🏁"
       },
       {
@@ -3744,9 +3743,9 @@
       {
         "id": "wish",
         "label": "wish",
-        "page": "actions",
+        "page": "time",
         "row": 4,
-        "col": 6,
+        "col": 5,
         "type": "verb",
         "level": 5,
         "emoji": "🌠"
@@ -3754,9 +3753,9 @@
       {
         "id": "guess",
         "label": "guess",
-        "page": "actions",
+        "page": "time",
         "row": 4,
-        "col": 7,
+        "col": 6,
         "type": "verb",
         "level": 5,
         "emoji": "🤷"
@@ -3838,7 +3837,7 @@
         "row": 5,
         "col": 7,
         "type": "verb",
-        "level": 5,
+        "level": 3,
         "emoji": "🧽"
       },
       {
@@ -3888,7 +3887,7 @@
         "row": 4,
         "col": 4,
         "type": "descriptor",
-        "level": 5,
+        "level": 3,
         "emoji": "😂"
       },
       {
@@ -4078,7 +4077,7 @@
         "row": 3,
         "col": 1,
         "type": "noun",
-        "level": 5,
+        "level": 2,
         "emoji": "📘"
       },
       {
@@ -4148,7 +4147,7 @@
         "row": 3,
         "col": 8,
         "type": "noun",
-        "level": 5,
+        "level": 2,
         "emoji": "⚽"
       },
       {
@@ -4168,7 +4167,7 @@
         "row": 3,
         "col": 3,
         "type": "noun",
-        "level": 5,
+        "level": 3,
         "emoji": "🏞️"
       },
       {
@@ -4188,7 +4187,7 @@
         "row": 3,
         "col": 5,
         "type": "little",
-        "level": 5,
+        "level": 3,
         "emoji": "🛋️"
       },
       {
@@ -4208,8 +4207,388 @@
         "row": 3,
         "col": 7,
         "type": "noun",
-        "level": 5,
+        "level": 3,
+        "emoji": "🚿"
+      },
+      {
+        "id": "me-home",
+        "label": "me",
+        "page": "home",
+        "row": 8,
+        "col": 4,
+        "type": "people",
+        "level": 2,
+        "emoji": "🙋"
+      },
+      {
+        "id": "im",
+        "label": "I'm",
+        "page": "little",
+        "row": 1,
+        "col": 6,
+        "type": "people",
+        "level": 3,
+        "emoji": "😀"
+      },
+      {
+        "id": "its-contr",
+        "label": "it's",
+        "page": "little",
+        "row": 1,
+        "col": 7,
+        "type": "people",
+        "level": 3,
+        "emoji": "🔵"
+      },
+      {
+        "id": "thats",
+        "label": "that's",
+        "page": "little",
+        "row": 1,
+        "col": 8,
+        "type": "people",
+        "level": 3,
+        "emoji": "👈"
+      },
+      {
+        "id": "lets",
+        "label": "let's",
+        "page": "little",
+        "row": 2,
+        "col": 6,
+        "type": "people",
+        "level": 3,
+        "emoji": "👯"
+      },
+      {
+        "id": "tummy",
+        "label": "tummy",
+        "page": "people",
+        "row": 4,
+        "col": 1,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🫃"
+      },
+      {
+        "id": "head",
+        "label": "head",
+        "page": "people",
+        "row": 4,
+        "col": 2,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👤"
+      },
+      {
+        "id": "hands",
+        "label": "hands",
+        "page": "people",
+        "row": 4,
+        "col": 3,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👐"
+      },
+      {
+        "id": "feet",
+        "label": "feet",
+        "page": "people",
+        "row": 4,
+        "col": 4,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👣"
+      },
+      {
+        "id": "teeth",
+        "label": "teeth",
+        "page": "people",
+        "row": 4,
+        "col": 5,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🦷"
+      },
+      {
+        "id": "mouth",
+        "label": "mouth",
+        "page": "people",
+        "row": 4,
+        "col": 6,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👄"
+      },
+      {
+        "id": "nose",
+        "label": "nose",
+        "page": "people",
+        "row": 4,
+        "col": 7,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👃"
+      },
+      {
+        "id": "eyes",
+        "label": "eyes",
+        "page": "people",
+        "row": 4,
+        "col": 8,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👁️"
+      },
+      {
+        "id": "bath",
+        "label": "bath",
+        "page": "where",
+        "row": 1,
+        "col": 7,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🛁"
+      },
+      {
+        "id": "bed",
+        "label": "bed",
+        "page": "where",
+        "row": 1,
+        "col": 8,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🛏️"
+      },
+      {
+        "id": "potty",
+        "label": "potty",
+        "page": "where",
+        "row": 2,
+        "col": 7,
+        "type": "noun",
+        "level": 2,
         "emoji": "🚽"
+      },
+      {
+        "id": "shoes",
+        "label": "shoes",
+        "page": "things",
+        "row": 2,
+        "col": 7,
+        "type": "noun",
+        "level": 2,
+        "emoji": "👟"
+      },
+      {
+        "id": "socks",
+        "label": "socks",
+        "page": "things",
+        "row": 2,
+        "col": 8,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🧦"
+      },
+      {
+        "id": "coat",
+        "label": "coat",
+        "page": "things",
+        "row": 4,
+        "col": 1,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🧥"
+      },
+      {
+        "id": "shirt",
+        "label": "shirt",
+        "page": "things",
+        "row": 4,
+        "col": 2,
+        "type": "noun",
+        "level": 3,
+        "emoji": "👕"
+      },
+      {
+        "id": "blanket",
+        "label": "blanket",
+        "page": "things",
+        "row": 4,
+        "col": 3,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🛌"
+      },
+      {
+        "id": "door",
+        "label": "door",
+        "page": "things",
+        "row": 4,
+        "col": 4,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🚪"
+      },
+      {
+        "id": "chair",
+        "label": "chair",
+        "page": "things",
+        "row": 4,
+        "col": 5,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🪑"
+      },
+      {
+        "id": "juice",
+        "label": "juice",
+        "page": "food",
+        "row": 2,
+        "col": 5,
+        "type": "noun",
+        "level": 2,
+        "emoji": "🍊"
+      },
+      {
+        "id": "apple",
+        "label": "apple",
+        "page": "food",
+        "row": 2,
+        "col": 6,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🍎"
+      },
+      {
+        "id": "banana",
+        "label": "banana",
+        "page": "food",
+        "row": 2,
+        "col": 7,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🍌"
+      },
+      {
+        "id": "cheese",
+        "label": "cheese",
+        "page": "food",
+        "row": 2,
+        "col": 8,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🧀"
+      },
+      {
+        "id": "snack",
+        "label": "snack",
+        "page": "food",
+        "row": 3,
+        "col": 1,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🥨"
+      },
+      {
+        "id": "cracker",
+        "label": "cracker",
+        "page": "food",
+        "row": 3,
+        "col": 2,
+        "type": "noun",
+        "level": 3,
+        "emoji": "🍘"
+      },
+      {
+        "id": "wow",
+        "label": "wow",
+        "page": "feelings",
+        "row": 2,
+        "col": 1,
+        "type": "social",
+        "level": 3,
+        "emoji": "😮"
+      },
+      {
+        "id": "yuck",
+        "label": "yuck",
+        "page": "feelings",
+        "row": 2,
+        "col": 2,
+        "type": "social",
+        "level": 3,
+        "emoji": "🤢"
+      },
+      {
+        "id": "yummy",
+        "label": "yummy",
+        "page": "feelings",
+        "row": 2,
+        "col": 3,
+        "type": "social",
+        "level": 3,
+        "emoji": "🤤"
+      },
+      {
+        "id": "oops",
+        "label": "oops",
+        "page": "feelings",
+        "row": 2,
+        "col": 4,
+        "type": "social",
+        "level": 3,
+        "emoji": "😅"
+      },
+      {
+        "id": "ouch",
+        "label": "ouch",
+        "page": "feelings",
+        "row": 2,
+        "col": 5,
+        "type": "social",
+        "level": 3,
+        "emoji": "😣"
+      },
+      {
+        "id": "broken",
+        "label": "broken",
+        "page": "describe",
+        "row": 2,
+        "col": 3,
+        "type": "descriptor",
+        "level": 3,
+        "emoji": "💔"
+      },
+      {
+        "id": "all-gone",
+        "label": "all gone",
+        "page": "describe",
+        "row": 2,
+        "col": 4,
+        "type": "descriptor",
+        "level": 3,
+        "emoji": "💨"
+      },
+      {
+        "id": "brush",
+        "label": "brush",
+        "page": "actions",
+        "row": 4,
+        "col": 6,
+        "type": "verb",
+        "level": 3,
+        "emoji": "🪥"
+      },
+      {
+        "id": "get-dressed",
+        "label": "get dressed",
+        "page": "actions",
+        "row": 4,
+        "col": 7,
+        "type": "verb",
+        "level": 3,
+        "emoji": "👗"
       }
     ],
     "knownWords": [

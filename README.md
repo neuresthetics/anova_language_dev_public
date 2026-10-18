@@ -3,7 +3,7 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.4.0.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
+**Current version: 1.4.1.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
 Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md).
 
 | Home (starter level) | Home (full) | Animals |
@@ -37,14 +37,17 @@ its pack.json has `"replace": true`.
 - **home (WORDS).** A fixed 9 × 10 grid of core words: I/you/he/she/we/they/this/her,
   helper verbs (is, are, am, have, need, feel), want/go/help/eat/drink, **to**, more/less,
   open/close, up/down, protest phrases (no thank you, don't want), quick replies (your
-  turn, uh oh, me too, okay, sorry, love you), question words (who, why, when), **a**, **the**
-  and the word-ending buttons **-s**, **-ing**, **-ed** (Sentences level). Opposites sit
+  turn, uh oh, me too, okay, sorry, love you), **me**, question words (who, why; **when** is in
+  little words), **a**, **the** and the word-ending buttons **-s**, **-ing**, **-ed** (Sentences level). Opposites sit
   side by side (more/less, open/close, up/down, big/little). Tapping a word **speaks it right away and
   adds it to the bar**. Folder buttons (bottom row) open category pages. The **home** tab
   always sits in the same place and goes back to the home page.
 - **Folders.** people, food, animals, vehicles, colors, feelings, things, actions,
-  describe, places, **little words** (Sentences level) and **time** (Conversation level).
-  **animals** holds 89 animals in A–Z order (ant … zebra).
+  describe, places, **little words** (from Expanded) and **time** (Conversation level).
+  **animals** holds 89 animals in A–Z order (ant … zebra). People has a row of body words
+  (tummy, head, hands, feet, teeth, mouth, nose, eyes), feelings a row of reactions (wow,
+  yuck, yummy, oops, ouch), places bath/bed/potty, things clothes (shoes, socks, coat, shirt)
+  and blanket/door/chair, food juice/apple/banana/cheese/snack/cracker.
 - **Word endings.** **-s**, **-ing**, **-ed** (on home) and **'s** (in little words) change the
   last word in the bar and say the new word: jump → jumping, make → making, run → running,
   cry → cries, box → boxes, child → children, go → went, dog → dog's. Spelling rules plus
@@ -103,27 +106,37 @@ The buttons that show stay in the same place at every level.*
 
 **Five levels.** Each word in `words.js` has a `level` from 1 to 5, and the levels themselves
 are listed in `words.js` (`levels`), so more can be added later without code changes. In
-1.4.0 the built-in board has 383 visible words plus 12 folder buttons:
+1.4.1 the built-in board has 422 visible words plus 12 folder buttons:
 
 | Level | Adds | Home shows | Whole board (with *levels in folders* on) |
 |---|---|---|---|
 | **Starter** (default) | the most-used core words | 49 of 78 home words | 129 words |
-| **Middle** | more core words | 66 | 182 |
-| **Expanded** (was "Full" before 1.4.0) | the rest of the 1.3 board | 72 | 273 |
-| **Sentences** | a, the, when, the endings -s/-ing/-ed/'s, the *little words* folder (how, which, where?, because, but, or, if, with, for, of, at, from, was, were, did, will, him, them, our …) and "finished" | 78 | 310 |
-| **Full** (adds **Conversation**) | the *time* folder (yesterday/today/tomorrow, before/after, day/night, early/late …), thinking words (think, know, remember/forget, maybe), school things, teacher/friend, social phrases (how are you, guess what, excuse me, I don't know) | 78 + the time folder | all 383 |
+| **Middle** | more core words, me | 67 | 191 |
+| **Expanded** (was "Full" before 1.4.0) | the rest of the 1.3 board; since 1.4.1 also a, the, the *little words* folder with I'm, it's, that's, let's, did, at, for, with, him, them, us; can't, finished, body words, clothes, bath/bed/potty, book/ball, juice/apple/banana/cheese, wow/yuck/yummy/oops/ouch, broken, all gone, wash/brush/get dressed, park/bathroom/inside | 75 | 329 |
+| **Sentences** | when, the endings -s/-ing/-ed/'s and the rest of *little words* (how, which, where?, because, but, or, if, of, from, about, was, were, does, has, will, won't, his, our, their …) | 78 | 356 |
+| **Full** (adds **Conversation**) | the *time* folder (yesterday/today/tomorrow, before/after, day/night, early/late …), thinking words (think, know, remember/forget, maybe), school things, teacher/friend, social phrases (how are you, guess what, excuse me, I don't know) | 78 + the time folder | all 422 |
 
 The Sentences and Conversation words follow the level everywhere, including inside folders, so
-they never appear until a parent picks those levels. Their folders (little words, time) also
-appear only from their level on. Updating from 1.3.x: a device that was on "Full" is moved to
+they never appear until a parent picks those levels. The *little words* folder appears from
+Expanded on (showing only its Expanded words until Sentences), the *time* folder from Full.
+1.4.1 added its new Expanded words only into empty cells or cells of words that had never been
+shown at levels 1–3 (when → little words; wish, guess → time), so no visible button moved. Updating from 1.3.x: a device that was on "Full" is moved to
 **Expanded** once, so it shows exactly what it showed before; Starter, Middle and Custom stay
-as they were (new words start hidden in Custom).
+as they were (the 1.4.0 Sentences/Conversation words start hidden in Custom; 1.4.1's new
+level 1–3 words follow the Custom board's base level, so a Custom board based on Expanded shows them).
 
 ![Words shown setting](docs/screenshots/settings-level-menu.png)
 
 | Little words (Sentences) | Time (Conversation) | Endings in use |
 |---|---|---|
 | ![Little words folder](docs/screenshots/folder-little-words.png) | ![Time folder](docs/screenshots/folder-time.png) | !["I like dog" + -s = "I like dogs"](docs/screenshots/endings-in-use.png) |
+
+At **Expanded** (1.4.1) the folders also hold everyday words for 2–4 word sentences ("my tummy
+hurt", "I want a bath", "brush teeth", "put on my shoes", "that's yummy"):
+
+| People (body row) | Feelings (reactions row) | Things (clothes, house) | Food |
+|---|---|---|---|
+| ![People folder at Expanded](docs/screenshots/folder-people-expanded.png) | ![Feelings folder at Expanded](docs/screenshots/folder-feelings-expanded.png) | ![Things folder at Expanded](docs/screenshots/folder-things-expanded.png) | ![Food folder at Expanded](docs/screenshots/folder-food-expanded.png) |
 
 **Levels inside folders.** By default the level only applies to Home, and every folder shows
 all of its words. Tick *also use this level inside folders* (⚙ → Words shown) to mask folder
@@ -324,7 +337,7 @@ Limits on iPad:
 | `tools/icon.html` | icon source |
 | `dist/aac.html` | single-file build (story illustrations are not inlined) |
 | `docs/SETUP.md` | step-by-step setup guide for parents |
-| `docs/screenshots/` | screenshots of 1.3.2 (iPad landscape 1180 × 820 and portrait 820 × 1180) |
+| `docs/screenshots/` | screenshots (iPad landscape 1180 × 820 and portrait 820 × 1180; updated for 1.4.1) |
 
 After changing app files, reopen the app twice: the first launch fetches the update in
 the background and the second shows it. **Bump `CACHE` in `sw.js` on every release** so
