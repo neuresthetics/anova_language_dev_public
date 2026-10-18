@@ -5,7 +5,7 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.3.4";
+  var APP_VERSION = "1.4.0";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -14,13 +14,16 @@
     storyMode: "smooth", returnHome: false, tapGuardMs: 400, gateTripleTap: false,
     logEnabled: false, allVoices: false,
     wordsShown: "",          // "" = the pack's default (config.wordsShown), else starter | middle | full | custom
-    levelInFolders: false    // also mask words inside folders by level (folder buttons always show)
+    levelInFolders: false    // also mask words inside folders by level (levels with gate: true always do)
   };
   var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
     s: "ess", t: "tee", u: "you", v: "vee", w: "double you", x: "ex", y: "why", z: "zee" };
   /* Spoken forms used when no board word supplies a "say" (iOS reads a lone "I" as "capital I"). */
   var SAY_DEFAULTS = { i: "eye" };
+  /* Spoken forms for a word said ON ITS OWN (a tapped button, a tapped story word). Inside a
+     sentence the voice reads these naturally, so the plain text is used there. */
+  var SAY_ALONE = { a: "uh", the: "thuh" };
   function sayFor(word) {
     var k = String(word).toLowerCase(), w = wordByLabel[k];
     return (w && w.say) || SAY_DEFAULTS[k] || null;
@@ -138,6 +141,7 @@
     }
     var hidden = readJSON(LS.hidden, {});
     config.words.forEach(function (w) { if (Object.prototype.hasOwnProperty.call(hidden, w.id)) w.hidden = !!hidden[w.id]; });
+    setupLevels(); migrateLevels();
     validate();
     // stories: private overlay first, then built-in; a device story replaces one with the same id
     // only if a parent added photos on the device (otherwise built-in updates win).
@@ -175,20 +179,33 @@
       }
       var key = w.row + "," + w.col;
       if (cellMap[p.id][key]) { problems.push('"' + w.label + '" and "' + cellMap[p.id][key].label + '" both use ' + p.id + " row " + w.row + " col " + w.col + '. Kept "' + cellMap[p.id][key].label + '".'); return; }
-      if (w.level != null && [1, 2, 3].indexOf(+w.level) < 0) problems.push('"' + w.label + '": level should be 1, 2 or 3 (got ' + w.level + ").");
+      if (w.level != null && !(+w.level >= 1 && +w.level <= MAX_LEVEL && Math.round(+w.level) === +w.level)) problems.push('"' + w.label + '": level should be 1 to ' + MAX_LEVEL + " (got " + w.level + ").");
       if (w.type === "folder" && !pageById[w.target]) problems.push('Folder "' + w.label + '" points to missing page "' + w.target + '".');
       cellMap[p.id][key] = w;
-      if (w.type !== "folder") { var l = String(w.label).toLowerCase(); if (!wordByLabel[l] || (!wordByLabel[l].audio && w.audio)) wordByLabel[l] = w; }
+      if (w.type !== "folder" && !w.ending) { var l = String(w.label).toLowerCase(); if (!wordByLabel[l] || (!wordByLabel[l].audio && w.audio)) wordByLabel[l] = w; }
     });
     problems.forEach(function (m) { console.warn("[words config] " + m); });
   }
 
   /* ------------------------------------------------------------ words shown (progressive reveal)
      AAC practice: MASK buttons, never move them. A masked word leaves an empty cell, so every
-     visible button keeps its place as more words are revealed. Level per word: 1 = starter,
-     2 = middle, 3 = full (pack field "level"; otherwise the generic defaults below).
-     Folder buttons always show. */
-  var LEVELS = { starter: 1, middle: 2, full: 3 };
+     visible button keeps its place as more words are revealed. Levels are DATA: config.levels
+     (words.js) = [{ id, n, label, hint, gate }], n = 1..MAX. "full" = every level. A word's level
+     is its "level" field (else the generic defaults below). Folder buttons show unless they carry
+     a level above the chosen one. Levels with  gate: true  stay masked inside folders even when
+     "also use this level inside folders" is off (so new tiers never appear unannounced).
+     Old packs without "levels" get the classic three (starter / middle / full). */
+  var CLASSIC_LEVELS = [{ id: "starter", n: 1, label: "Starter" }, { id: "middle", n: 2, label: "Middle" }];
+  var LEVELS = {}, LEVEL_LIST = [], MAX_LEVEL = 3, LEVEL_BY_N = {};
+  function setupLevels() {
+    var list = (config && Array.isArray(config.levels) && config.levels.length) ? config.levels : CLASSIC_LEVELS;
+    LEVEL_LIST = list.filter(function (l) { return l && l.id && +l.n >= 1; }).map(function (l) { return Object.assign({}, l, { n: +l.n }); })
+      .sort(function (a, b) { return a.n - b.n; });
+    MAX_LEVEL = Math.max(3, LEVEL_LIST.length ? LEVEL_LIST[LEVEL_LIST.length - 1].n : 3);
+    LEVELS = {}; LEVEL_BY_N = {};
+    LEVEL_LIST.forEach(function (l) { LEVELS[l.id] = l.n; LEVEL_BY_N[l.n] = l; });
+    LEVELS.full = MAX_LEVEL;
+  }
   var GENERIC_LEVEL = {};
   // Generic defaults from published toddler/preschool core-vocabulary lists (not any one child's words).
   ("i|you|want|more|help|go|stop|yes|no|all done|it|that|my|mine|up|in|on|off|what|here|eat|drink|play|look|like|not")
@@ -196,43 +213,71 @@
   ("open|down|out|get|put|see|do|make|come|again|some|all|and|don't|please|thank you|your|good|big|little|" +
    "different|same|there|where|where?|hi|bye|finished|my turn|turn|me|we|is|can|the|a|to|this|now")
     .split("|").forEach(function (l) { GENERIC_LEVEL[l] = 2; });
-  function wordLevel(w) {
-    if (w.type === "folder") return 1;
-    var n = +w.level;
-    if (n === 1 || n === 2 || n === 3) return n;
-    return GENERIC_LEVEL[String(w.label).toLowerCase()] || 3;
+  /* One-time settings migration (levelsVersion 2 = data-defined levels, 1.4.0). Saved "full" used
+     to mean levels 1-3; it becomes "expanded" so the new levels (4-5) don't appear on a device by
+     surprise. A Custom board keeps its base (3 = Expanded now), so new words start hidden there. */
+  function migrateLevels() {
+    if ((+settings.levelsVersion || 1) >= 2) return;
+    if (!LEVELS.expanded || LEVELS.expanded >= MAX_LEVEL) return;   // board without the new levels: nothing to do yet
+    if (settings.wordsShown === "full") settings.wordsShown = "expanded";
+    if (customVis && !(+customVis.base >= 1)) { customVis.base = 3; writeJSON(LS.custom, customVis); }
+    settings.levelsVersion = 2; saveSettings();
   }
-  var customVis = readJSON(LS.custom, null);          // { base: 1-3, shown: { wordId: true/false } }
+  function wordLevel(w) {
+    var n = +w.level;
+    if (n >= 1 && n <= MAX_LEVEL) return Math.round(n);
+    if (w.type === "folder") return 1;
+    return Math.min(GENERIC_LEVEL[String(w.label).toLowerCase()] || 3, MAX_LEVEL);
+  }
+  function gatedLevel(n) { var l = LEVEL_BY_N[n]; return !!(l && l.gate); }
+  var customVis = readJSON(LS.custom, null);          // { base: 1..MAX, shown: { wordId: true/false } }
   if (!customVis || typeof customVis !== "object" || !customVis.shown) customVis = null;
   function wordsShownMode() {
     var m = settings.wordsShown || (config && config.wordsShown) || "full";
+    if (LEVELS[m] >= MAX_LEVEL) return "full";       // the top level IS "full"
     return LEVELS[m] || m === "custom" ? m : "full";
+  }
+  function currentLevel() {
+    var mode = wordsShownMode();
+    if (mode === "custom") return Math.min((customVis && +customVis.base) || MAX_LEVEL, MAX_LEVEL);
+    return LEVELS[mode] || MAX_LEVEL;
   }
   function isShown(w, pageId) {
     if (!w) return false;
-    if (w.type === "folder") return !w.hidden;
-    var mode = wordsShownMode(), lv = LEVELS[mode] || 3;
-    if (mode === "custom") {
-      if (customVis && Object.prototype.hasOwnProperty.call(customVis.shown, w.id)) return !!customVis.shown[w.id];
-      lv = (customVis && customVis.base) || 3;
-    }
+    var mode = wordsShownMode(), lv = currentLevel();
+    if (w.type === "folder") return !w.hidden && wordLevel(w) <= lv;
+    if (mode === "custom" && customVis && Object.prototype.hasOwnProperty.call(customVis.shown, w.id)) return !!customVis.shown[w.id];
     if (w.hidden) return false;
-    if (lv >= 3 || ((pageId || w.page) !== "home" && !settings.levelInFolders)) return true;
-    return wordLevel(w) <= lv;
+    var wl = wordLevel(w);
+    if (wl <= lv) return true;
+    if ((pageId || w.page) !== "home" && !settings.levelInFolders) return !gatedLevel(wl);
+    return false;
   }
   function setWordsShown(mode) {
-    if (mode === "custom" && !customVis) { customVis = { base: LEVELS[wordsShownMode()] || 3, shown: {} }; writeJSON(LS.custom, customVis); }
+    if (mode === "custom" && !customVis) { customVis = { base: currentLevel(), shown: {} }; writeJSON(LS.custom, customVis); }
     settings.wordsShown = mode; saveSettings();
   }
-  /* Level menu labels are counted from the board itself (home words per level), so they never go stale. */
-  function labelLevelOptions() {
-    var n = [0, 0, 0, 0];
+  /* Level menu: built from config.levels, with counts taken from the board itself (home words
+     per level, cumulative), so it never goes stale. The top level is shown as "Full". */
+  function homeCountsByLevel() {
+    var n = []; for (var i = 0; i <= MAX_LEVEL; i++) n.push(0);
     config.words.forEach(function (w) { if (w.page === "home" && w.type !== "folder" && cellMap.home && cellMap.home[w.row + "," + w.col] === w) n[wordLevel(w)]++; });
-    var all = n[1] + n[2] + n[3], text = {
-      starter: "Starter: the " + n[1] + " most-used home words",
-      middle: "Middle: " + (n[1] + n[2]) + " home words",
-      full: "Full: every word (" + all + " on home)" };
-    Array.prototype.forEach.call($("set-wordsshown").options, function (o) { if (text[o.value]) o.textContent = text[o.value]; });
+    return n;
+  }
+  function labelLevelOptions() {
+    var sel = $("set-wordsshown"); if (!sel) return;
+    var n = homeCountsByLevel(), cum = 0, total = 0, opts = [];
+    for (var i = 1; i <= MAX_LEVEL; i++) total += n[i];
+    LEVEL_LIST.forEach(function (l) {
+      if (l.n >= MAX_LEVEL) return;
+      cum = 0; for (var i = 1; i <= l.n; i++) cum += n[i];
+      opts.push([l.id, l.label + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
+    });
+    var top = LEVEL_BY_N[MAX_LEVEL];
+    opts.push(["full", "Full: every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
+    opts.push(["custom", "Custom: tap words below to show / hide"]);
+    sel.textContent = "";
+    opts.forEach(function (o) { var e = el("option", null, o[1]); e.value = o[0]; sel.appendChild(e); });
   }
   function shownCount(pageId) {
     var n = 0, all = 0;
@@ -385,7 +430,8 @@
       else {
         var last = segs[segs.length - 1];
         if (opts.each || !last || last.audio) { last = { parts: [] }; segs.push(last); }
-        last.parts.push({ text: (t.say || t.text) + (t.punct || ""), idx: ix });
+        var alone = tokens.length === 1 && !t.punct && (t.sayAlone || SAY_ALONE[String(t.text).toLowerCase()]);
+        last.parts.push({ text: (alone || t.say || t.text) + (t.punct || ""), idx: ix });
       }
     });
     function next(k) {
@@ -429,7 +475,7 @@
     }
     m.scrollTop = m.scrollHeight;
   }
-  function tokenFromWord(w) { return { text: w.label, say: w.say || (w.type !== "folder" ? SAY_DEFAULTS[String(w.label).toLowerCase()] : null), audio: w.audio, id: w.id, typed: false }; }
+  function tokenFromWord(w) { return { text: w.label, say: w.say || (w.type !== "folder" ? SAY_DEFAULTS[String(w.label).toLowerCase()] : null), sayAlone: w.sayAlone, audio: w.audio, id: w.id, typed: false }; }
   function tokenFromTyped(text) { var w = wordByLabel[text.toLowerCase()]; return { text: text.toLowerCase(), say: sayFor(text), audio: w && w.audio, id: w ? w.id : null, typed: true }; }
   function commitBuf(speakIt) {
     if (!msg.buf) return null;
@@ -448,10 +494,72 @@
     commitBuf(false); renderMsg();
     if (msg.tokens.length) talk(msg.tokens, msg.tokens.map(function (_, i) { return i; }));
   }
+  /* ---------- word endings (-s, -ing, -ed, 's): change the LAST word in the bar ---------- */
+  var IRREGULAR_PAST = { go: "went", eat: "ate", see: "saw", run: "ran", come: "came", do: "did", make: "made",
+    get: "got", give: "gave", take: "took", sit: "sat", stand: "stood", find: "found", sleep: "slept", read: "read",
+    drink: "drank", have: "had", say: "said", think: "thought", know: "knew", feel: "felt", fall: "fell",
+    break: "broke", throw: "threw", catch: "caught", buy: "bought", bring: "brought", build: "built", draw: "drew",
+    write: "wrote", ride: "rode", swim: "swam", sing: "sang", tell: "told", hold: "held", put: "put", cut: "cut",
+    hurt: "hurt", hit: "hit", win: "won", lose: "lost", wake: "woke", wear: "wore", fly: "flew", forget: "forgot",
+    begin: "began", leave: "left", keep: "kept", teach: "taught", hide: "hid", bite: "bit", blow: "blew",
+    grow: "grew", am: "was", is: "was", are: "were", can: "could", will: "would", feed: "fed", meet: "met",
+    send: "sent", spend: "spent" };
+  var IRREGULAR_PLURAL = { child: "children", man: "men", woman: "women", mouse: "mice", foot: "feet",
+    tooth: "teeth", person: "people", goose: "geese", sheep: "sheep", fish: "fish", deer: "deer", moose: "moose",
+    leaf: "leaves", knife: "knives", wolf: "wolves", shelf: "shelves", half: "halves", wife: "wives", life: "lives",
+    calf: "calves", ox: "oxen", kid: "kids", go: "goes", do: "does", have: "has", be: "is", am: "is", are: "is",
+    potato: "potatoes", tomato: "tomatoes", hero: "heroes" };
+  var IRREGULAR_ING = { be: "being", see: "seeing", lie: "lying", die: "dying", tie: "tying", begin: "beginning",
+    forget: "forgetting", visit: "visiting", open: "opening", happen: "happening", listen: "listening" };
+  var DOUBLE_LONG = { begin: 1, forget: 1, regret: 1, prefer: 1, admit: 1, permit: 1, upset: 1 };
+  var ENDING_SAY = { s: "s", ing: "ing", ed: "ed", poss: "apostrophe s" };
+  var SAY_INFLECTED = { "read@ed": "red" };
+  function cvc(w) { return /^[^aeiou]*[aeiou][^aeiouwxy]$/.test(w) || !!DOUBLE_LONG[w]; }
+  function inflect(word, kind) {
+    var w = String(word).toLowerCase();
+    if (!/^[a-z']+$/.test(w)) return null;
+    if (kind === "poss") return /s$/.test(w) ? w + "'" : w + "'s";
+    if (kind === "ing") {
+      if (IRREGULAR_ING[w]) return IRREGULAR_ING[w];
+      if (/ie$/.test(w)) return w.slice(0, -2) + "ying";
+      if (/[^aeiouy]e$/.test(w) || /[aiu]e$/.test(w) && w.length > 3) return w.slice(0, -1) + "ing";
+      if (cvc(w)) return w + w.slice(-1) + "ing";
+      return w + "ing";
+    }
+    if (kind === "ed") {
+      if (IRREGULAR_PAST[w]) return IRREGULAR_PAST[w];
+      if (/e$/.test(w)) return w + "d";
+      if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ied";
+      if (cvc(w)) return w + w.slice(-1) + "ed";
+      return w + "ed";
+    }
+    if (kind === "s") {
+      if (IRREGULAR_PLURAL[w]) return IRREGULAR_PLURAL[w];
+      if (/(s|x|z|sh|ch)$/.test(w)) return w + "es";
+      if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
+      return w + "s";
+    }
+    return null;
+  }
+  function applyEnding(w) {
+    var kind = w.ending;
+    commitBuf(false);
+    var t = msg.tokens[msg.tokens.length - 1];
+    var out = t && !t.punct && !/\s/.test(t.text) ? inflect(t.text, kind) : null;
+    if (!out) { stopAll(); Speech.speak(ENDING_SAY[kind] || w.label); renderMsg(); return; }
+    var keepCase = t.typed ? out : (/^[A-Z]/.test(t.text) && t.text !== "I" ? out.charAt(0).toUpperCase() + out.slice(1) : out);
+    t.prev = { text: t.text, say: t.say, sayAlone: t.sayAlone, audio: t.audio, id: t.id, prev: t.prev };
+    var base = t.prev.text.toLowerCase();
+    t.text = keepCase; t.say = SAY_INFLECTED[base + "@" + kind] || null; t.sayAlone = null; t.audio = null; t.inflected = kind;
+    logUse(t.text); renderMsg(); renderPreds();
+    talk([t], [msg.tokens.length - 1]);
+  }
+  function undoEnding(t) { var p = t.prev; t.text = p.text; t.say = p.say; t.sayAlone = p.sayAlone; t.audio = p.audio; t.id = p.id; t.prev = p.prev; if (!t.prev) delete t.inflected; }
   function del() {
     stopAll();
     var lastTok = msg.tokens[msg.tokens.length - 1];
     if (!msg.buf && lastTok && lastTok.punct) delete lastTok.punct;   // delete takes off "." / "?" first
+    else if (!msg.buf && lastTok && lastTok.prev) undoEnding(lastTok);  // then an ending (-s, -ing, -ed, 's)
     else if (state.view === "keyboard") {
       if (!msg.buf && msg.tokens.length && msg.tokens[msg.tokens.length - 1].typed) msg.buf = msg.tokens.pop().text;
       if (msg.buf) msg.buf = msg.buf.slice(0, -1); else msg.tokens.pop();
@@ -548,13 +656,14 @@
     return null;
   }
   function wordButton(w) {
-    var b = el("button", "cell btn t-" + (w.type || "noun")); b.type = "button";
+    var b = el("button", "cell btn t-" + (w.type || "noun") + (w.ending ? " ending" : "")); b.type = "button";
     var pic = picFor(w);
     if (pic) b.appendChild(pic); else b.classList.add("nopic");
     b.appendChild(el("span", "lbl", caseWord(w.label)));
     b.setAttribute("aria-label", w.label + (w.type === "folder" ? " folder" : ""));
     onTap(b, "w:" + w.id, function () {
       if (w.type === "folder") { stopAll(); state.page = w.target; render(); return; }
+      if (w.ending) { applyEnding(w); return; }
       addWord(w);
       if (settings.returnHome && state.page !== "home") { state.page = "home"; render(); }
     });
@@ -601,6 +710,7 @@
     stopAll();
     var lastTok = msg.tokens[msg.tokens.length - 1];
     if (!msg.buf && lastTok && lastTok.punct) delete lastTok.punct;
+    else if (!msg.buf && lastTok && lastTok.prev) undoEnding(lastTok);
     else {
       if (!msg.buf && lastTok) { msg.tokens.pop(); msg.buf = String(lastTok.text).toLowerCase(); }
       msg.buf = msg.buf.slice(0, -1);
@@ -625,7 +735,7 @@
     if (!prefix) return [];
     var seen = {}, out = [];
     function add(x) { x = String(x).toLowerCase(); if (!seen[x] && x.indexOf(prefix) === 0) { seen[x] = 1; out.push(x); } }
-    config.words.forEach(function (w) { if (w.type !== "folder" && isShown(w)) add(w.label); });
+    config.words.forEach(function (w) { if (w.type !== "folder" && !w.ending && isShown(w)) add(w.label); });
     (config.knownWords || []).forEach(add);
     out.sort(function (a, b) { return (a === prefix ? -1 : b === prefix ? 1 : 0) || a.length - b.length || (a < b ? -1 : 1); });
     return out.slice(0, 6);
@@ -825,9 +935,8 @@
     $("set-returnhome").checked = !!settings.returnHome; $("set-triple").checked = !!settings.gateTripleTap;
     $("set-log").checked = !!settings.logEnabled; $("set-allvoices").checked = !!settings.allVoices;
     $("set-tapguard").value = String(settings.tapGuardMs);
-    $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
+    labelLevelOptions(); $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
-    labelLevelOptions();
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
     var sw = navigator.serviceWorker && navigator.serviceWorker.controller;
@@ -1011,7 +1120,7 @@
     } else if (mode === "hide") {
       // Picking words one by one = Custom. Starting from a level copies what that level shows.
       var now = isShown(w, w.page);
-      if (wordsShownMode() !== "custom") { customVis = { base: LEVELS[wordsShownMode()] || 3, shown: {} }; settings.wordsShown = "custom"; saveSettings(); }
+      if (wordsShownMode() !== "custom") { customVis = { base: currentLevel(), shown: {} }; settings.wordsShown = "custom"; saveSettings(); }
       customVis.shown[w.id] = !now; writeJSON(LS.custom, customVis);
       syncSettingsUI(); renderVisibility();
     } else if (mode === "photo") { pendingPhoto = { kind: "word", id: w.id }; $("photo-input").click(); }
@@ -1149,7 +1258,7 @@
     }
     tryItNotice();
     window.WB = { state: state, msg: msg, bestVoice: function () { return Speech.voice(); }, settings: settings, get config() { return config; }, get stories() { return stories; }, get pack() { return pack; },
-      problems: function () { return problems; }, openSettings: openSettings, predictionList: predictionList, importPack: importPack };
+      problems: function () { return problems; }, shownCount: shownCount, currentLevel: function () { return currentLevel(); }, levels: function () { return { list: LEVEL_LIST, max: MAX_LEVEL, mode: wordsShownMode() }; }, inflect: inflect, openSettings: openSettings, predictionList: predictionList, importPack: importPack };
   }
   /* Try-it notice: only on the public github.io copy, not when installed or in the private copy. */
   function tryItNotice() {

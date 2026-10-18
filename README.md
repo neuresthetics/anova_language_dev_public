@@ -3,7 +3,7 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.3.4.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
+**Current version: 1.4.0.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
 Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md).
 
 | Home (starter level) | Home (full) | Animals |
@@ -37,12 +37,21 @@ its pack.json has `"replace": true`.
 - **home (WORDS).** A fixed 9 × 10 grid of core words: I/you/he/she/we/they/this/her,
   helper verbs (is, are, am, have, need, feel), want/go/help/eat/drink, **to**, more/less,
   open/close, up/down, protest phrases (no thank you, don't want), quick replies (your
-  turn, uh oh, me too, okay, sorry, love you) and question words (who, why). Opposites sit
+  turn, uh oh, me too, okay, sorry, love you), question words (who, why, when), **a**, **the**
+  and the word-ending buttons **-s**, **-ing**, **-ed** (Sentences level). Opposites sit
   side by side (more/less, open/close, up/down, big/little). Tapping a word **speaks it right away and
   adds it to the bar**. Folder buttons (bottom row) open category pages. The **home** tab
   always sits in the same place and goes back to the home page.
 - **Folders.** people, food, animals, vehicles, colors, feelings, things, actions,
-  describe and where. **animals** holds 89 animals in A–Z order (ant … zebra).
+  describe, places, **little words** (Sentences level) and **time** (Conversation level).
+  **animals** holds 89 animals in A–Z order (ant … zebra).
+- **Word endings.** **-s**, **-ing**, **-ed** (on home) and **'s** (in little words) change the
+  last word in the bar and say the new word: jump → jumping, make → making, run → running,
+  cry → cries, box → boxes, child → children, go → went, dog → dog's. Spelling rules plus
+  tables of irregular verbs (about 60) and plurals (about 30). **delete** (or ⌫) takes the
+  ending off first. On an empty bar, or after a phrase like "thank you", nothing changes.
+- **Pronunciation.** A lone **a** is said "uh" (not the letter A) and a lone **the** "thuh";
+  inside a sentence they're read normally. **I** is always "eye".
 - **abc (KEYBOARD).** A–Z in **alphabetical order**, **.** and **?**, a wide **space** bar and
   a **⌫ backspace** key. Pressing space speaks the finished word. Tapping **.** or **?** ends
   the sentence and **reads the whole typed sentence aloud** (so **?** gets question
@@ -61,11 +70,12 @@ its pack.json has `"replace": true`.
   finger is still on the button or within about 28 px of it. Slow presses, holds and wiggles
   all work; sliding well off the button cancels. Long-press menus and text selection are off.
 - **Words shown** (parent settings, top section): **Starter** (the most-used words; about
-  half of home), **Middle**, **Full** (every word) or **Custom** (tap words in the editor to show or
+  half of home), **Middle**, **Expanded**, **Sentences**, **Full** (every word, all five levels) or **Custom** (tap words in the editor to show or
   hide them). Words are **masked, never moved**: a hidden word leaves an empty cell, so every
-  visible button keeps its place as more words are revealed. Folder buttons always show; the level
-  applies to Home, and optionally inside folders too. Each word's priority comes from its optional
-  `level` field (1 = starter, 2 = middle, 3 = full) in `words.js`. A pack can set its default
+  visible button keeps its place as more words are revealed. The level applies to Home, and
+  optionally inside folders too (the two newest levels always apply inside folders). Each word's
+  priority comes from its `level` field (1 = starter, 2 = middle, 3 = expanded, 4 = sentences,
+  5 = conversation) in `words.js`; the levels themselves are data (`levels` in `words.js`). A pack can set its default
   with `config.wordsShown`; once a parent picks a level it is saved on the device and kept when
   a pack is imported again.
 - **Voice.** *Automatic (best voice)* picks the best English voice on the device: en-US first,
@@ -86,23 +96,34 @@ No animations, no ads, no sounds except speech and recordings.
 The board is built to grow without ever moving a button. Every word has a fixed place and a
 level, and the parent decides how much of the board is visible.
 
-![The same home board at starter, middle and full](docs/screenshots/growth-home-starter-middle-full.png)
+![The same home board at all five levels](docs/screenshots/growth-home-levels.png)
 
-*Home at **Starter**, **Middle** and **Full** (left to right). The buttons that show stay in
-the same place at every level.*
+*Home at **Starter**, **Middle**, **Expanded** (top row), **Sentences** and **Full** (bottom row).
+The buttons that show stay in the same place at every level.*
 
-**Three levels.** Each word in `words.js` has a `level`: 1 = starter, 2 = middle, 3 = full.
-In 1.3.3 the built-in board has 275 words plus 10 folder buttons:
+**Five levels.** Each word in `words.js` has a `level` from 1 to 5, and the levels themselves
+are listed in `words.js` (`levels`), so more can be added later without code changes. In
+1.4.0 the built-in board has 383 visible words plus 12 folder buttons:
 
-| Level | Home shows | Whole board (with *levels in folders* on) |
+| Level | Adds | Home shows | Whole board (with *levels in folders* on) |
+|---|---|---|---|
+| **Starter** (default) | the most-used core words | 49 of 78 home words | 129 words |
+| **Middle** | more core words | 66 | 182 |
+| **Expanded** (was "Full" before 1.4.0) | the rest of the 1.3 board | 72 | 273 |
+| **Sentences** | a, the, when, the endings -s/-ing/-ed/'s, the *little words* folder (how, which, where?, because, but, or, if, with, for, of, at, from, was, were, did, will, him, them, our …) and "finished" | 78 | 310 |
+| **Full** (adds **Conversation**) | the *time* folder (yesterday/today/tomorrow, before/after, day/night, early/late …), thinking words (think, know, remember/forget, maybe), school things, teacher/friend, social phrases (how are you, guess what, excuse me, I don't know) | 78 + the time folder | all 383 |
+
+The Sentences and Conversation words follow the level everywhere, including inside folders, so
+they never appear until a parent picks those levels. Their folders (little words, time) also
+appear only from their level on. Updating from 1.3.x: a device that was on "Full" is moved to
+**Expanded** once, so it shows exactly what it showed before; Starter, Middle and Custom stay
+as they were (new words start hidden in Custom).
+
+![Words shown setting](docs/screenshots/settings-level-menu.png)
+
+| Little words (Sentences) | Time (Conversation) | Endings in use |
 |---|---|---|
-| **Starter** (default) | 49 of 72 home words | 129 words |
-| **Middle** (starter + middle) | 66 of 72 | 182 words |
-| **Full** | all 72 | all 275 |
-
-Folder buttons always show at every level.
-
-![Words shown setting](docs/screenshots/growth-setting-words-shown.png)
+| ![Little words folder](docs/screenshots/folder-little-words.png) | ![Time folder](docs/screenshots/folder-time.png) | !["I like dog" + -s = "I like dogs"](docs/screenshots/endings-in-use.png) |
 
 **Levels inside folders.** By default the level only applies to Home, and every folder shows
 all of its words. Tick *also use this level inside folders* (⚙ → Words shown) to mask folder
@@ -112,7 +133,7 @@ in its usual place:
 ![Animals folder at Starter with levels in folders on](docs/screenshots/growth-animals-starter-levels-in-folders.png)
 
 **Turning single words on or off.** ⚙ → *Words: show / hide and photos* shows every page as a
-grid. Each word carries its level (L1/L2/L3), and empty cells show their row and column.
+grid. Each word carries its level (L1 to L5), and empty cells show their row and column.
 With *hide / show it* selected, tapping a word flips it on or off. The first tap switches
 *Words shown* to **Custom**, starting from the level you were on, so you can add one new word
 at a time ahead of the next level. Folder buttons can be hidden here too. These choices are
@@ -122,7 +143,7 @@ saved on that iPad.
 
 **Positions never move.** A hidden or not-yet-shown word leaves an **empty cell** instead of
 letting other buttons slide over, so a button she has learned is in the same spot at
-Starter, Middle, Full and Custom. New words only go into empty cells. When the app loads, a
+every level and in Custom. New words only go into empty cells. When the app loads, a
 word whose place is already taken is reported as a problem and doesn't take the place. Words
 from a pack that are also built into the app keep their built-in position, so an update
 can't scramble the layout (only a pack marked `"replace": true` uses its own layout). This is
@@ -131,9 +152,11 @@ what lets motor memory carry over as the vocabulary grows.
 **Opposites sit together.** On Home the pairs are stacked: more above less, up above down, on
 above off, in above out, big above little. Open is next to close and yes is next to no. In
 the describe and actions folders they sit side by side: hot/cold, fast/slow, full/empty,
-clean/dirty, loud/quiet, give/take and sit/stand.
+clean/dirty, loud/quiet, give/take, sit/stand, remember/forget and easy/hard. In the time
+folder: yesterday/today/tomorrow, before/after, day/night and early/late; in little words:
+was/were, did/does, will/won't and him/his, us/our, them/their.
 
-**Adding words.** Add a word to `words.js` with an empty `row`/`col` and a `level`. It ships
+**Adding words.** Add a word to `words.js` with an empty `row`/`col` and a `level` (1–5). It ships
 to every device with the next app update, and there's nothing to import. For words only one
 child needs, an optional personal pack (see below) can add words into empty cells on that
 iPad.
@@ -291,7 +314,7 @@ Limits on iPad:
 | `styles.css` | layout and colours |
 | `app.js` | app logic (speech, grid, keyboard, stories, parent mode, packs) |
 | `store.js` | on-device storage (IndexedDB) and a small zip reader/writer |
-| `words.js` | the built-in board: every word, position and level (starter/middle/full) |
+| `words.js` | the built-in board: the levels, every word, its position and level |
 | `stories.js` | built-in stories |
 | `media/stories/` | story illustrations |
 | `sw.js` | service worker (offline) |

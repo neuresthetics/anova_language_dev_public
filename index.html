@@ -47,13 +47,13 @@
       <h2>Words shown</h2>
       <label class="row">Words on the board
         <select id="set-wordsshown">
-          <option value="starter">Starter: most-used words</option>
-          <option value="middle">Middle: more words</option>
+          <!-- built from the board's levels (words.js "levels") when settings open -->
+          <option value="starter">Starter</option>
           <option value="full">Full: every word</option>
           <option value="custom">Custom: tap words below to show / hide</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (folder buttons always show)</label>
+      <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (Sentences and Conversation words always follow the level)</label>
       <p class="note" id="level-note"></p>
     </section>
 
@@ -139,8 +139,7 @@
         <label class="chk"><input type="radio" name="edit-mode" value="nophoto"> remove its photo</label>
       </div>
       <p class="note">Hidden words leave a blank cell; nothing else moves. Tapping a word to hide or show it switches
-        <b>Words shown</b> to Custom, starting from the level you were on. L1 / L2 / L3 = the word's level
-        (starter / middle / full). Photos come from the camera or photo library,
+        <b>Words shown</b> to Custom, starting from the level you were on. L1, L2 … = the word's level (1 starter, 2 middle, 3 expanded, 4 sentences, 5 conversation). Photos come from the camera or photo library,
         are shrunk to 640 px and kept only on this device (they go into the pack backup when you export).
         Empty cells show their row/column for adding words to a pack file.</p>
       <div id="vis-pages"></div>

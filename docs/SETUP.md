@@ -56,7 +56,8 @@ English** and download an *Enhanced* or *Premium* voice. Then pick it under ⚙ 
 Hold the ⚙ gear for **2 seconds** to open **Parent settings**. A quick tap does nothing, so
 children don't open it by accident.
 
-1. **Words shown:** choose *Starter*, *Middle*, *Full* or *Custom*. Hidden words leave an
+1. **Words shown:** choose *Starter*, *Middle*, *Expanded*, *Sentences*, *Full* (every word)
+   or *Custom*. Hidden words leave an
    empty space; the other buttons never move. Starting small and revealing more over time is
    common AAC practice.
 2. **Words: show / hide and photos:** pick what a tap does, then tap a word: hide/show it
@@ -86,7 +87,9 @@ board you already have and edit it.
      (never move a word your child already uses);
    - add a folder: add a page to `pages` and a word with `"type": "folder"` and
      `"target"` set to that page's `id`;
-   - set a word's level: `"level": 1` (Starter), `2` (Middle) or `3` (Full).
+   - set a word's level: `"level": 1` (Starter), `2` (Middle) or `3` (Expanded). The built-in
+     board also has `4` (Sentences) and `5` (Conversation); a pack without its own `"levels"`
+     list uses the classic three (1–3, where 3 = Full).
 5. Send `pack.json` to the iPad: AirDrop it, or save it to iCloud Drive so it shows up in the
    **Files** app.
 6. On the iPad, open Word Board **from the Home Screen icon**. Hold ⚙ for 2 seconds. Under

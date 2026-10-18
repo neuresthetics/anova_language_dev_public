@@ -6,7 +6,8 @@
    GENERATED from aac-private/pack/pack.json by aac-private/make-builtin.py.
    Family photos and recordings do NOT go here: they live in private/overlay.js
    (private copy only, never in the public repo). Parent setting "Words shown"
-   (starter / middle / full) masks words above the chosen level.
+   (starter / middle / expanded / sentences / full, from "levels" below) masks
+   words above the chosen level.
 
    GOLDEN RULE (motor planning): once a word has a spot, never move it.
    Add new words only into EMPTY cells. To take a word away for a while,
@@ -40,12 +41,24 @@
              "recordings/milk.m4a", or a URL next to the app). Played if it
              exists; otherwise the text-to-speech voice is used.
      hidden  optional: true = cell shows blank, position is kept
-     level   optional priority for "Words shown" in parent settings:
-               1 = starter, 2 = middle, 3 = full. Words above the chosen
-               level are masked (blank cell, nothing moves). Without it a
-               generic default is used (common core words 1–2, others 3).
-               Folder buttons always show.
-   Config field (optional): wordsShown: "starter" | "middle" | "full" =
-   the default level for this board/pack until a parent picks one.
+     level   optional priority for "Words shown" in parent settings, 1..N as
+               defined in "levels" (1 = starter, 2 = middle, 3 = expanded,
+               4 = sentences, 5 = conversation). Words above the chosen level
+               are masked (blank cell, nothing moves). Without it a generic
+               default is used (common core words 1–2, others 3). A folder
+               button with a level shows from that level on.
+     sayAlone optional: what the voice says when the word is said on its own
+               (e.g. "a" -> "uh", so it isn't read as the letter A). Inside a
+               sentence the plain text is used.
+     ending  optional: "s" | "ing" | "ed" | "poss". The button doesn't add a
+               word; it changes the last word in the message bar (jump ->
+               jumping, cry -> cries, go -> went, dog -> dog's). delete undoes it.
+   Config fields (optional):
+     levels      [{ id, n, label, hint, gate }] in order. The top level is
+                 shown as "Full" (every word). gate: true = these words stay
+                 masked inside folders even when "also use this level inside
+                 folders" is off. Without "levels" (old packs) the classic
+                 three are used: starter / middle / full.
+     wordsShown  default level id for this board/pack until a parent picks one.
    ===================================================================== */
 
