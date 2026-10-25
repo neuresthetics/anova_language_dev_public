@@ -28,7 +28,7 @@
   <nav id="nav">
     <button id="nav-home" class="tab" type="button"><span class="ico" aria-hidden="true">🏠</span><span class="txt">home</span></button>
     <button id="nav-kbd" class="tab" type="button"><span class="ico" aria-hidden="true">🔤</span><span class="txt">abc</span></button>
-    <button id="nav-stories" class="tab" type="button"><span class="ico" aria-hidden="true">📖</span><span class="txt">stories</span></button>
+    <button id="nav-paths" class="tab" type="button"><span class="ico" aria-hidden="true">🛤️</span><span class="txt">paths</span></button>
     <div id="page-title" aria-live="polite"></div>
     <button id="gear" type="button" aria-label="Parent settings: hold for 2 seconds">⚙︎</button>
   </nav>
@@ -115,6 +115,22 @@
     </section>
 
     <section>
+      <h2>Paths</h2>
+      <p class="note">Paths practices a short phrase one word at a time. Choice buttons use words from this board (emoji, colour, level). Stories are still in the app, but the stories tab is not on the tab bar.</p>
+      <label class="row chk"><input type="checkbox" id="set-pathspeak"> speak each word when it is tapped</label>
+      <p class="note">Off: a tap is quiet, and the whole phrase is spoken at the last word (Say whole still speaks whenever you tap it).</p>
+      <label class="row">Patterns
+        <select id="set-pathsset">
+          <option value="auto">follow Words shown</option>
+          <option value="starter">Starter only</option>
+          <option value="middle">Starter and Middle</option>
+          <option value="expanded">All patterns</option>
+        </select>
+      </label>
+      <label class="row chk"><input type="checkbox" id="set-pathshide"> hide a pattern when its word is hidden on the board</label>
+    </section>
+
+    <section>
       <h2>Board, private content and device backup</h2>
       <p id="pack-info" class="note"></p>
       <p class="note">All words (starter, middle and full) and the stories are built into the app and update with it; no import is needed.
@@ -176,6 +192,7 @@
 <script src="store.js"></script>
 <script src="words.js"></script>
 <script src="stories.js"></script>
+<script src="paths.js"></script>
 <!-- optional family-only content; present only in the private copy (missing = fine) -->
 <script src="private/overlay.js" onerror="this.remove()"></script>
 <script src="app.js"></script>

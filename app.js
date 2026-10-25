@@ -1,11 +1,13 @@
 /* Word Board – AAC app shell. Plain JS, no dependencies, works offline.
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
-   (words.js, stories.js). Family-only content comes from an optional private overlay
+   (words.js, stories.js). Paths (1.5.0, paths.js) practices short phrases from those
+   words. The stories tab is not on the tab bar; story code and media stay.
+   Family-only content comes from an optional private overlay
    (private/overlay.js, private copy only). Photos/recordings added on the device, or an
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.4.1";
+  var APP_VERSION = "1.5.0";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -14,7 +16,10 @@
     storyMode: "smooth", returnHome: false, tapGuardMs: 400, gateTripleTap: false,
     logEnabled: false, allVoices: false,
     wordsShown: "",          // "" = the pack's default (config.wordsShown), else starter | middle | full | custom
-    levelInFolders: false    // also mask words inside folders by level (levels with gate: true always do)
+    levelInFolders: false,   // also mask words inside folders by level (levels with gate: true always do)
+    pathsSpeakEach: true,    // Paths: speak each tapped word. Off = speak the whole phrase at the end.
+    pathsHideHiddenStem: true, // hide a pattern when every stem word is parent-hidden
+    pathsSet: "auto"         // auto = follow Words shown; else starter | middle | expanded
   };
   var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
@@ -579,6 +584,9 @@
 
   /* ------------------------------------------------------------ taps */
   var lastTap = { key: null, t: 0 };
+  /* Button whose finger-up already counted. iPad Safari can deliver the leftover click to a
+     different button if this gesture redraws the board (return home after a folder word). */
+  var lifted = null;
   function guard(key) {
     var now = Date.now(), ms = +settings.tapGuardMs || 0;
     if (ms && lastTap.key === key && now - lastTap.t < ms) return false;
@@ -592,7 +600,7 @@
   function onTap(node, key, fn, opts) {
     opts = opts || {};
     var pid = null, upAt = 0;
-    function fire(e) { if (!guard(key)) return; Clips.unlock(); fn(e); }
+    function fire(e) { if (node.disabled || !guard(key)) return; Clips.unlock(); fn(e); }
     function near(e) {
       var r = node.getBoundingClientRect();
       return e.clientX >= r.left - PRESS_SLOP && e.clientX <= r.right + PRESS_SLOP &&
@@ -601,36 +609,42 @@
     function end() { pid = null; upAt = Date.now(); node.classList.remove("pressed"); }
     node.style.touchAction = opts.scroll ? "pan-y" : "none";
     node.addEventListener("pointerdown", function (e) {
-      if (pid !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
+      if (node.disabled || pid !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
       pid = e.pointerId; node.classList.add("pressed");
       if (!opts.scroll && node.setPointerCapture) { try { node.setPointerCapture(pid); } catch (x) { /* ignore */ } }
     });
     node.addEventListener("pointerup", function (e) {
       if (e.pointerId !== pid) return;
       var ok = near(e); end();
-      if (ok) { e.preventDefault(); fire(e); }
+      if (ok) { e.preventDefault(); lifted = { node: node, t: Date.now() }; fire(e); }
     });
     node.addEventListener("pointercancel", function (e) { if (e.pointerId === pid) end(); });
     // Stop iOS long-press callouts, text selection and the magnifier from taking over the touch.
     if (!opts.scroll) node.addEventListener("touchstart", function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
     // Keyboard, switch access and screen readers still send a plain click; ignore the click that
-    // follows a pointer press we already handled (or rejected).
+    // follows a pointer press we already handled (or rejected), and a click Safari retargets
+    // onto a different button after the board redraws.
     node.addEventListener("click", function (e) {
       e.preventDefault();
+      if (e.detail !== 0 && lifted && lifted.node !== node && Date.now() - lifted.t < 1000) return;
       if (e.detail !== 0 && (pid !== null || Date.now() - upAt < 1000)) return;   // detail 0 = keyboard / assistive tech
       fire(e);
     });
   }
 
   /* ------------------------------------------------------------ views */
-  var state = { view: "words", page: "home", story: null, storyPage: 0 };
+  var state = { view: "words", page: "home", story: null, storyPage: 0, pathId: null, pathStep: 0, pathPicks: [] };
   function render() {
     var board = $("board"); board.textContent = "";
     $("nav-home").classList.toggle("on", state.view === "words" && state.page === "home");
     $("nav-kbd").classList.toggle("on", state.view === "keyboard");
-    $("nav-stories").classList.toggle("on", state.view === "stories");
+    var storiesNav = $("nav-stories");
+    if (storiesNav) storiesNav.classList.toggle("on", state.view === "stories");
+    var pathsNav = $("nav-paths");
+    if (pathsNav) pathsNav.classList.toggle("on", state.view === "paths");
     if (state.view === "keyboard") { $("page-title").textContent = "spelling"; renderKeyboard(board); }
     else if (state.view === "stories") renderStories(board);
+    else if (state.view === "paths") renderPaths(board);
     else { var p = pageById[state.page] || pageById.home; state.page = p.id; $("page-title").textContent = p.id === "home" ? "" : p.title; renderPage(board, p); }
     renderMsg();
     fitLabels(board);
@@ -755,8 +769,233 @@
     fitLabels(p);
   }
 
+  /* ------------------------------------------------------------ paths
+     Speech-pattern practice. One blank at a time. Fixed chrome: back one step,
+     patterns home, say whole, copy a finished phrase onto the Words message bar.
+     Stories stay in the app (renderStories) but are not on the tab bar. */
+  function pathContext() {
+    var mode = wordsShownMode();
+    return {
+      words: config.words,
+      level: currentLevel(),
+      set: settings.pathsSet || "auto",
+      hideHiddenStem: settings.pathsHideHiddenStem !== false,
+      wordLevel: wordLevel,
+      hidden: function (w) {
+        if (!w) return false;
+        if (mode === "custom" && customVis && customVis.shown && Object.prototype.hasOwnProperty.call(customVis.shown, w.id)) return !customVis.shown[w.id];
+        return !!w.hidden;
+      },
+      forceShown: function (w) {
+        return mode === "custom" && customVis && customVis.shown && customVis.shown[w.id] === true;
+      }
+    };
+  }
+  function pathById(id) { return window.AAC_PATHS ? window.AAC_PATHS.byId(id) : null; }
+  function pathHasPick() {
+    for (var i = 0; i < state.pathPicks.length; i++) if (state.pathPicks[i]) return true;
+    return false;
+  }
+  function pathRequiredDone(pat) {
+    if (!pat || !pathHasPick()) return false;
+    for (var i = 0; i < pat.steps.length; i++) if (!pat.steps[i].optional && !state.pathPicks[i]) return false;
+    return true;
+  }
+  function pathUtterance() {
+    var pat = pathById(state.pathId);
+    if (!pat) return null;
+    var tokens = [], idx = [];
+    pat.steps.forEach(function (step, i) {
+      var w = state.pathPicks[i];
+      if (!w) return;
+      tokens.push(tokenFromWord(w));
+      idx.push(i);
+    });
+    return { tokens: tokens, idx: idx };
+  }
+  function pathHl(i) {
+    if (!settings.highlight) i = -1;
+    var nodes = document.querySelectorAll("[data-path-i]");
+    for (var k = 0; k < nodes.length; k++) nodes[k].classList.toggle("speak", Number(nodes[k].getAttribute("data-path-i")) === i);
+  }
+  function speakPath() {
+    var u = pathUtterance();
+    if (!u || !u.tokens.length) return;
+    talk(u.tokens, u.idx, { hl: pathHl });
+  }
+  function choosePath(pat, w) {
+    var i = state.pathStep;
+    if (!pat || i < 0 || i >= pat.steps.length || !w) return;
+    stopAll();
+    state.pathPicks[i] = w;
+    logUse(w.label);
+    state.pathStep = i + 1;
+    var speakEach = settings.pathsSpeakEach !== false;
+    var finished = state.pathStep >= pat.steps.length;
+    render();
+    if (speakEach) talk([tokenFromWord(w)], [i], { hl: pathHl });
+    else if (finished) speakPath();
+  }
+  function pathBack() {
+    stopAll();
+    if (!state.pathId) return;
+    if (state.pathStep > 0) {
+      var i = state.pathStep - 1;
+      state.pathPicks[i] = null;
+      state.pathStep = i;
+      render();
+      return;
+    }
+    state.pathId = null; state.pathPicks = []; state.pathStep = 0; render();
+  }
+  function pathHome() {
+    stopAll();
+    state.pathId = null; state.pathPicks = []; state.pathStep = 0; render();
+  }
+  function sendPathToWords() {
+    var pat = pathById(state.pathId);
+    var u = pathUtterance();
+    if (!pat || !u || !u.tokens.length || !pathRequiredDone(pat)) return;
+    stopAll();
+    msg.tokens = u.tokens;
+    msg.buf = "";
+    state.pathId = null; state.pathPicks = []; state.pathStep = 0;
+    state.view = "words"; state.page = "home";
+    render();
+  }
+  function layoutPathMenu(list, n) {
+    var cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
+    var rows = Math.max(1, Math.ceil(n / cols));
+    list.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
+    list.style.gridTemplateRows = "repeat(" + rows + ", minmax(0, 1fr))";
+  }
+  function pathChrome(pat) {
+    var bar = el("div", "path-chrome");
+    function btn(cls, text, label, key, fn, disabled) {
+      var b = el("button", "path-btn" + (cls ? " " + cls : ""), text);
+      b.type = "button";
+      b.setAttribute("aria-label", label);
+      b.disabled = !!disabled;
+      onTap(b, key, function () { if (b.disabled) return; fn(); });
+      return b;
+    }
+    bar.appendChild(btn("back", "back", "back one step", "path:back", pathBack, !pat));
+    bar.appendChild(btn("home", "patterns", "patterns", "path:home", pathHome, false));
+    bar.appendChild(btn("say", "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
+    bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !pat || !pathRequiredDone(pat)));
+    return bar;
+  }
+  function renderPathMenu(mid, patterns, ctx) {
+    var list = el("div", "path-menu");
+    mid.appendChild(list);
+    if (!patterns.length) {
+      list.appendChild(el("p", "note-dark", "No patterns at this level."));
+      return;
+    }
+    layoutPathMenu(list, patterns.length);
+    patterns.forEach(function (p) {
+      var stem = window.AAC_PATHS.lookup(p.stems[0], ctx);
+      var b = el("button", "cell btn path-card" + (stem && window.AAC_PATHS.fitzClass(stem) ? " " + window.AAC_PATHS.fitzClass(stem) : ""));
+      b.type = "button";
+      b.setAttribute("data-pattern", p.id);
+      var pic = stem && picFor(stem);
+      if (pic) b.appendChild(pic); else b.classList.add("nopic");
+      b.appendChild(el("span", "path-title", p.title));
+      b.appendChild(el("span", "path-frame", p.frame));
+      b.setAttribute("aria-label", p.title + ". " + p.frame);
+      onTap(b, "path:open:" + p.id, function () {
+        stopAll();
+        state.pathId = p.id; state.pathPicks = []; state.pathStep = 0; render();
+      });
+      list.appendChild(b);
+    });
+  }
+  function renderPathPlay(phrase, mid, pat, ctx) {
+    pat.steps.forEach(function (step, i) {
+      var w = state.pathPicks[i];
+      var slot = el("div", "path-slot" + (w ? " filled" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") : " empty"));
+      slot.setAttribute("data-path-i", String(i));
+      if (i === state.pathStep) slot.classList.add("now");
+      if (w && settings.showPictures && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
+      slot.appendChild(el("span", "path-lab", w ? caseWord(w.label) : "—"));
+      phrase.appendChild(slot);
+    });
+    if (state.pathStep >= pat.steps.length) {
+      var done = el("div", "path-done"), n = 0;
+      pat.steps.forEach(function (step, i) { if (state.pathPicks[i]) n++; });
+      done.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 3)) + ", minmax(0, 1fr))";
+      if (n > 3) done.style.gridTemplateRows = "repeat(" + Math.ceil(n / 3) + ", minmax(0, 1fr))";
+      pat.steps.forEach(function (step, i) {
+        var w = state.pathPicks[i];
+        if (!w) return;
+        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : ""));
+        tile.setAttribute("data-path-i", String(i));
+        var pic = picFor(w);
+        if (pic) tile.appendChild(pic); else tile.classList.add("nopic");
+        tile.appendChild(el("span", "lbl", caseWord(w.label)));
+        done.appendChild(tile);
+      });
+      mid.appendChild(done);
+      return;
+    }
+    var choices = window.AAC_PATHS.choices(pat, state.pathStep, ctx);
+    if (!choices.length) {
+      mid.appendChild(el("p", "note-dark", "No words for this step at the current level."));
+      return;
+    }
+    var grid = el("div", "path-choices");
+    grid.setAttribute("data-n", String(choices.length));
+    var cols = choices.length <= 1 ? 1 : choices.length === 2 || choices.length === 4 ? 2 : 3;
+    var rows = Math.ceil(choices.length / cols);
+    grid.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
+    grid.style.gridTemplateRows = "repeat(" + rows + ", minmax(0, 1fr))";
+    choices.forEach(function (w) {
+      var b = el("button", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : ""));
+      b.type = "button";
+      b.setAttribute("data-choice", w.label);
+      var pic = picFor(w);
+      if (pic) b.appendChild(pic); else b.classList.add("nopic");
+      b.appendChild(el("span", "lbl", caseWord(w.label)));
+      b.setAttribute("aria-label", w.label);
+      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { choosePath(pat, w); });
+      grid.appendChild(b);
+    });
+    mid.appendChild(grid);
+  }
+  function renderPaths(board) {
+    if (!window.AAC_PATHS) {
+      $("page-title").textContent = "paths";
+      board.appendChild(el("p", "note-dark", "Paths did not load."));
+      return;
+    }
+    var ctx = pathContext();
+    var patterns = window.AAC_PATHS.visible(ctx);
+    var pat = state.pathId ? pathById(state.pathId) : null;
+    if (pat && !patterns.some(function (p) { return p.id === pat.id; })) pat = null;
+    if (!pat) { state.pathId = null; state.pathPicks = []; state.pathStep = 0; }
+    var wrap = el("div", "path-play");
+    var mid = el("div", "path-mid");
+    // Keep the phrase row out of the menu. A display:none grid child drops out, and the
+    // menu would then sit in the auto row and collapse to one thin strip.
+    if (!pat) wrap.style.gridTemplateRows = "minmax(0, 1fr) auto";
+    var phrase = pat ? el("div", "path-phrase") : null;
+    if (phrase) wrap.appendChild(phrase);
+    wrap.appendChild(mid);
+    wrap.appendChild(pathChrome(pat));
+    board.appendChild(wrap);
+    if (!pat) {
+      $("page-title").textContent = "paths";
+      renderPathMenu(mid, patterns, ctx);
+      return;
+    }
+    $("page-title").textContent = pat.title;
+    renderPathPlay(phrase, mid, pat, ctx);
+  }
+
   /* ------------------------------------------------------------ stories
-     Rule: turning a page is SILENT. Speech only when a word or the read button is tapped. */
+     Rule: turning a page is SILENT. Speech only when a word or the read button is tapped.
+     The stories tab is hidden from the main chrome (1.5.0). This view stays so story
+     photos in parent settings, and a later return of the tab, keep working. */
   var ARROW_L = '<svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="70,8 18,50 70,92" fill="currentColor"/></svg>';
   var ARROW_R = '<svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="30,8 82,50 30,92" fill="currentColor"/></svg>';
   /* Page picture, best first: a photo/picture ("pic" or "image": pack media or a URL),
@@ -935,6 +1174,9 @@
     $("set-returnhome").checked = !!settings.returnHome; $("set-triple").checked = !!settings.gateTripleTap;
     $("set-log").checked = !!settings.logEnabled; $("set-allvoices").checked = !!settings.allVoices;
     $("set-tapguard").value = String(settings.tapGuardMs);
+    $("set-pathspeak").checked = settings.pathsSpeakEach !== false;
+    $("set-pathshide").checked = settings.pathsHideHiddenStem !== false;
+    $("set-pathsset").value = settings.pathsSet || "auto";
     labelLevelOptions(); $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
@@ -960,6 +1202,9 @@
       $(p[0]).addEventListener("change", function () { settings[p[1]] = this.value; saveSettings(); renderVisibility(); });
     });
     $("set-tapguard").addEventListener("change", function () { settings.tapGuardMs = +this.value; saveSettings(); });
+    $("set-pathspeak").addEventListener("change", function () { settings.pathsSpeakEach = this.checked; saveSettings(); });
+    $("set-pathshide").addEventListener("change", function () { settings.pathsHideHiddenStem = this.checked; saveSettings(); });
+    $("set-pathsset").addEventListener("change", function () { settings.pathsSet = this.value || "auto"; saveSettings(); });
     $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
     [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
@@ -1236,11 +1481,12 @@
     onTap($("msg"), "a:msg", speakMessage, { scroll: true });   // the message bar scrolls when long
     onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
     onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
-    onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
+    onTap($("nav-paths"), "n:paths", function () { stopAll(); commitBuf(false); state.view = "paths"; render(); });
+    if ($("nav-stories")) onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
     setupGate(); bindSettings();
     document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
     $("app").addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    $("app").addEventListener("touchmove", function (e) { if (!e.target.closest("#msg, .story-list")) e.preventDefault(); }, { passive: false });
+    $("app").addEventListener("touchmove", function (e) { if (!e.target.closest("#msg, .story-list, .path-menu")) e.preventDefault(); }, { passive: false });
     document.addEventListener("pointerdown", function () { Clips.unlock(); }, { capture: true, passive: true });
     // iPad rotation: Safari fires "resize" before the new layout settles, so a single
     // refit can measure the old (landscape) button size and keep the huge labels.
@@ -1258,7 +1504,17 @@
     }
     tryItNotice();
     window.WB = { state: state, msg: msg, bestVoice: function () { return Speech.voice(); }, settings: settings, get config() { return config; }, get stories() { return stories; }, get pack() { return pack; },
-      problems: function () { return problems; }, shownCount: shownCount, currentLevel: function () { return currentLevel(); }, levels: function () { return { list: LEVEL_LIST, max: MAX_LEVEL, mode: wordsShownMode() }; }, inflect: inflect, openSettings: openSettings, predictionList: predictionList, importPack: importPack };
+      problems: function () { return problems; }, shownCount: shownCount, currentLevel: function () { return currentLevel(); }, levels: function () { return { list: LEVEL_LIST, max: MAX_LEVEL, mode: wordsShownMode() }; }, inflect: inflect, openSettings: openSettings, predictionList: predictionList, importPack: importPack,
+      paths: function () {
+        var ctx = pathContext(), pat = pathById(state.pathId);
+        return {
+          visible: window.AAC_PATHS ? window.AAC_PATHS.visible(ctx).map(function (p) { return p.id; }) : [],
+          pathId: state.pathId, step: state.pathStep,
+          picks: state.pathPicks.map(function (w) { return w ? w.label : null; }),
+          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx).map(function (w) { return w.label; }) : [],
+          requiredDone: pathRequiredDone(pat)
+        };
+      } };
   }
   /* Try-it notice: only on the public github.io copy, not when installed or in the private copy. */
   function tryItNotice() {

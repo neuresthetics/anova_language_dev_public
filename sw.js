@@ -1,7 +1,7 @@
 /* Service worker: makes the app work with no network after the first visit.
    Only runs on https:// or http://localhost (browser rule). */
-var CACHE = "wordboard-v19";   // bump this whenever app files change so devices update
-var SHELL = ["./", "styles.css", "store.js", "app.js", "words.js", "stories.js", "manifest.json",
+var CACHE = "wordboard-v21";   // bump this whenever app files change so devices update
+var SHELL = ["./", "styles.css", "store.js", "app.js", "words.js", "stories.js", "paths.js", "manifest.json",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "private/overlay.js"]   // optional: only exists in the private copy; a 404 is simply skipped
   .concat([1, 2, 3, 4, 5, 6, 7, 8].map(function (n) { return "media/stories/cat-p" + n + ".jpg"; }));
