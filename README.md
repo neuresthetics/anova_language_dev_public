@@ -3,8 +3,8 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.4.1.** Try it: [neuresthetics.github.io/anova_language_dev_public](https://neuresthetics.github.io/anova_language_dev_public/).
-Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md).
+**Current version: 1.4.1.** Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md)
+(fork this repo, then publish your own copy with GitHub Pages).
 
 | Home (starter level) | Home (full) | Animals |
 |---|---|---|
