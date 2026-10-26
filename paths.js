@@ -8,8 +8,13 @@
    level. Fitzgerald colour is the board word's type. Nothing is invented:
    labels, emoji and levels all come from the board.
 
-   Menu order is the array order. minLevel: 1 starter, 2 middle, 3 expanded.
+   Menu order is the array order. minLevel follows Words shown: 1 starter,
+   2 middle, 3 expanded, 4 sentences, 5 conversation. Auto uses that number,
+   so Expanded keeps the shorter menu and Sentences / Full add longer frames.
    A pattern is hidden when every stem word is parent-hidden (setting).
+   Open-slot length is ctx.maxChoices when the parent sets one (never above
+   the step's own max). ctx.recent (label → score) floats non-preferred
+   fringe words she has used; preferred core words keep their order.
    ===================================================================== */
 (function (root) {
   var FITZ = { people: 1, verb: 1, descriptor: 1, noun: 1, social: 1, negation: 1, little: 1 };
@@ -36,6 +41,15 @@
     prefer: ["bed", "school", "park", "store", "playground", "bathroom", "bath", "potty", "home", "outside", "inside"]
   };
   var OPEN_THINGS = { page: "things", types: ["noun"], prefer: ["door", "book", "box", "bag", "cup", "toy"] };
+  /* Containers and surfaces only, so "put it on / in …" stays a real place to put something. */
+  var PUT_SPOTS = {
+    any: [
+      { page: "things", types: ["noun"], labels: ["box", "bag", "cup", "chair"] },
+      { page: "where", types: ["noun"], labels: ["bed", "bath"] },
+      { page: "food", types: ["noun"], labels: ["cup"] }
+    ],
+    prefer: ["box", "bag", "cup", "chair", "bed", "bath"]
+  };
 
   /* Titles and frames are the sentence a child is building. Fixed steps use board
      labels (lookup). "I'm" and "the" are on the board (little words / home). */
@@ -44,20 +58,34 @@
       steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
     { id: "more", title: "I want more …", frame: "I → want → more → …", minLevel: 1, stems: ["more"],
       steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, THINGS] } }] },
+    { id: "dont_want", title: "I don't want …", frame: "I → don't → want → …", minLevel: 2, stems: ["don't"],
+      steps: [{ words: ["I"] }, { words: ["don't"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
+    { id: "want_please", title: "I want … please", frame: "I → want → … → please | thank you", minLevel: 4, stems: ["please", "thank you"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }, { words: ["please", "thank you"] }] },
     { id: "help", title: "Help me", frame: "Help → me", minLevel: 1, stems: ["help"],
       steps: [{ words: ["help"] }, { words: ["me"] }] },
     { id: "see", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
       steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] } }] },
+    { id: "who_what", title: "Who / what is …?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
+      steps: [{ words: ["who", "what"] }, { words: ["is"] }, { words: ["it", "that"] }] },
+    { id: "where_is", title: "Where is …?", frame: "where? → is → …", minLevel: 3, stems: ["where?"], punct: "?",
+      steps: [{ words: ["where?"] }, { words: ["is"] }, { fringe: { max: 6, pools: [PLACES, PEOPLE, THINGS] } }] },
     { id: "go", title: "I go to …", frame: "I → go → to → …", minLevel: 2, stems: ["go"],
       steps: [{ words: ["I"] }, { words: ["go"] }, { words: ["to"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] } }] },
+    { id: "can", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
+      steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] } }] },
     { id: "like", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
       steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD, ANIMALS, ACTIVITIES, THINGS] } }] },
+    { id: "like_ing", title: "I like …ing", frame: "I → like → … → -ing", minLevel: 4, stems: ["like"],
+      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] } }, { optional: true, endings: ["ing"] }] },
     { id: "stop", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"],
       steps: [{ words: ["stop"] }] },
     { id: "open_close", title: "Open the … / Close the …", frame: "Open | Close → the → …", minLevel: 3, stems: ["open", "close"],
       steps: [{ words: ["open", "close"] }, { words: ["the"] }, { fringe: { max: 6, pools: [OPEN_THINGS] } }] },
     { id: "all_done", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
-      steps: [{ words: ["I'm"] }, { words: ["all done"] }] }
+      steps: [{ words: ["I'm"] }, { words: ["all done"] }] },
+    { id: "put", title: "Put it on / in …", frame: "put → it → on | in → …", minLevel: 4, stems: ["put"],
+      steps: [{ words: ["put"] }, { words: ["it"] }, { words: ["on", "in"] }, { fringe: { max: 6, pools: [PUT_SPOTS] } }] }
   ];
 
   function labelKey(w) { return String(w && w.label || "").toLowerCase(); }
@@ -99,18 +127,15 @@
     hits.forEach(function (w) { if (!ctx.hidden || !ctx.hidden(w)) vis.push(w); });
     return vis[0] || hits[0];
   }
-  function synthetic(label) {
-    return { id: "path:" + String(label).toLowerCase().replace(/\s+/g, "-"), label: label, type: "", emoji: "", _pathOnly: true };
-  }
   function patternCap(ctx) {
     var set = ctx.set || "auto";
     if (set === "starter") return 1;
     if (set === "middle") return 2;
-    if (set === "expanded" || set === "all") return 99;
+    if (set === "expanded") return 3;
+    if (set === "sentences") return 4;
+    if (set === "all" || set === "full" || set === "conversation") return 99;
     var lv = +ctx.level || 1;
-    if (lv <= 1) return 1;
-    if (lv === 2) return 2;
-    return 99;
+    return lv >= 1 ? lv : 1;
   }
   function stemsHidden(p, ctx) {
     var stems = p.stems || [], found = 0, hidden = 0;
@@ -172,6 +197,11 @@
       var ha = ia == null ? 1 : 0, hb = ib == null ? 1 : 0;
       if (ha !== hb) return ha - hb;
       if (ha === 0 && ia !== ib) return ia - ib;
+      var recent = ctx.recent || null;
+      if (recent) {
+        var ra = +recent[ka] || 0, rb = +recent[kb] || 0;
+        if (ra !== rb) return rb - ra;
+      }
       var la = wordLevelOf(a, ctx), lb = wordLevelOf(b, ctx);
       if (la !== lb) return lb - la;
       if (a.row !== b.row) return a.row - b.row;
@@ -184,6 +214,8 @@
     var skip = skipLabels(pattern);
     var pools = (spec.pools || []).map(function (pool) { return poolWords(pool, ctx, skip); });
     var out = [], seen = {}, max = spec.max || 6, guard = 0;
+    var cap = +ctx.maxChoices;
+    if (cap >= 2) max = Math.min(max, Math.round(cap));
     while (out.length < max && guard < 80) {
       var progressed = false;
       for (var p = 0; p < pools.length && out.length < max; p++) {
@@ -199,6 +231,18 @@
     }
     return out;
   }
+  function endingChoices(step, ctx) {
+    var order = step.endings || [], byKind = {};
+    (ctx.words || []).forEach(function (w) {
+      if (!w || !w.ending || order.indexOf(w.ending) < 0 || w.type === "folder") return;
+      if (ctx.hidden && ctx.hidden(w)) return;
+      if (!(ctx.forceShown && ctx.forceShown(w)) && wordLevelOf(w, ctx) > (+ctx.level || 1)) return;
+      if (!byKind[w.ending] || betterLookup(w, byKind[w.ending], ctx) < 0) byKind[w.ending] = w;
+    });
+    var out = [];
+    order.forEach(function (k) { if (byKind[k]) out.push(byKind[k]); });
+    return out;
+  }
   function choices(pattern, stepIndex, ctx) {
     var step = pattern && pattern.steps && pattern.steps[stepIndex];
     if (!step) return [];
@@ -206,12 +250,13 @@
       var multi = step.words.length > 1, out = [];
       step.words.forEach(function (lab) {
         var w = lookup(lab, ctx);
-        if (!w) { out.push(synthetic(lab)); return; }
+        if (!w || w._pathOnly) return;
         if (multi && ctx.hidden && ctx.hidden(w)) return;
         out.push(w);
       });
       return out;
     }
+    if (step.endings) return endingChoices(step, ctx);
     if (step.fringe) return pickFringe(step.fringe, ctx, pattern);
     return [];
   }

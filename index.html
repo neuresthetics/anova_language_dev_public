@@ -116,18 +116,34 @@
 
     <section>
       <h2>Paths</h2>
-      <p class="note">Paths practices a short phrase one word at a time. Choice buttons use words from this board (emoji, colour, level). Stories are still in the app, but the stories tab is not on the tab bar.</p>
+      <p class="note">Paths practices a short phrase one word at a time. Choice buttons use words from this board (emoji, colour, level). Stories are still in the app, but the stories tab is not on the tab bar. Expanded keeps the shorter menu. Sentences and Full add I can, put it on / in, please / thank you, and I like …ing.</p>
+      <label class="row chk"><input type="checkbox" id="set-pathsshow"> show the Paths tab</label>
       <label class="row chk"><input type="checkbox" id="set-pathspeak"> speak each word when it is tapped</label>
       <p class="note">Off: a tap is quiet, and the whole phrase is spoken at the last word (Say whole still speaks whenever you tap it).</p>
+      <label class="row chk"><input type="checkbox" id="set-pathstowords"> copy a finished phrase to Words</label>
+      <p class="note">Off: → words stays in its place and does nothing, so the other buttons do not move.</p>
       <label class="row">Patterns
         <select id="set-pathsset">
           <option value="auto">follow Words shown</option>
           <option value="starter">Starter only</option>
           <option value="middle">Starter and Middle</option>
-          <option value="expanded">All patterns</option>
+          <option value="expanded">Through Expanded</option>
+          <option value="sentences">Through Sentences</option>
+          <option value="all">All patterns</option>
         </select>
       </label>
+      <label class="row">Choices in an open slot
+        <select id="set-pathsmax">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+        </select>
+      </label>
+      <p class="note">Open slots (food, places, actions) use this many buttons. A fixed pair, such as open / close, stays as written.</p>
       <label class="row chk"><input type="checkbox" id="set-pathshide"> hide a pattern when its word is hidden on the board</label>
+      <label class="row chk"><input type="checkbox" id="set-pathsrecent"> in open slots, prefer words she has used lately</label>
+      <p class="note">Uses the usage log on this iPad. Core words stay in their usual order. When the log is off, nothing changes.</p>
     </section>
 
     <section>
