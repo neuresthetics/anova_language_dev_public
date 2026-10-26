@@ -3,8 +3,7 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.5.0.** Paths tab for speech-pattern practice (Stories off the tab bar). Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md) (fork this repo, then publish your own copy with GitHub Pages).
-(fork this repo, then publish your own copy with GitHub Pages).
+**Current version: 1.5.1.** Paths phrases are short sentences (I want more …, Help me, I go to …, Open the … / Close the …, I'm all done.) and the buttons are **← undo** (last word) and **all patterns** (pattern list). Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md) (fork this repo, then publish your own copy with GitHub Pages).
 
 | Home (starter level) | Home (full) | Animals |
 |---|---|---|
