@@ -3,16 +3,6 @@
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Current version: 1.5.1.** Paths phrases are short sentences (I want more …, Help me, I go to …, Open the … / Close the …, I'm all done.) and the buttons are **← undo** (last word) and **all patterns** (pattern list). Set it up on your own iPad for free: [docs/SETUP.md](docs/SETUP.md) (fork this repo, then publish your own copy with GitHub Pages).
-
-| Home (starter level) | Home (full) | Animals |
-|---|---|---|
-| ![Home at the starter level](docs/screenshots/landscape-1-home-starter.png) | ![Full home board](docs/screenshots/landscape-2-home-full.png) | ![Animals folder, A to Z](docs/screenshots/landscape-4-folder-animals.png) |
-| **Keyboard** | **Stories** | **Illustrated story** |
-| ![abc keyboard with a typed question](docs/screenshots/landscape-5-keyboard-sentence.png) | ![Stories list](docs/screenshots/landscape-6-stories-list.png) | ![I see a cat, page 1](docs/screenshots/landscape-7-story-cat.png) |
-
-More (landscape and portrait) in [docs/screenshots/](docs/screenshots/).
-
 **Since 1.3.0 the whole board is built in.** `words.js` holds every word (starter, middle and
 full tiers, with fixed positions and levels) and `stories.js` holds the non-personal stories,
 with their illustrations in `media/stories/`. Nothing needs to be imported: new words arrive
@@ -33,150 +23,59 @@ its pack.json has `"replace": true`.
   message, **delete** removes the last word (on the keyboard it removes the last letter),
   **clear** empties the bar. Tapping the bar also speaks it. While speaking, the word being
   said is highlighted (when the voice reports word timing).
-- **home (WORDS).** A fixed 9 × 10 grid of core words: I/you/he/she/we/they/this/her,
-  helper verbs (is, are, am, have, need, feel), want/go/help/eat/drink, **to**, more/less,
-  open/close, up/down, protest phrases (no thank you, don't want), quick replies (your
-  turn, uh oh, me too, okay, sorry, love you), **me**, question words (who, why; **when** is in
-  little words), **a**, **the** and the word-ending buttons **-s**, **-ing**, **-ed** (Sentences level). Opposites sit
-  side by side (more/less, open/close, up/down, big/little). Tapping a word **speaks it right away and
+- **home (WORDS).** A fixed grid of word buttons. Tapping a word **speaks it right away and
   adds it to the bar**. Folder buttons (bottom row) open category pages. The **home** tab
-  always sits in the same place and goes back to the home page.
-- **Folders.** people, food, animals, vehicles, colors, feelings, things, actions,
-  describe, places, **little words** (from Expanded) and **time** (Conversation level).
-  **animals** holds 89 animals in A–Z order (ant … zebra). People has a row of body words
-  (tummy, head, hands, feet, teeth, mouth, nose, eyes), feelings a row of reactions (wow,
-  yuck, yummy, oops, ouch), places bath/bed/potty, things clothes (shoes, socks, coat, shirt)
-  and blanket/door/chair, food juice/apple/banana/cheese/snack/cracker.
-- **Word endings.** **-s**, **-ing**, **-ed** (on home) and **'s** (in little words) change the
-  last word in the bar and say the new word: jump → jumping, make → making, run → running,
-  cry → cries, box → boxes, child → children, go → went, dog → dog's. Spelling rules plus
-  tables of irregular verbs (about 60) and plurals (about 30). **delete** (or ⌫) takes the
-  ending off first. On an empty bar, or after a phrase like "thank you", nothing changes.
-- **Pronunciation.** A lone **a** is said "uh" (not the letter A) and a lone **the** "thuh";
-  inside a sentence they're read normally. **I** is always "eye".
-- **abc (KEYBOARD).** A–Z in **alphabetical order**, **.** and **?**, a wide **space** bar and
-  a **⌫ backspace** key. Pressing space speaks the finished word. Tapping **.** or **?** ends
-  the sentence and **reads the whole typed sentence aloud** (so **?** gets question
-  intonation). On an empty bar the key just says "period" or "question mark". The prediction row above the keys suggests words that start with the
+  always sits in the same place and goes back to the home page. After a word inside a folder
+  she stays on that page, unless *go back to Home after picking a word in a folder* is on.
+- **abc (KEYBOARD).** A–Z in **alphabetical order**, **.** and **?**, plus a wide **space**
+  bar. Pressing space speaks the finished word. **.** or **?** ends the last word; it shows in
+  the message bar and stays in the spoken sentence (so **?** gets question intonation). The prediction row above the keys suggests words that start with the
   typed letters (from the visible buttons plus the pack's `knownWords`); tapping a
   suggestion finishes and speaks the word. It can be turned off.
-- **stories.** Simple read-along books. **Turning a page never speaks.** The app speaks only
-  when a word is tapped (that word) or **▶ read** is tapped (the page). There are big
-  back/next arrows on both sides. This fits an adult reading aloud and pointing.
-  The built-in stories are *Go, bus, go!*, *Ant, bat, cat*, *I see colors*, *I see a cat*
-  (full-colour illustrations), *What can go?* and *The Itsy Bitsy Spider*.
-  Each page can show a photo (`pic`), a small emoji **scene** (`scene`, 2–6 emoji, the main
-  subject bigger) or one big `emoji`. The **stories** tab always opens the list of stories,
-  laid out so every tile fits on screen when possible.
+- **paths (1.5.2).** Speech-pattern practice. The tab bar is **home**, **abc**, **paths**.
+  Large pattern cards open a short sentence one blank at a time. Starter: **I want …**,
+  **I want more …**, **Help me**, **I see …**, **Stop.**, **I'm all done.** Middle adds
+  **I don't want …**, **I go to …**, **I like …**. Expanded adds **Who / what is …?**,
+  **Where is …?** (the board word is **where?**), and **Open the … / Close the …**.
+  Sentences and Full add **I can …**, **Put it on / in …**, **I want … please** (please or
+  thank you), and **I like …ing** (optional **-ing** on the activity). A fixed word is one
+  big button. An open slot is 2–6 big choice buttons, coloured with the Fitzgerald key when
+  the word is on the board. Choices use `words.js` labels, emoji and levels, and only words
+  at the current *Words shown* level. Each tap speaks that word; a parent can turn that off
+  so the phrase is spoken at the end. Along the bottom, in a fixed order: **← undo** (takes
+  back the last word; disabled on the pattern list and until a word has been picked),
+  **all patterns** (returns to the pattern list; disabled while that list is already showing),
+  **say whole**, and **→ words** (copies a finished phrase into the message bar and opens
+  home). A pattern is hidden when its main word is hidden. Parent settings can show or hide
+  the Paths tab (the slot stays, so home and abc do not move), speak on each tap, allow
+  **→ words**, follow Words shown or pick a pattern set through Expanded, Sentences, or all,
+  and set how many choices an open slot shows. If the usage log is on, open slots can float
+  words she has used lately after the usual core words.
+- **stories.** Still in the app (`stories.js` and `media/stories/`) and still editable under
+  parent settings, but **not on the tab bar**. Turning a page never speaks. The app speaks only
+  when a word is tapped (that word) or **▶ read** is tapped (the page).
 - **Presses.** A button counts when the finger lifts, however long it was held, as long as the
   finger is still on the button or within about 28 px of it. Slow presses, holds and wiggles
   all work; sliding well off the button cancels. Long-press menus and text selection are off.
-- **Words shown** (parent settings, top section): **Starter** (the most-used words; about
-  half of home), **Middle**, **Expanded**, **Sentences**, **Full** (every word, all five levels) or **Custom** (tap words in the editor to show or
+- **Words shown** (parent settings, top section): **Starter** (about 20–24 most-used words),
+  **Middle** (about 36–40), **Full** (every word) or **Custom** (tap words in the editor to show or
   hide them). Words are **masked, never moved**: a hidden word leaves an empty cell, so every
-  visible button keeps its place as more words are revealed. The level applies to Home, and
-  optionally inside folders too (the two newest levels always apply inside folders). Each word's
-  priority comes from its `level` field (1 = starter, 2 = middle, 3 = expanded, 4 = sentences,
-  5 = conversation) in `words.js`; the levels themselves are data (`levels` in `words.js`). A pack can set its default
-  with `config.wordsShown`; once a parent picks a level it is saved on the device and kept when
-  a pack is imported again.
-- **Voice.** *Automatic (best voice)* picks the best English voice on the device: en-US first,
-  then Premium/Enhanced, "Natural"/"Neural" (Edge), Google US English, Samantha (iPad), Ava,
-  Allison, Aria or Jenny; robotic voices like eSpeak, Fred or Albert come last. ⚙ → Voice lists
-  the device's English voices (best first) with a **Test voice** button; the choice is saved on
-  that device. On the public try-it page a small dismissible note says voice quality depends on
-  the device/browser (Chrome, Edge or an iPad sound best); it never shows in an installed copy.
+  visible button keeps its place as more words are revealed. Folder buttons always show; the level
+  applies to Home, and optionally inside folders too. Each word's priority comes from its optional
+  `level` field (1 = starter, 2 = middle, 3 = full) or a generic core-word default. A pack can set
+  its default with `config.wordsShown`; once a parent picks a level it is saved on the device and
+  kept when a pack is imported again.
 - **Parent settings** (hold the dim ⚙ gear for 2 seconds; triple tap is optional):
   voice, speed, pitch, volume; text case; pictures on/off; prediction; tap-repeat guard;
-  story read mode; optional pack import/export; hide/show words; add photos from the
-  camera or photo library; opt-in usage log.
+  story read mode; Paths (show the tab, speak each word, copy to Words, which pattern set,
+  how many open-slot choices, hide a pattern whose word is hidden, prefer recent words from
+  the usage log); **go back to Home after picking a word in a folder** (off by default:
+  she stays in the folder; when on, the word is still spoken and added, then the board
+  returns to Home); personal pack import/export; hide/show words; add photos from the
+  camera or photo library; opt-in usage log. The choice is saved on this device with the
+  other parent settings.
 
 No animations, no ads, no sounds except speech and recordings.
-
-## How the board grows with her language
-
-The board is built to grow without ever moving a button. Every word has a fixed place and a
-level, and the parent decides how much of the board is visible.
-
-![The same home board at all five levels](docs/screenshots/growth-home-levels.png)
-
-*Home at **Starter**, **Middle**, **Expanded** (top row), **Sentences** and **Full** (bottom row).
-The buttons that show stay in the same place at every level.*
-
-**Five levels.** Each word in `words.js` has a `level` from 1 to 5, and the levels themselves
-are listed in `words.js` (`levels`), so more can be added later without code changes. In
-1.4.1 the built-in board has 422 visible words plus 12 folder buttons:
-
-| Level | Adds | Home shows | Whole board (with *levels in folders* on) |
-|---|---|---|---|
-| **Starter** (default) | the most-used core words | 49 of 78 home words | 129 words |
-| **Middle** | more core words, me | 67 | 191 |
-| **Expanded** (was "Full" before 1.4.0) | the rest of the 1.3 board; since 1.4.1 also a, the, the *little words* folder with I'm, it's, that's, let's, did, at, for, with, him, them, us; can't, finished, body words, clothes, bath/bed/potty, book/ball, juice/apple/banana/cheese, wow/yuck/yummy/oops/ouch, broken, all gone, wash/brush/get dressed, park/bathroom/inside | 75 | 329 |
-| **Sentences** | when, the endings -s/-ing/-ed/'s and the rest of *little words* (how, which, where?, because, but, or, if, of, from, about, was, were, does, has, will, won't, his, our, their …) | 78 | 356 |
-| **Full** (adds **Conversation**) | the *time* folder (yesterday/today/tomorrow, before/after, day/night, early/late …), thinking words (think, know, remember/forget, maybe), school things, teacher/friend, social phrases (how are you, guess what, excuse me, I don't know) | 78 + the time folder | all 422 |
-
-The Sentences and Conversation words follow the level everywhere, including inside folders, so
-they never appear until a parent picks those levels. The *little words* folder appears from
-Expanded on (showing only its Expanded words until Sentences), the *time* folder from Full.
-1.4.1 added its new Expanded words only into empty cells or cells of words that had never been
-shown at levels 1–3 (when → little words; wish, guess → time), so no visible button moved. Updating from 1.3.x: a device that was on "Full" is moved to
-**Expanded** once, so it shows exactly what it showed before; Starter, Middle and Custom stay
-as they were (the 1.4.0 Sentences/Conversation words start hidden in Custom; 1.4.1's new
-level 1–3 words follow the Custom board's base level, so a Custom board based on Expanded shows them).
-
-![Words shown setting](docs/screenshots/settings-level-menu.png)
-
-| Little words (Sentences) | Time (Conversation) | Endings in use |
-|---|---|---|
-| ![Little words folder](docs/screenshots/folder-little-words.png) | ![Time folder](docs/screenshots/folder-time.png) | !["I like dog" + -s = "I like dogs"](docs/screenshots/endings-in-use.png) |
-
-At **Expanded** (1.4.1) the folders also hold everyday words for 2–4 word sentences ("my tummy
-hurt", "I want a bath", "brush teeth", "put on my shoes", "that's yummy"):
-
-| People (body row) | Feelings (reactions row) | Things (clothes, house) | Food |
-|---|---|---|---|
-| ![People folder at Expanded](docs/screenshots/folder-people-expanded.png) | ![Feelings folder at Expanded](docs/screenshots/folder-feelings-expanded.png) | ![Things folder at Expanded](docs/screenshots/folder-things-expanded.png) | ![Food folder at Expanded](docs/screenshots/folder-food-expanded.png) |
-
-**Levels inside folders.** By default the level only applies to Home, and every folder shows
-all of its words. Tick *also use this level inside folders* (⚙ → Words shown) to mask folder
-pages too. For example, the animals folder at Starter then shows 42 of its 89 animals, each
-in its usual place:
-
-![Animals folder at Starter with levels in folders on](docs/screenshots/growth-animals-starter-levels-in-folders.png)
-
-**Turning single words on or off.** ⚙ → *Words: show / hide and photos* shows every page as a
-grid. Each word carries its level (L1 to L5), and empty cells show their row and column.
-With *hide / show it* selected, tapping a word flips it on or off. The first tap switches
-*Words shown* to **Custom**, starting from the level you were on, so you can add one new word
-at a time ahead of the next level. Folder buttons can be hidden here too. These choices are
-saved on that iPad.
-
-![Per-word show/hide screen](docs/screenshots/growth-settings-show-hide.png)
-
-**Positions never move.** A hidden or not-yet-shown word leaves an **empty cell** instead of
-letting other buttons slide over, so a button she has learned is in the same spot at
-every level and in Custom. New words only go into empty cells. When the app loads, a
-word whose place is already taken is reported as a problem and doesn't take the place. Words
-from a pack that are also built into the app keep their built-in position, so an update
-can't scramble the layout (only a pack marked `"replace": true` uses its own layout). This is
-what lets motor memory carry over as the vocabulary grows.
-
-**Opposites sit together.** On Home the pairs are stacked: more above less, up above down, on
-above off, in above out, big above little. Open is next to close and yes is next to no. In
-the describe and actions folders they sit side by side: hot/cold, fast/slow, full/empty,
-clean/dirty, loud/quiet, give/take, sit/stand, remember/forget and easy/hard. In the time
-folder: yesterday/today/tomorrow, before/after, day/night and early/late; in little words:
-was/were, did/does, will/won't and him/his, us/our, them/their.
-
-**Adding words.** Add a word to `words.js` with an empty `row`/`col` and a `level` (1–5). It ships
-to every device with the next app update, and there's nothing to import. For words only one
-child needs, an optional personal pack (see below) can add words into empty cells on that
-iPad.
-
-**Tracking growth.** The opt-in *usage log* (⚙ → Usage log, off by default) records the time
-and word for every word button tapped and every finished typed word. It stays on the iPad,
-and you can export it as CSV or JSON. It's a simple way to see which words she uses, so you
-know when it's time to reveal more.
 
 ## Colour coding (modified Fitzgerald key)
 
@@ -196,7 +95,7 @@ with the negation words, as many core boards do. Change a word's `type` to recol
 
 ## Motor planning: positions never move
 
-Every button has an explicit `row`/`col` on a fixed grid (home is 9 × 10; each page sets its own `rows`/`cols`). Empty cells
+Every button has an explicit `row`/`col` on a fixed grid (5 × 8 by default). Empty cells
 stay blank. Hiding a word blanks its cell and moves nothing else. Adding a word only fills
 an empty cell. Keep these rules when editing:
 
@@ -211,11 +110,10 @@ and the first word keeps the cell.
 
 ## Editing words
 
-**Built-in board:** `words.js` (comments at the top explain every field). This is the normal
-way to add words: they ship with the next app update, nothing to import.
+**Generic board:** `words.js` (comments at the top explain every field).
 
-**Personal pack (optional):** a pack's `pack.json` uses the same `pages`/`words` format under
-`config`. Rebuild the pack and import it again (see below).
+**Personal board:** edit the pack's `pack.json`. It uses the same `pages`/`words` format
+under `config`. Rebuild the pack and import it again (see below).
 
 ```js
 { id: "juice", label: "juice", page: "food", row: 1, col: 5, type: "noun", emoji: "🧃" }
@@ -230,11 +128,7 @@ Optional fields:
 - `image`: a photo, e.g. `"photos/cup.jpg"` (or add one on the iPad).
 - `hidden: true`.
 
-## Personal packs (optional)
-
-Since 1.3.0 you don't need a pack: every word and story is built in. A pack is only for
-adding your own photos, recordings or stories on one iPad.
-
+## Personal packs
 
 A pack is either a `.zip` (holding `pack.json` plus `photos/…` and `recordings/…`) or a
 single `.json` with the media embedded. `pack.json` looks like this:
@@ -324,19 +218,18 @@ Limits on iPad:
 |---|---|
 | `index.html` | app page |
 | `styles.css` | layout and colours |
-| `app.js` | app logic (speech, grid, keyboard, stories, parent mode, packs) |
+| `app.js` | app logic (speech, grid, keyboard, paths, stories, parent mode, packs) |
 | `store.js` | on-device storage (IndexedDB) and a small zip reader/writer |
-| `words.js` | the built-in board: the levels, every word, its position and level |
-| `stories.js` | built-in stories |
-| `media/stories/` | story illustrations |
+| `words.js` | generic starter board |
+| `paths.js` | Paths patterns (which phrases, which board words fill each blank) |
+| `stories.js` | generic sample stories (not on the tab bar) |
 | `sw.js` | service worker (offline) |
 | `manifest.json`, `icons/` | Home Screen install |
 | `tools/make-pack.js` | builds a pack `.zip`/`.json` from a pack folder |
 | `tools/build-single.js` | builds `dist/aac.html` |
 | `tools/icon.html` | icon source |
-| `dist/aac.html` | single-file build (story illustrations are not inlined) |
-| `docs/SETUP.md` | step-by-step setup guide for parents |
-| `docs/screenshots/` | screenshots (iPad landscape 1180 × 820 and portrait 820 × 1180; updated for 1.4.1) |
+| `dist/aac.html` | single-file build |
+| `screenshots/` | test screenshots of the generic board |
 
 After changing app files, reopen the app twice: the first launch fetches the update in
 the background and the second shows it. **Bump `CACHE` in `sw.js` on every release** so

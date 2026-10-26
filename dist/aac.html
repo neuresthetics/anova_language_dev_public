@@ -116,6 +116,7 @@ button, [role="button"] {
 }
 .tab .ico { font-size: 1.1em; }
 .tab.on { background: #fff; color: #000; border-color: #fff; }
+.tab.is-hidden { visibility: hidden; pointer-events: none; }
 #page-title {
   display: flex; align-items: center; justify-content: center;
   font-size: clamp(22px, 3.6vmin, 34px); font-weight: 800; color: #fff;
@@ -435,18 +436,34 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
 
     <section>
       <h2>Paths</h2>
-      <p class="note">Paths practices a short phrase one word at a time. Choice buttons use words from this board (emoji, colour, level). Stories are still in the app, but the stories tab is not on the tab bar.</p>
+      <p class="note">Paths practices a short phrase one word at a time. Choice buttons use words from this board (emoji, colour, level). Stories are still in the app, but the stories tab is not on the tab bar. Expanded keeps the shorter menu. Sentences and Full add I can, put it on / in, please / thank you, and I like …ing.</p>
+      <label class="row chk"><input type="checkbox" id="set-pathsshow"> show the Paths tab</label>
       <label class="row chk"><input type="checkbox" id="set-pathspeak"> speak each word when it is tapped</label>
       <p class="note">Off: a tap is quiet, and the whole phrase is spoken at the last word (Say whole still speaks whenever you tap it).</p>
+      <label class="row chk"><input type="checkbox" id="set-pathstowords"> copy a finished phrase to Words</label>
+      <p class="note">Off: → words stays in its place and does nothing, so the other buttons do not move.</p>
       <label class="row">Patterns
         <select id="set-pathsset">
           <option value="auto">follow Words shown</option>
           <option value="starter">Starter only</option>
           <option value="middle">Starter and Middle</option>
-          <option value="expanded">All patterns</option>
+          <option value="expanded">Through Expanded</option>
+          <option value="sentences">Through Sentences</option>
+          <option value="all">All patterns</option>
         </select>
       </label>
+      <label class="row">Choices in an open slot
+        <select id="set-pathsmax">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+        </select>
+      </label>
+      <p class="note">Open slots (food, places, actions) use this many buttons. A fixed pair, such as open / close, stays as written.</p>
       <label class="row chk"><input type="checkbox" id="set-pathshide"> hide a pattern when its word is hidden on the board</label>
+      <label class="row chk"><input type="checkbox" id="set-pathsrecent"> in open slots, prefer words she has used lately</label>
+      <p class="note">Uses the usage log on this iPad. Core words stay in their usual order. When the log is off, nothing changes.</p>
     </section>
 
     <section>
@@ -5861,8 +5878,13 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
    level. Fitzgerald colour is the board word's type. Nothing is invented:
    labels, emoji and levels all come from the board.
 
-   Menu order is the array order. minLevel: 1 starter, 2 middle, 3 expanded.
+   Menu order is the array order. minLevel follows Words shown: 1 starter,
+   2 middle, 3 expanded, 4 sentences, 5 conversation. Auto uses that number,
+   so Expanded keeps the shorter menu and Sentences / Full add longer frames.
    A pattern is hidden when every stem word is parent-hidden (setting).
+   Open-slot length is ctx.maxChoices when the parent sets one (never above
+   the step's own max). ctx.recent (label → score) floats non-preferred
+   fringe words she has used; preferred core words keep their order.
    ===================================================================== */
 (function (root) {
   var FITZ = { people: 1, verb: 1, descriptor: 1, noun: 1, social: 1, negation: 1, little: 1 };
@@ -5889,6 +5911,15 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     prefer: ["bed", "school", "park", "store", "playground", "bathroom", "bath", "potty", "home", "outside", "inside"]
   };
   var OPEN_THINGS = { page: "things", types: ["noun"], prefer: ["door", "book", "box", "bag", "cup", "toy"] };
+  /* Containers and surfaces only, so "put it on / in …" stays a real place to put something. */
+  var PUT_SPOTS = {
+    any: [
+      { page: "things", types: ["noun"], labels: ["box", "bag", "cup", "chair"] },
+      { page: "where", types: ["noun"], labels: ["bed", "bath"] },
+      { page: "food", types: ["noun"], labels: ["cup"] }
+    ],
+    prefer: ["box", "bag", "cup", "chair", "bed", "bath"]
+  };
 
   /* Titles and frames are the sentence a child is building. Fixed steps use board
      labels (lookup). "I'm" and "the" are on the board (little words / home). */
@@ -5897,20 +5928,34 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
     { id: "more", title: "I want more …", frame: "I → want → more → …", minLevel: 1, stems: ["more"],
       steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, THINGS] } }] },
+    { id: "dont_want", title: "I don't want …", frame: "I → don't → want → …", minLevel: 2, stems: ["don't"],
+      steps: [{ words: ["I"] }, { words: ["don't"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
+    { id: "want_please", title: "I want … please", frame: "I → want → … → please | thank you", minLevel: 4, stems: ["please", "thank you"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }, { words: ["please", "thank you"] }] },
     { id: "help", title: "Help me", frame: "Help → me", minLevel: 1, stems: ["help"],
       steps: [{ words: ["help"] }, { words: ["me"] }] },
     { id: "see", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
       steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] } }] },
+    { id: "who_what", title: "Who / what is …?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
+      steps: [{ words: ["who", "what"] }, { words: ["is"] }, { words: ["it", "that"] }] },
+    { id: "where_is", title: "Where is …?", frame: "where? → is → …", minLevel: 3, stems: ["where?"], punct: "?",
+      steps: [{ words: ["where?"] }, { words: ["is"] }, { fringe: { max: 6, pools: [PLACES, PEOPLE, THINGS] } }] },
     { id: "go", title: "I go to …", frame: "I → go → to → …", minLevel: 2, stems: ["go"],
       steps: [{ words: ["I"] }, { words: ["go"] }, { words: ["to"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] } }] },
+    { id: "can", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
+      steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] } }] },
     { id: "like", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
       steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD, ANIMALS, ACTIVITIES, THINGS] } }] },
+    { id: "like_ing", title: "I like …ing", frame: "I → like → … → -ing", minLevel: 4, stems: ["like"],
+      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] } }, { optional: true, endings: ["ing"] }] },
     { id: "stop", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"],
       steps: [{ words: ["stop"] }] },
     { id: "open_close", title: "Open the … / Close the …", frame: "Open | Close → the → …", minLevel: 3, stems: ["open", "close"],
       steps: [{ words: ["open", "close"] }, { words: ["the"] }, { fringe: { max: 6, pools: [OPEN_THINGS] } }] },
     { id: "all_done", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
-      steps: [{ words: ["I'm"] }, { words: ["all done"] }] }
+      steps: [{ words: ["I'm"] }, { words: ["all done"] }] },
+    { id: "put", title: "Put it on / in …", frame: "put → it → on | in → …", minLevel: 4, stems: ["put"],
+      steps: [{ words: ["put"] }, { words: ["it"] }, { words: ["on", "in"] }, { fringe: { max: 6, pools: [PUT_SPOTS] } }] }
   ];
 
   function labelKey(w) { return String(w && w.label || "").toLowerCase(); }
@@ -5952,18 +5997,15 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     hits.forEach(function (w) { if (!ctx.hidden || !ctx.hidden(w)) vis.push(w); });
     return vis[0] || hits[0];
   }
-  function synthetic(label) {
-    return { id: "path:" + String(label).toLowerCase().replace(/\s+/g, "-"), label: label, type: "", emoji: "", _pathOnly: true };
-  }
   function patternCap(ctx) {
     var set = ctx.set || "auto";
     if (set === "starter") return 1;
     if (set === "middle") return 2;
-    if (set === "expanded" || set === "all") return 99;
+    if (set === "expanded") return 3;
+    if (set === "sentences") return 4;
+    if (set === "all" || set === "full" || set === "conversation") return 99;
     var lv = +ctx.level || 1;
-    if (lv <= 1) return 1;
-    if (lv === 2) return 2;
-    return 99;
+    return lv >= 1 ? lv : 1;
   }
   function stemsHidden(p, ctx) {
     var stems = p.stems || [], found = 0, hidden = 0;
@@ -6025,6 +6067,11 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       var ha = ia == null ? 1 : 0, hb = ib == null ? 1 : 0;
       if (ha !== hb) return ha - hb;
       if (ha === 0 && ia !== ib) return ia - ib;
+      var recent = ctx.recent || null;
+      if (recent) {
+        var ra = +recent[ka] || 0, rb = +recent[kb] || 0;
+        if (ra !== rb) return rb - ra;
+      }
       var la = wordLevelOf(a, ctx), lb = wordLevelOf(b, ctx);
       if (la !== lb) return lb - la;
       if (a.row !== b.row) return a.row - b.row;
@@ -6037,6 +6084,8 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     var skip = skipLabels(pattern);
     var pools = (spec.pools || []).map(function (pool) { return poolWords(pool, ctx, skip); });
     var out = [], seen = {}, max = spec.max || 6, guard = 0;
+    var cap = +ctx.maxChoices;
+    if (cap >= 2) max = Math.min(max, Math.round(cap));
     while (out.length < max && guard < 80) {
       var progressed = false;
       for (var p = 0; p < pools.length && out.length < max; p++) {
@@ -6052,6 +6101,18 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     }
     return out;
   }
+  function endingChoices(step, ctx) {
+    var order = step.endings || [], byKind = {};
+    (ctx.words || []).forEach(function (w) {
+      if (!w || !w.ending || order.indexOf(w.ending) < 0 || w.type === "folder") return;
+      if (ctx.hidden && ctx.hidden(w)) return;
+      if (!(ctx.forceShown && ctx.forceShown(w)) && wordLevelOf(w, ctx) > (+ctx.level || 1)) return;
+      if (!byKind[w.ending] || betterLookup(w, byKind[w.ending], ctx) < 0) byKind[w.ending] = w;
+    });
+    var out = [];
+    order.forEach(function (k) { if (byKind[k]) out.push(byKind[k]); });
+    return out;
+  }
   function choices(pattern, stepIndex, ctx) {
     var step = pattern && pattern.steps && pattern.steps[stepIndex];
     if (!step) return [];
@@ -6059,12 +6120,13 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       var multi = step.words.length > 1, out = [];
       step.words.forEach(function (lab) {
         var w = lookup(lab, ctx);
-        if (!w) { out.push(synthetic(lab)); return; }
+        if (!w || w._pathOnly) return;
         if (multi && ctx.hidden && ctx.hidden(w)) return;
         out.push(w);
       });
       return out;
     }
+    if (step.endings) return endingChoices(step, ctx);
     if (step.fringe) return pickFringe(step.fringe, ctx, pattern);
     return [];
   }
@@ -6083,14 +6145,15 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
 <script>
 /* Word Board – AAC app shell. Plain JS, no dependencies, works offline.
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
-   (words.js, stories.js). Paths (1.5.0, paths.js) practices short phrases from those
-   words. The stories tab is not on the tab bar; story code and media stay.
+   (words.js, stories.js). Paths (paths.js) practices short phrases from those
+   words. 1.5.2 adds question, protest, and sentence frames plus path settings.
+   The stories tab is not on the tab bar; story code and media stay.
    Family-only content comes from an optional private overlay
    (private/overlay.js, private copy only). Photos/recordings added on the device, or an
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.1";
+  var APP_VERSION = "1.5.2";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -6102,7 +6165,11 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     levelInFolders: false,   // also mask words inside folders by level (levels with gate: true always do)
     pathsSpeakEach: true,    // Paths: speak each tapped word. Off = speak the whole phrase at the end.
     pathsHideHiddenStem: true, // hide a pattern when every stem word is parent-hidden
-    pathsSet: "auto"         // auto = follow Words shown; else starter | middle | expanded
+    pathsSet: "auto",        // auto = follow Words shown; else starter | middle | expanded | sentences | all
+    pathsShowTab: true,      // Paths tab on the tab bar. Off keeps the empty slot so home / abc do not move.
+    pathsToWords: true,      // → words copies a finished phrase. Off leaves the button in place and inert.
+    pathsMaxChoices: 6,      // open-slot fringe length (2, 3, 4, or 6). Fixed pairs are not cut down.
+    pathsPreferRecent: true  // among non-preferred fringe words, float ones from the on-device usage log
   };
   var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
@@ -6720,12 +6787,22 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   function render() {
     var board = $("board"); board.textContent = "";
     $("page-title").style.fontSize = "";
+    var pathsNav = $("nav-paths");
+    if (pathsNav && settings.pathsShowTab === false && state.view === "paths") {
+      state.pathId = null; state.pathPicks = []; state.pathStep = 0;
+      state.view = "words"; state.page = "home";
+    }
     $("nav-home").classList.toggle("on", state.view === "words" && state.page === "home");
     $("nav-kbd").classList.toggle("on", state.view === "keyboard");
     var storiesNav = $("nav-stories");
     if (storiesNav) storiesNav.classList.toggle("on", state.view === "stories");
-    var pathsNav = $("nav-paths");
-    if (pathsNav) pathsNav.classList.toggle("on", state.view === "paths");
+    if (pathsNav) {
+      var showPaths = settings.pathsShowTab !== false;
+      pathsNav.classList.toggle("is-hidden", !showPaths);
+      pathsNav.setAttribute("aria-hidden", showPaths ? "false" : "true");
+      pathsNav.tabIndex = showPaths ? 0 : -1;
+      pathsNav.classList.toggle("on", state.view === "paths");
+    }
     if (state.view === "keyboard") { $("page-title").textContent = "spelling"; renderKeyboard(board); }
     else if (state.view === "stories") renderStories(board);
     else if (state.view === "paths") renderPaths(board);
@@ -6859,6 +6936,22 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
      say whole, copy a finished phrase onto the Words message bar.
      On the pattern list, undo and all patterns are disabled.
      Stories stay in the app (renderStories) but are not on the tab bar. */
+  function pathMaxChoices() {
+    var n = Math.round(+settings.pathsMaxChoices);
+    return n === 2 || n === 3 || n === 4 || n === 6 ? n : 6;
+  }
+  function pathRecentScores() {
+    if (settings.pathsPreferRecent === false || !settings.logEnabled) return null;
+    var log = readJSON(LS.log, []);
+    if (!log || !log.length) return null;
+    var scores = {}, start = Math.max(0, log.length - 400);
+    for (var i = start; i < log.length; i++) {
+      var k = String(log[i] && log[i].w || "").toLowerCase();
+      if (!k) continue;
+      scores[k] = (scores[k] || 0) + 1 + (i - start) / 400;
+    }
+    return scores;
+  }
   function pathContext() {
     var mode = wordsShownMode();
     return {
@@ -6866,6 +6959,8 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       level: currentLevel(),
       set: settings.pathsSet || "auto",
       hideHiddenStem: settings.pathsHideHiddenStem !== false,
+      maxChoices: pathMaxChoices(),
+      recent: pathRecentScores(),
       wordLevel: wordLevel,
       hidden: function (w) {
         if (!w) return false;
@@ -6894,10 +6989,34 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     pat.steps.forEach(function (step, i) {
       var w = state.pathPicks[i];
       if (!w) return;
+      if (w.ending) {
+        var prev = tokens[tokens.length - 1];
+        var out = prev && !/\s/.test(prev.text) ? inflect(prev.text, w.ending) : null;
+        if (prev && out) {
+          var base = String(prev.text || "").toLowerCase();
+          prev.text = out;
+          prev.say = SAY_INFLECTED[base + "@" + w.ending] || null;
+          prev.sayAlone = null;
+          prev.audio = null;
+          prev.inflected = w.ending;
+        }
+        return;
+      }
       tokens.push(tokenFromWord(w));
       idx.push(i);
     });
+    if (pat.punct && tokens.length) tokens[tokens.length - 1].punct = pat.punct;
     return { tokens: tokens, idx: idx };
+  }
+  function pathFace(pat, i) {
+    var w = state.pathPicks[i];
+    if (!w) return "";
+    var nxt = state.pathPicks[i + 1];
+    if (nxt && nxt.ending && !w.ending) {
+      var out = inflect(w.label, nxt.ending);
+      if (out) return out;
+    }
+    return w.label;
   }
   function pathHl(i) {
     if (!settings.highlight) i = -1;
@@ -6914,13 +7033,24 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     if (!pat || i < 0 || i >= pat.steps.length || !w) return;
     stopAll();
     state.pathPicks[i] = w;
-    logUse(w.label);
+    var said = w.label;
+    if (w.ending) {
+      var u0 = pathUtterance();
+      var last = u0 && u0.tokens.length ? u0.tokens[u0.tokens.length - 1] : null;
+      if (last && last.inflected) said = last.text;
+    }
+    logUse(said);
     state.pathStep = i + 1;
     var speakEach = settings.pathsSpeakEach !== false;
     var finished = state.pathStep >= pat.steps.length;
     render();
-    if (speakEach) talk([tokenFromWord(w)], [i], { hl: pathHl });
-    else if (finished) speakPath();
+    if (speakEach) {
+      if (w.ending) {
+        var u1 = pathUtterance();
+        var tok = u1 && u1.tokens.length ? u1.tokens[u1.tokens.length - 1] : tokenFromWord(w);
+        talk([tok], [Math.max(0, i - 1)], { hl: pathHl });
+      } else talk([tokenFromWord(w)], [i], { hl: pathHl });
+    } else if (finished) speakPath();
   }
   function pathBack() {
     stopAll();
@@ -6937,6 +7067,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   function sendPathToWords() {
     var pat = pathById(state.pathId);
     var u = pathUtterance();
+    if (settings.pathsToWords === false) return;
     if (!pat || !u || !u.tokens.length || !pathRequiredDone(pat)) return;
     stopAll();
     msg.tokens = u.tokens;
@@ -6962,10 +7093,11 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       return b;
     }
     var canUndo = !!(pat && state.pathStep > 0);
+    var canSend = !!(pat && pathRequiredDone(pat) && settings.pathsToWords !== false);
     bar.appendChild(btn("back", "← undo", "undo last word", "path:back", pathBack, !canUndo));
     bar.appendChild(btn("home", "all patterns", "show all patterns", "path:home", pathHome, !pat));
     bar.appendChild(btn("say", "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
-    bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !pat || !pathRequiredDone(pat)));
+    bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !canSend));
     return bar;
   }
   function renderPathMenu(mid, patterns, ctx) {
@@ -7002,10 +7134,12 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       slot.setAttribute("data-path-i", String(i));
       if (i === state.pathStep) slot.classList.add("now");
       if (w && settings.showPictures && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
-      slot.appendChild(el("span", "path-lab", w ? caseWord(w.label) : "—"));
+      slot.appendChild(el("span", "path-lab", w ? caseWord(pathFace(pat, i)) : "—"));
       phrase.appendChild(slot);
     });
-    if (state.pathStep >= pat.steps.length) {
+    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx);
+    var stepNow = pat.steps[state.pathStep];
+    if (state.pathStep >= pat.steps.length || (stepNow && stepNow.optional && !choices.length)) {
       var done = el("div", "path-done"), n = 0;
       pat.steps.forEach(function (step, i) { if (state.pathPicks[i]) n++; });
       done.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 3)) + ", minmax(0, 1fr))";
@@ -7017,13 +7151,12 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
         tile.setAttribute("data-path-i", String(i));
         var pic = picFor(w);
         if (pic) tile.appendChild(pic); else tile.classList.add("nopic");
-        tile.appendChild(el("span", "lbl", caseWord(w.label)));
+        tile.appendChild(el("span", "lbl", caseWord(pathFace(pat, i))));
         done.appendChild(tile);
       });
       mid.appendChild(done);
       return;
     }
-    var choices = window.AAC_PATHS.choices(pat, state.pathStep, ctx);
     if (!choices.length) {
       mid.appendChild(el("p", "note-dark", "No words for this step at the current level."));
       return;
@@ -7263,6 +7396,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     $("set-pathspeak").checked = settings.pathsSpeakEach !== false;
     $("set-pathshide").checked = settings.pathsHideHiddenStem !== false;
     $("set-pathsset").value = settings.pathsSet || "auto";
+    $("set-pathsshow").checked = settings.pathsShowTab !== false;
+    $("set-pathstowords").checked = settings.pathsToWords !== false;
+    $("set-pathsrecent").checked = settings.pathsPreferRecent !== false;
+    $("set-pathsmax").value = String(pathMaxChoices());
     labelLevelOptions(); $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
@@ -7291,6 +7428,14 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     $("set-pathspeak").addEventListener("change", function () { settings.pathsSpeakEach = this.checked; saveSettings(); });
     $("set-pathshide").addEventListener("change", function () { settings.pathsHideHiddenStem = this.checked; saveSettings(); });
     $("set-pathsset").addEventListener("change", function () { settings.pathsSet = this.value || "auto"; saveSettings(); });
+    $("set-pathsshow").addEventListener("change", function () { settings.pathsShowTab = this.checked; saveSettings(); });
+    $("set-pathstowords").addEventListener("change", function () { settings.pathsToWords = this.checked; saveSettings(); });
+    $("set-pathsrecent").addEventListener("change", function () { settings.pathsPreferRecent = this.checked; saveSettings(); });
+    $("set-pathsmax").addEventListener("change", function () {
+      var n = Math.round(+this.value);
+      settings.pathsMaxChoices = n === 2 || n === 3 || n === 4 || n === 6 ? n : 6;
+      saveSettings();
+    });
     $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
     [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
@@ -7567,7 +7712,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     onTap($("msg"), "a:msg", speakMessage, { scroll: true });   // the message bar scrolls when long
     onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
     onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
-    onTap($("nav-paths"), "n:paths", function () { stopAll(); commitBuf(false); state.view = "paths"; render(); });
+    onTap($("nav-paths"), "n:paths", function () {
+      if (settings.pathsShowTab === false) return;
+      stopAll(); commitBuf(false); state.view = "paths"; render();
+    });
     if ($("nav-stories")) onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
     setupGate(); bindSettings();
     document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
