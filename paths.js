@@ -33,29 +33,31 @@
   var PLACES = {
     page: "where",
     labels: ["home", "outside", "inside", "bath", "bed", "potty", "park", "school", "store", "playground", "bathroom"],
-    prefer: ["home", "park", "school", "outside", "playground", "store", "bath", "bed", "potty", "bathroom", "inside"]
+    prefer: ["bed", "school", "park", "store", "playground", "bathroom", "bath", "potty", "home", "outside", "inside"]
   };
   var OPEN_THINGS = { page: "things", types: ["noun"], prefer: ["door", "book", "box", "bag", "cup", "toy"] };
 
+  /* Titles and frames are the sentence a child is building. Fixed steps use board
+     labels (lookup). "I'm" and "the" are on the board (little words / home). */
   var PATTERNS = [
-    { id: "want", title: "I want", frame: "I → want → …", minLevel: 1, stems: ["want"],
+    { id: "want", title: "I want …", frame: "I → want → …", minLevel: 1, stems: ["want"],
       steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
-    { id: "more", title: "more", frame: "more → …", minLevel: 1, stems: ["more"],
-      steps: [{ words: ["more"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
-    { id: "help", title: "help", frame: "help → me", minLevel: 1, stems: ["help"],
-      steps: [{ words: ["help"] }, { words: ["me"], optional: true }] },
-    { id: "see", title: "I see", frame: "I → see → …", minLevel: 1, stems: ["see"],
+    { id: "more", title: "I want more …", frame: "I → want → more → …", minLevel: 1, stems: ["more"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, THINGS] } }] },
+    { id: "help", title: "Help me", frame: "Help → me", minLevel: 1, stems: ["help"],
+      steps: [{ words: ["help"] }, { words: ["me"] }] },
+    { id: "see", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
       steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] } }] },
-    { id: "go", title: "go to", frame: "go → to → …", minLevel: 2, stems: ["go"],
-      steps: [{ words: ["go"] }, { words: ["to"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] } }] },
-    { id: "like", title: "I like", frame: "I → like → …", minLevel: 2, stems: ["like"],
+    { id: "go", title: "I go to …", frame: "I → go → to → …", minLevel: 2, stems: ["go"],
+      steps: [{ words: ["I"] }, { words: ["go"] }, { words: ["to"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] } }] },
+    { id: "like", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
       steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD, ANIMALS, ACTIVITIES, THINGS] } }] },
-    { id: "stop", title: "stop", frame: "stop", minLevel: 1, stems: ["stop"],
+    { id: "stop", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"],
       steps: [{ words: ["stop"] }] },
-    { id: "open_close", title: "open / close", frame: "open | close → …", minLevel: 3, stems: ["open", "close"],
-      steps: [{ words: ["open", "close"] }, { fringe: { max: 6, pools: [OPEN_THINGS] } }] },
-    { id: "all_done", title: "all done", frame: "all done", minLevel: 1, stems: ["all done"],
-      steps: [{ words: ["all done"] }] }
+    { id: "open_close", title: "Open the … / Close the …", frame: "Open | Close → the → …", minLevel: 3, stems: ["open", "close"],
+      steps: [{ words: ["open", "close"] }, { words: ["the"] }, { fringe: { max: 6, pools: [OPEN_THINGS] } }] },
+    { id: "all_done", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
+      steps: [{ words: ["I'm"] }, { words: ["all done"] }] }
   ];
 
   function labelKey(w) { return String(w && w.label || "").toLowerCase(); }

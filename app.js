@@ -7,7 +7,7 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.0";
+  var APP_VERSION = "1.5.1";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -636,6 +636,7 @@
   var state = { view: "words", page: "home", story: null, storyPage: 0, pathId: null, pathStep: 0, pathPicks: [] };
   function render() {
     var board = $("board"); board.textContent = "";
+    $("page-title").style.fontSize = "";
     $("nav-home").classList.toggle("on", state.view === "words" && state.page === "home");
     $("nav-kbd").classList.toggle("on", state.view === "keyboard");
     var storiesNav = $("nav-stories");
@@ -770,8 +771,10 @@
   }
 
   /* ------------------------------------------------------------ paths
-     Speech-pattern practice. One blank at a time. Fixed chrome: back one step,
-     patterns home, say whole, copy a finished phrase onto the Words message bar.
+     Speech-pattern practice. One blank at a time. Fixed chrome, same four places:
+     ← undo (last pick only; never leaves the sentence), all patterns (pattern list),
+     say whole, copy a finished phrase onto the Words message bar.
+     On the pattern list, undo and all patterns are disabled.
      Stories stay in the app (renderStories) but are not on the tab bar. */
   function pathContext() {
     var mode = wordsShownMode();
@@ -838,15 +841,11 @@
   }
   function pathBack() {
     stopAll();
-    if (!state.pathId) return;
-    if (state.pathStep > 0) {
-      var i = state.pathStep - 1;
-      state.pathPicks[i] = null;
-      state.pathStep = i;
-      render();
-      return;
-    }
-    state.pathId = null; state.pathPicks = []; state.pathStep = 0; render();
+    if (!state.pathId || state.pathStep <= 0) return;
+    var i = state.pathStep - 1;
+    state.pathPicks[i] = null;
+    state.pathStep = i;
+    render();
   }
   function pathHome() {
     stopAll();
@@ -879,8 +878,9 @@
       onTap(b, key, function () { if (b.disabled) return; fn(); });
       return b;
     }
-    bar.appendChild(btn("back", "back", "back one step", "path:back", pathBack, !pat));
-    bar.appendChild(btn("home", "patterns", "patterns", "path:home", pathHome, false));
+    var canUndo = !!(pat && state.pathStep > 0);
+    bar.appendChild(btn("back", "← undo", "undo last word", "path:back", pathBack, !canUndo));
+    bar.appendChild(btn("home", "all patterns", "show all patterns", "path:home", pathHome, !pat));
     bar.appendChild(btn("say", "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
     bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !pat || !pathRequiredDone(pat)));
     return bar;
@@ -898,6 +898,8 @@
       var b = el("button", "cell btn path-card" + (stem && window.AAC_PATHS.fitzClass(stem) ? " " + window.AAC_PATHS.fitzClass(stem) : ""));
       b.type = "button";
       b.setAttribute("data-pattern", p.id);
+      b.style.setProperty("--ptlen", String(Math.max(8, p.title.length)));
+      b.style.setProperty("--pflen", String(Math.max(8, p.frame.length)));
       var pic = stem && picFor(stem);
       if (pic) b.appendChild(pic); else b.classList.add("nopic");
       b.appendChild(el("span", "path-title", p.title));
@@ -989,6 +991,7 @@
       return;
     }
     $("page-title").textContent = pat.title;
+    if (pat.title.length > 18) $("page-title").style.fontSize = "clamp(13px, 1.7vmin, 18px)";
     renderPathPlay(phrase, mid, pat, ctx);
   }
 

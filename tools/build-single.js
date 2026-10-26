@@ -13,7 +13,7 @@ html = html.replace(/<link rel="manifest"[^>]*>\n?/, "")
   .replace(/<link rel="icon"[^>]*>/, `<link rel="icon" type="image/png" href="${icon}">`)
   .replace(/<!-- optional family-only content[^\n]*\n<script src="private\/overlay.js"[^>]*><\/script>\n/, "")
   .replace(/<link rel="stylesheet" href="styles.css">/, () => `<style>\n${read("styles.css")}\n</style>`);
-for (const f of ["store.js", "words.js", "stories.js", "app.js"]) {
+for (const f of ["store.js", "words.js", "stories.js", "paths.js", "app.js"]) {
   const tag = `<script src="${f}"></script>`;
   if (!html.includes(tag)) throw new Error("missing " + tag);
   html = html.replace(tag, () => (f === "store.js" ? "<script>window.AAC_SINGLE_FILE = true;</script>\n" : "") + `<script>\n${js(f)}\n</script>`);
