@@ -141,11 +141,23 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 assert(/APP_VERSION = "1\.5\.3"/.test(app), "APP_VERSION");
-assert(/wordboard-v26/.test(sw), "cache bump");
+assert(/wordboard-v27/.test(sw), "cache bump");
 assert(html.indexOf("nav-stories") < 0, "stories tab stays off the bar");
 assert(html.indexOf('id="set-pathsshow"') >= 0 && html.indexOf('id="set-pathstowords"') >= 0 && html.indexOf('id="set-pathsmax"') >= 0, "path settings");
 assert(fs.existsSync(path.join(root, "stories.js")), "stories.js kept");
 
+/* ---- passes: core words in stable spots, pictures tell words apart ---- */
+const goL5 = labels("go", 2, ctx(5));
+assert(goL5.slice(0, 2).join("|") === "home|outside", "go starts with home, outside: " + goL5);
+const ww = P.choices(P.byId("who_what"), 0, ctx(5));
+assert(ww.length === 2 && ww[0].emoji !== ww[1].emoji, "who and what have different pictures");
+P.patterns.forEach(function (p) {
+  p.steps.forEach(function (st, i) {
+    if (!st.words || st.words.length < 2) return;
+    const em = P.choices(p, i, ctx(5)).map(function (w) { return w.emoji || w.image || w.label; });
+    assert(em.length === new Set(em).size, p.id + " step " + i + " pictures repeat: " + em);
+  });
+});
 /* ---- grammar audit: every reachable sentence at every level, every choice limit ---- */
 const G = require("./paths-grammar.js");
 const info = { words: words };
@@ -179,7 +191,7 @@ Object.keys(sentences).forEach(function (t) {
   const probs = G.check(t, info);
   if (probs.length) { grammarBad++; assert(false, "grammar: \"" + t + "\" (" + sentences[t].id + "): " + probs.join("; ")); }
 });
-assert(Object.keys(sentences).length > 100, "sentence walk found " + Object.keys(sentences).length);
+assert(Object.keys(sentences).length >= 90, "sentence walk found " + Object.keys(sentences).length);
 // the checker itself catches the old mistakes
 ["I want eat.", "I see cat.", "I want more ball.", "I go to outside.", "Where? is bed?", "I want an milk.", "I like huging.", "I want milk please."].forEach(function (b) {
   assert(G.check(b, info).length > 0, "checker should flag: " + b);

@@ -383,7 +383,7 @@ body.hc #msg { background: #fff; color: #000; }
 /* Paths: the dashed boxes show the chosen picture + word large */
 .path-slot.filled .path-emo { font-size: 1.25em; }
 /* Paths 1.5.3: joining words, grouped menu, calm finished state */
-.path-pre { font-weight: 600; opacity: 0.6; font-size: 0.8em; }
+.path-pre { font-weight: 700; color: rgba(0, 0, 0, 0.74); font-size: 0.8em; }
 .path-slot.empty .path-pre { display: none; }
 .path-card .path-group {
   font-size: min(8cqh, 14px); font-weight: 700; text-transform: lowercase;
@@ -399,13 +399,23 @@ body.hc #msg { background: #fff; color: #000; }
   font-size: clamp(26px, 6vmin, 64px); padding: 2px 8px; overflow-wrap: anywhere;
 }
 .path-finish .path-done { height: auto; min-height: 0; }
-.path-again {
-  justify-self: center; min-height: 52px; padding: 8px 22px; border-radius: 14px;
+.path-acts { display: grid; gap: var(--gap); }
+.path-act {
+  min-height: 56px; padding: 6px 10px; border-radius: 14px;
   border: 3px solid #666; background: #2a2a2a; color: #fff; font-weight: 800;
-  font-size: clamp(16px, 2.6vmin, 26px);
+  font-size: clamp(16px, 2.8vmin, 28px);
 }
+.path-act.say { background: #00B050; border-color: #00B050; color: #000; }
+.path-act.to-words { background: #fff; border-color: #fff; color: #000; }
 body.hc .path-made { color: #fff; }
-body.hc .path-again { border-color: #fff; background: #000; }
+body.hc .path-act:not(.say):not(.to-words) { border-color: #fff; background: #000; }
+.path-chrome.finished .say, .path-chrome.finished .to-words { visibility: hidden; }
+/* light board: finished view + empty slot text stay readable */
+body.bg-light .path-made { color: #444; }
+body.bg-light .path-sentence { color: #111; }
+body.bg-light .path-slot.empty { color: #555; border-color: #888; }
+body.bg-light .path-slot.empty.now { color: #111; border-color: #b8860b; }
+body.bg-light .note-dark { color: #333; }
 
 </style>
 </head>
@@ -6075,7 +6085,7 @@ body.hc .path-again { border-color: #fff; background: #000; }
   var PLACES = {
     page: "where",
     labels: ["home", "outside", "inside", "bed", "potty", "park", "school", "store", "playground", "bathroom"],
-    prefer: ["bed", "school", "park", "store", "playground", "bathroom", "potty", "home", "outside", "inside"]
+    prefer: ["home", "outside", "potty", "bed", "park", "school", "store", "playground", "bathroom", "inside"]
   };
   /* "Where is …?" — real places only ("where is outside?" is not a question she needs). */
   var WHERE_PLACES = { page: "where", labels: ["home", "bed", "potty", "park", "school", "store", "playground", "bathroom", "bath"],
@@ -6120,11 +6130,11 @@ body.hc .path-again { border-color: #fff; background: #000; }
     { id: "see", group: "people", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
       steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] }, np: "a" }] },
     { id: "who_what", group: "questions", title: "Who / what is it?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
-      steps: [{ words: ["who", "what"] }, { words: ["is"] }, { words: ["it", "that"] }] },
+      steps: [{ words: ["who", "what"], emoji: { who: "🧑", what: "❓" } }, { words: ["is"] }, { words: ["it", "that"] }] },
     { id: "where_is", group: "questions", title: "Where is …?", frame: "Where → is → …", minLevel: 3, stems: ["where?"], punct: "?",
       steps: [{ words: ["where?"] }, { words: ["is"] }, { fringe: { max: 6, pools: [WHERE_PLACES, PEOPLE, THINGS] }, np: "the" }] },
-    { id: "go", group: "places", title: "I go …", frame: "I → go → …", minLevel: 2, stems: ["go"],
-      steps: [{ words: ["I"] }, { words: ["go"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] }, np: "go" }] },
+    { id: "go", group: "places", title: "I go …", frame: "I → go → …", minLevel: 2, stems: ["go"], emoji: "🚶",
+      steps: [{ words: ["I"] }, { words: ["go"] }, { fringe: { max: 6, pools: [PLACES, PLACES, VEHICLES] }, np: "go" }] },
     { id: "can", group: "doing", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
       steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }] },
     { id: "like", group: "people", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
@@ -6133,8 +6143,8 @@ body.hc .path-again { border-color: #fff; background: #000; }
       steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }, { endings: ["ing"] }] },
     { id: "stop", group: "quick", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"], punct: "!",
       steps: [{ words: ["stop"] }] },
-    { id: "open_close", group: "doing", title: "Open / close the …", frame: "Open | Close → the → …", minLevel: 3, stems: ["open", "close"],
-      steps: [{ words: ["open", "close"] }, { words: ["the"] }, { fringe: { max: 6, pools: [OPEN_THINGS] }, np: "bare" }] },
+    { id: "open_close", group: "doing", title: "Open / close the …", frame: "Open | Close → …", minLevel: 3, stems: ["open", "close"],
+      steps: [{ words: ["open", "close"] }, { fringe: { max: 6, pools: [OPEN_THINGS] }, np: "the" }] },
     { id: "all_done", group: "quick", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
       steps: [{ words: ["I'm"] }, { words: ["all done"] }] },
     { id: "put", group: "places", title: "Put it on / in …", frame: "Put → it → on | in → …", minLevel: 4, stems: ["put"],
@@ -6400,6 +6410,11 @@ body.hc .path-again { border-color: #fff; background: #000; }
         var w = lookup(lab, ctx);
         if (!w || w._pathOnly) return;
         if (multi && ctx.hidden && ctx.hidden(w)) return;
+        // Two words with the same picture can't be told apart in picture-only; a step can
+        // give one its own picture here (Paths only; the main board is untouched).
+        if (step.emoji && step.emoji[lab] && !w.image && w.emoji !== step.emoji[lab]) {
+          var copy = {}; for (var k in w) copy[k] = w[k]; copy.emoji = step.emoji[lab]; w = copy;
+        }
         out.push(w);
       });
       return out;
@@ -7372,7 +7387,13 @@ body.hc .path-again { border-color: #fff; background: #000; }
     if (!u || !u.tokens.length) return;
     talk(u.tokens, u.idx, { hl: pathHl });
   }
+  /* A quick second tap lands on the NEW button in the same spot (a different key, so the
+     per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
+  var pathLockUntil = 0;
+  function pathLocked() { return Date.now() < pathLockUntil; }
   function choosePath(pat, w) {
+    if (pathLocked()) return;
+    pathLockUntil = Date.now() + 220;
     var i = state.pathStep;
     if (!pat || i < 0 || i >= pat.steps.length || !w) return;
     stopAll();
@@ -7405,9 +7426,16 @@ body.hc .path-again { border-color: #fff; background: #000; }
     state.pathStep = i;
     render();
   }
+  /* "Make another" keeps the frame she already built ("I want") and goes straight back to
+     the first step that has a real choice, so a second sentence is one or two taps. */
   function pathAgain() {
     stopAll();
-    state.pathPicks = []; state.pathStep = 0; render();
+    var pat = pathById(state.pathId), keep = 0;
+    if (pat) {
+      var c = pathContext();
+      while (keep < pat.steps.length - 1 && window.AAC_PATHS.choices(pat, keep, c, state.pathPicks).length <= 1) keep++;
+    }
+    state.pathPicks = state.pathPicks.slice(0, keep); state.pathStep = keep; render();
   }
   function pathHome() {
     stopAll();
@@ -7449,6 +7477,12 @@ body.hc .path-again { border-color: #fff; background: #000; }
     var finishedNow = !!(pat && pathRequiredDone(pat) && state.pathStep >= pat.steps.length);
     bar.appendChild(btn("say", finishedNow ? "say again" : "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
     bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !canSend));
+    // Once the sentence is made, "say again" and "→ Words" move up into the finished view;
+    // their bar spots stay empty (not reflowed) so undo / all patterns never move.
+    if (finishedNow) {
+      bar.classList.add("finished");
+      [].forEach.call(bar.querySelectorAll(".say, .to-words"), function (b) { b.disabled = true; b.setAttribute("aria-hidden", "true"); b.tabIndex = -1; });
+    }
     return bar;
   }
   function renderPathMenu(mid, patterns, ctx) {
@@ -7472,7 +7506,8 @@ body.hc .path-again { border-color: #fff; background: #000; }
       b.setAttribute("data-pattern", p.id);
       b.style.setProperty("--ptlen", String(Math.max(8, p.title.length)));
       b.style.setProperty("--pflen", String(Math.max(8, p.frame.length)));
-      var pic = stem && picFor(stem);
+      var pic = p.emoji && showMode() !== "text" ? el("span", "emo", p.emoji) : stem && picFor(stem);
+      b.setAttribute("aria-label", p.title.replace(/…/g, "blank").replace(/\s*\/\s*/g, " or "));
       if (pic) b.appendChild(pic); else b.classList.add("nopic");
       if (p.group && gLabel[p.group]) b.appendChild(el("span", "path-group", gLabel[p.group]));
       b.appendChild(el("span", "path-title", p.title));
@@ -7526,10 +7561,17 @@ body.hc .path-again { border-color: #fff; background: #000; }
       });
       tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
       done.appendChild(tiles);
-      var again = el("button", "path-again", "↻ make another “" + pat.title.replace(/[.?!]$/, "") + "”");
-      again.type = "button";
-      onTap(again, "path:again", pathAgain);
-      done.appendChild(again);
+      // The three next steps sit right under the sentence, big and in a fixed order.
+      var acts = el("div", "path-acts");
+      function act(cls, text, label, key, fn) {
+        var b = el("button", "path-act " + cls, text); b.type = "button";
+        b.setAttribute("aria-label", label); onTap(b, key, fn); acts.appendChild(b); return b;
+      }
+      act("say", "🔊 say again", "say the sentence again", "path:done-say", speakPath);
+      act("path-again", "↻ another", "make another sentence like this", "path:again", pathAgain);
+      if (settings.pathsToWords !== false) act("to-words", "→ Words", "put the sentence in Words", "path:done-words", sendPathToWords);
+      acts.style.gridTemplateColumns = "repeat(" + acts.children.length + ", minmax(0, 1fr))";
+      done.appendChild(acts);
       mid.appendChild(done);
       return;
     }
@@ -7552,7 +7594,7 @@ body.hc .path-again { border-color: #fff; background: #000; }
       var shown = w.ending ? "-" + w.ending : w.label;
       b.appendChild(el("span", "lbl", caseWord(shown)));
       b.setAttribute("aria-label", w.label);
-      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { flashTapped(b); choosePath(pat, w); });
+      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { if (pathLocked()) return; flashTapped(b); choosePath(pat, w); });
       grid.appendChild(b);
     });
     mid.appendChild(grid);
@@ -7574,6 +7616,7 @@ body.hc .path-again { border-color: #fff; background: #000; }
     // menu would then sit in the auto row and collapse to one thin strip.
     if (!pat) wrap.style.gridTemplateRows = "minmax(0, 1fr) auto";
     var phrase = pat ? el("div", "path-phrase") : null;
+    if (phrase) { phrase.setAttribute("role", "group"); phrase.setAttribute("aria-label", "sentence so far"); }
     if (phrase) wrap.appendChild(phrase);
     wrap.appendChild(mid);
     wrap.appendChild(pathChrome(pat));
@@ -8170,7 +8213,7 @@ body.hc .path-again { border-color: #fff; background: #000; }
           visible: window.AAC_PATHS ? window.AAC_PATHS.visible(ctx).map(function (p) { return p.id; }) : [],
           pathId: state.pathId, step: state.pathStep,
           picks: state.pathPicks.map(function (w) { return w ? w.label : null; }),
-          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx).map(function (w) { return w.label; }) : [],
+          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks).map(function (w) { return w.label; }) : [],
           requiredDone: pathRequiredDone(pat)
         };
       } };

@@ -366,7 +366,7 @@ body.hc #msg { background: #fff; color: #000; }
 /* Paths: the dashed boxes show the chosen picture + word large */
 .path-slot.filled .path-emo { font-size: 1.25em; }
 /* Paths 1.5.3: joining words, grouped menu, calm finished state */
-.path-pre { font-weight: 600; opacity: 0.6; font-size: 0.8em; }
+.path-pre { font-weight: 700; color: rgba(0, 0, 0, 0.74); font-size: 0.8em; }
 .path-slot.empty .path-pre { display: none; }
 .path-card .path-group {
   font-size: min(8cqh, 14px); font-weight: 700; text-transform: lowercase;
@@ -382,10 +382,20 @@ body.hc #msg { background: #fff; color: #000; }
   font-size: clamp(26px, 6vmin, 64px); padding: 2px 8px; overflow-wrap: anywhere;
 }
 .path-finish .path-done { height: auto; min-height: 0; }
-.path-again {
-  justify-self: center; min-height: 52px; padding: 8px 22px; border-radius: 14px;
+.path-acts { display: grid; gap: var(--gap); }
+.path-act {
+  min-height: 56px; padding: 6px 10px; border-radius: 14px;
   border: 3px solid #666; background: #2a2a2a; color: #fff; font-weight: 800;
-  font-size: clamp(16px, 2.6vmin, 26px);
+  font-size: clamp(16px, 2.8vmin, 28px);
 }
+.path-act.say { background: #00B050; border-color: #00B050; color: #000; }
+.path-act.to-words { background: #fff; border-color: #fff; color: #000; }
 body.hc .path-made { color: #fff; }
-body.hc .path-again { border-color: #fff; background: #000; }
+body.hc .path-act:not(.say):not(.to-words) { border-color: #fff; background: #000; }
+.path-chrome.finished .say, .path-chrome.finished .to-words { visibility: hidden; }
+/* light board: finished view + empty slot text stay readable */
+body.bg-light .path-made { color: #444; }
+body.bg-light .path-sentence { color: #111; }
+body.bg-light .path-slot.empty { color: #555; border-color: #888; }
+body.bg-light .path-slot.empty.now { color: #111; border-color: #b8860b; }
+body.bg-light .note-dark { color: #333; }

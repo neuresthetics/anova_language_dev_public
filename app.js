@@ -944,7 +944,13 @@
     if (!u || !u.tokens.length) return;
     talk(u.tokens, u.idx, { hl: pathHl });
   }
+  /* A quick second tap lands on the NEW button in the same spot (a different key, so the
+     per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
+  var pathLockUntil = 0;
+  function pathLocked() { return Date.now() < pathLockUntil; }
   function choosePath(pat, w) {
+    if (pathLocked()) return;
+    pathLockUntil = Date.now() + 220;
     var i = state.pathStep;
     if (!pat || i < 0 || i >= pat.steps.length || !w) return;
     stopAll();
@@ -977,9 +983,16 @@
     state.pathStep = i;
     render();
   }
+  /* "Make another" keeps the frame she already built ("I want") and goes straight back to
+     the first step that has a real choice, so a second sentence is one or two taps. */
   function pathAgain() {
     stopAll();
-    state.pathPicks = []; state.pathStep = 0; render();
+    var pat = pathById(state.pathId), keep = 0;
+    if (pat) {
+      var c = pathContext();
+      while (keep < pat.steps.length - 1 && window.AAC_PATHS.choices(pat, keep, c, state.pathPicks).length <= 1) keep++;
+    }
+    state.pathPicks = state.pathPicks.slice(0, keep); state.pathStep = keep; render();
   }
   function pathHome() {
     stopAll();
@@ -1021,6 +1034,12 @@
     var finishedNow = !!(pat && pathRequiredDone(pat) && state.pathStep >= pat.steps.length);
     bar.appendChild(btn("say", finishedNow ? "say again" : "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
     bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !canSend));
+    // Once the sentence is made, "say again" and "→ Words" move up into the finished view;
+    // their bar spots stay empty (not reflowed) so undo / all patterns never move.
+    if (finishedNow) {
+      bar.classList.add("finished");
+      [].forEach.call(bar.querySelectorAll(".say, .to-words"), function (b) { b.disabled = true; b.setAttribute("aria-hidden", "true"); b.tabIndex = -1; });
+    }
     return bar;
   }
   function renderPathMenu(mid, patterns, ctx) {
@@ -1044,7 +1063,8 @@
       b.setAttribute("data-pattern", p.id);
       b.style.setProperty("--ptlen", String(Math.max(8, p.title.length)));
       b.style.setProperty("--pflen", String(Math.max(8, p.frame.length)));
-      var pic = stem && picFor(stem);
+      var pic = p.emoji && showMode() !== "text" ? el("span", "emo", p.emoji) : stem && picFor(stem);
+      b.setAttribute("aria-label", p.title.replace(/…/g, "blank").replace(/\s*\/\s*/g, " or "));
       if (pic) b.appendChild(pic); else b.classList.add("nopic");
       if (p.group && gLabel[p.group]) b.appendChild(el("span", "path-group", gLabel[p.group]));
       b.appendChild(el("span", "path-title", p.title));
@@ -1098,10 +1118,17 @@
       });
       tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
       done.appendChild(tiles);
-      var again = el("button", "path-again", "↻ make another “" + pat.title.replace(/[.?!]$/, "") + "”");
-      again.type = "button";
-      onTap(again, "path:again", pathAgain);
-      done.appendChild(again);
+      // The three next steps sit right under the sentence, big and in a fixed order.
+      var acts = el("div", "path-acts");
+      function act(cls, text, label, key, fn) {
+        var b = el("button", "path-act " + cls, text); b.type = "button";
+        b.setAttribute("aria-label", label); onTap(b, key, fn); acts.appendChild(b); return b;
+      }
+      act("say", "🔊 say again", "say the sentence again", "path:done-say", speakPath);
+      act("path-again", "↻ another", "make another sentence like this", "path:again", pathAgain);
+      if (settings.pathsToWords !== false) act("to-words", "→ Words", "put the sentence in Words", "path:done-words", sendPathToWords);
+      acts.style.gridTemplateColumns = "repeat(" + acts.children.length + ", minmax(0, 1fr))";
+      done.appendChild(acts);
       mid.appendChild(done);
       return;
     }
@@ -1124,7 +1151,7 @@
       var shown = w.ending ? "-" + w.ending : w.label;
       b.appendChild(el("span", "lbl", caseWord(shown)));
       b.setAttribute("aria-label", w.label);
-      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { flashTapped(b); choosePath(pat, w); });
+      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { if (pathLocked()) return; flashTapped(b); choosePath(pat, w); });
       grid.appendChild(b);
     });
     mid.appendChild(grid);
@@ -1146,6 +1173,7 @@
     // menu would then sit in the auto row and collapse to one thin strip.
     if (!pat) wrap.style.gridTemplateRows = "minmax(0, 1fr) auto";
     var phrase = pat ? el("div", "path-phrase") : null;
+    if (phrase) { phrase.setAttribute("role", "group"); phrase.setAttribute("aria-label", "sentence so far"); }
     if (phrase) wrap.appendChild(phrase);
     wrap.appendChild(mid);
     wrap.appendChild(pathChrome(pat));
@@ -1742,7 +1770,7 @@
           visible: window.AAC_PATHS ? window.AAC_PATHS.visible(ctx).map(function (p) { return p.id; }) : [],
           pathId: state.pathId, step: state.pathStep,
           picks: state.pathPicks.map(function (w) { return w ? w.label : null; }),
-          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx).map(function (w) { return w.label; }) : [],
+          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks).map(function (w) { return w.label; }) : [],
           requiredDone: pathRequiredDone(pat)
         };
       } };

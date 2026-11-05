@@ -41,7 +41,7 @@
   var PLACES = {
     page: "where",
     labels: ["home", "outside", "inside", "bed", "potty", "park", "school", "store", "playground", "bathroom"],
-    prefer: ["bed", "school", "park", "store", "playground", "bathroom", "potty", "home", "outside", "inside"]
+    prefer: ["home", "outside", "potty", "bed", "park", "school", "store", "playground", "bathroom", "inside"]
   };
   /* "Where is …?" — real places only ("where is outside?" is not a question she needs). */
   var WHERE_PLACES = { page: "where", labels: ["home", "bed", "potty", "park", "school", "store", "playground", "bathroom", "bath"],
@@ -86,11 +86,11 @@
     { id: "see", group: "people", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
       steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] }, np: "a" }] },
     { id: "who_what", group: "questions", title: "Who / what is it?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
-      steps: [{ words: ["who", "what"] }, { words: ["is"] }, { words: ["it", "that"] }] },
+      steps: [{ words: ["who", "what"], emoji: { who: "🧑", what: "❓" } }, { words: ["is"] }, { words: ["it", "that"] }] },
     { id: "where_is", group: "questions", title: "Where is …?", frame: "Where → is → …", minLevel: 3, stems: ["where?"], punct: "?",
       steps: [{ words: ["where?"] }, { words: ["is"] }, { fringe: { max: 6, pools: [WHERE_PLACES, PEOPLE, THINGS] }, np: "the" }] },
-    { id: "go", group: "places", title: "I go …", frame: "I → go → …", minLevel: 2, stems: ["go"],
-      steps: [{ words: ["I"] }, { words: ["go"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] }, np: "go" }] },
+    { id: "go", group: "places", title: "I go …", frame: "I → go → …", minLevel: 2, stems: ["go"], emoji: "🚶",
+      steps: [{ words: ["I"] }, { words: ["go"] }, { fringe: { max: 6, pools: [PLACES, PLACES, VEHICLES] }, np: "go" }] },
     { id: "can", group: "doing", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
       steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }] },
     { id: "like", group: "people", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
@@ -99,8 +99,8 @@
       steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }, { endings: ["ing"] }] },
     { id: "stop", group: "quick", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"], punct: "!",
       steps: [{ words: ["stop"] }] },
-    { id: "open_close", group: "doing", title: "Open / close the …", frame: "Open | Close → the → …", minLevel: 3, stems: ["open", "close"],
-      steps: [{ words: ["open", "close"] }, { words: ["the"] }, { fringe: { max: 6, pools: [OPEN_THINGS] }, np: "bare" }] },
+    { id: "open_close", group: "doing", title: "Open / close the …", frame: "Open | Close → …", minLevel: 3, stems: ["open", "close"],
+      steps: [{ words: ["open", "close"] }, { fringe: { max: 6, pools: [OPEN_THINGS] }, np: "the" }] },
     { id: "all_done", group: "quick", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
       steps: [{ words: ["I'm"] }, { words: ["all done"] }] },
     { id: "put", group: "places", title: "Put it on / in …", frame: "Put → it → on | in → …", minLevel: 4, stems: ["put"],
@@ -366,6 +366,11 @@
         var w = lookup(lab, ctx);
         if (!w || w._pathOnly) return;
         if (multi && ctx.hidden && ctx.hidden(w)) return;
+        // Two words with the same picture can't be told apart in picture-only; a step can
+        // give one its own picture here (Paths only; the main board is untouched).
+        if (step.emoji && step.emoji[lab] && !w.image && w.emoji !== step.emoji[lab]) {
+          var copy = {}; for (var k in w) copy[k] = w[k]; copy.emoji = step.emoji[lab]; w = copy;
+        }
         out.push(w);
       });
       return out;
