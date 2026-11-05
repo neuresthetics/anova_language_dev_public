@@ -317,3 +317,9 @@ button, [role="button"] {
 .try-notice a { color: #9cf; }
 .try-notice .try-x { flex: none; background: none; border: 1px solid #777; color: #eee; border-radius: 6px; width: 28px; height: 26px; font-size: 14px; padding: 0; }
 body.has-try-notice #app { top: var(--try-h, 0px); }
+
+/* 1.5.3 share / feedback / starting level (parent settings only) */
+.level-start { border: 2px solid #f0b400; border-radius: 12px; padding: 10px 12px; background: #fff8e0; }
+.share-url { width: 100%; max-width: 520px; font-size: 16px; padding: 8px; box-sizing: border-box; }
+.share-qr { margin: 10px 0 0; }
+.share-qr svg { display: block; width: 180px; height: 180px; border: 1px solid #ddd; border-radius: 8px; }

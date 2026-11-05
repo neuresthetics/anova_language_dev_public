@@ -2,13 +2,17 @@
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
    (words.js, stories.js). Paths (paths.js) practices short phrases from those
    words. 1.5.2 adds question, protest, and sentence frames plus path settings.
+   1.5.3 adds approximate age labels on levels, a starting-level prompt, and Share / Send feedback
+   in parent settings only (no accounts, no analytics, nothing sent unless the parent sends it).
    The stories tab is not on the tab bar; story code and media stay.
    Family-only content comes from an optional private overlay
    (private/overlay.js, private copy only). Photos/recordings added on the device, or an
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.2";
+  var APP_VERSION = "1.5.3";
+  var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
+  var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -281,10 +285,10 @@
     LEVEL_LIST.forEach(function (l) {
       if (l.n >= MAX_LEVEL) return;
       cum = 0; for (var i = 1; i <= l.n; i++) cum += n[i];
-      opts.push([l.id, l.label + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
+      opts.push([l.id, l.label + (l.age ? " (" + l.age + ")" : "") + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
     });
     var top = LEVEL_BY_N[MAX_LEVEL];
-    opts.push(["full", "Full: every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
+    opts.push(["full", "Full" + (top && top.age ? " (" + top.age + ")" : "") + ": every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
     opts.push(["custom", "Custom: tap words below to show / hide"]);
     sel.textContent = "";
     opts.forEach(function (o) { var e = el("option", null, o[1]); e.value = o[0]; sel.appendChild(e); });
@@ -1259,6 +1263,7 @@
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
+    $("level-start").hidden = !!settings.wordsShown;
     var sw = navigator.serviceWorker && navigator.serviceWorker.controller;
     $("about").textContent = "Word Board " + APP_VERSION + ". Offline copy: " + (sw ? "installed (works without Wi-Fi)" :
       location.protocol === "file:" ? "not available when opened as a file" :
@@ -1292,6 +1297,10 @@
       saveSettings();
     });
     $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#level-start [data-level]"), function (b) {
+      b.addEventListener("click", function () { setWordsShown(b.getAttribute("data-level")); syncSettingsUI(); renderVisibility(); });
+    });
+    bindShare();
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
     [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
      ["set-returnhome", "returnHome"], ["set-triple", "gateTripleTap"], ["set-log", "logEnabled"]].forEach(function (p) {
@@ -1319,6 +1328,29 @@
       saveFile("word-board-usage-" + today() + ".json", new Blob([JSON.stringify(readJSON(LS.log, []), null, 1)], { type: "application/json" }), false);
     });
     $("log-clear").addEventListener("click", function () { if (confirm("Delete the whole usage log on this device?")) { localStorage.removeItem(LS.log); showLog(); } });
+  }
+
+  /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
+  function shareMsg(t) { $("share-msg").textContent = t; }
+  function copyLink() {
+    function fallback() {
+      var i = $("share-url"); i.focus(); i.select();
+      try { document.execCommand("copy"); shareMsg("Link copied."); } catch (e) { shareMsg("Select the link above and copy it."); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(SHARE_URL).then(function () { shareMsg("Link copied."); }, fallback);
+    else fallback();
+  }
+  function bindShare() {
+    $("share-url").value = SHARE_URL;
+    $("share-btn").addEventListener("click", function () {
+      if (navigator.share) {
+        navigator.share({ title: "Word Board", text: "Word Board: a free talking word board for iPad. Open the link, then Share > Add to Home Screen.", url: SHARE_URL })
+          .then(function () { shareMsg(""); }, function () {});
+      } else copyLink();
+    });
+    $("share-copy").addEventListener("click", copyLink);
+    $("feedback-link").href = "mailto:" + FEEDBACK_EMAIL + "?subject=" + encodeURIComponent("Word Board feedback") +
+      "&body=" + encodeURIComponent("\n\n(Word Board " + APP_VERSION + ")");
   }
 
   /* ---------- personal pack import / export ---------- */
@@ -1611,8 +1643,8 @@
     if (!/\.github\.io$/i.test(location.hostname) || standalone || window.AAC_PRIVATE || window.AAC_SINGLE_FILE) return;
     try { if (localStorage.getItem("wb.tryNoticeDismissed")) return; } catch (e) {}
     var n = el("div", "try-notice"); n.id = "try-notice"; n.setAttribute("role", "note");
-    var t = el("span", null, "Voice quality depends on your device and browser: Chrome, Edge or an iPad sound best. To use it for real, ");
-    var a = el("a", null, "get your own copy"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/blob/main/docs/SETUP.md"; a.target = "_blank"; a.rel = "noopener";
+    var t = el("span", null, "Free, no account, no tracking. To keep it on an iPad: tap Share, then Add to Home Screen. Parents: hold ⚙ for 2 seconds for levels, sharing and feedback. ");
+    var a = el("a", null, "help"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/#readme"; a.target = "_blank"; a.rel = "noopener";
     t.appendChild(a); t.appendChild(document.createTextNode("."));
     var x = el("button", "try-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "dismiss notice");
     x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove();

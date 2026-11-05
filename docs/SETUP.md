@@ -1,5 +1,10 @@
 # Set it up yourself
 
+> **Just want to use it?** You don't need any of this. Open
+> https://neuresthetics.github.io/anova_language_dev_public/ on the iPad, tap **Share → Add to Home Screen**,
+> and pick a level in parent settings (hold ⚙ for 2 seconds). This guide is only for making
+> your own copy to change.
+
 This guide gets Word Board onto an iPad for free. You need a computer with internet, an
 iPad, and about 20 minutes. No programming is needed for parts 1–4.
 

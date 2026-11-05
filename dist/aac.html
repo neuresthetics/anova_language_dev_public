@@ -335,6 +335,12 @@ button, [role="button"] {
 .try-notice .try-x { flex: none; background: none; border: 1px solid #777; color: #eee; border-radius: 6px; width: 28px; height: 26px; font-size: 14px; padding: 0; }
 body.has-try-notice #app { top: var(--try-h, 0px); }
 
+/* 1.5.3 share / feedback / starting level (parent settings only) */
+.level-start { border: 2px solid #f0b400; border-radius: 12px; padding: 10px 12px; background: #fff8e0; }
+.share-url { width: 100%; max-width: 520px; font-size: 16px; padding: 8px; box-sizing: border-box; }
+.share-qr { margin: 10px 0 0; }
+.share-qr svg { display: block; width: 180px; height: 180px; border: 1px solid #ddd; border-radius: 8px; }
+
 </style>
 </head>
 <body>
@@ -363,6 +369,18 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   </div>
   <div class="set-body">
 
+    <section id="level-start" class="level-start" hidden>
+      <h2>Pick a starting level</h2>
+      <p class="note">Ages are rough guides, not a test. Start where it feels easy, and turn it up any time if your child is ahead. You can change this whenever you like.</p>
+      <div class="btns">
+        <button type="button" class="pbtn" data-level="starter">Starter (about 2)</button>
+        <button type="button" class="pbtn" data-level="middle">Middle (about 3)</button>
+        <button type="button" class="pbtn" data-level="expanded">Expanded (about 4)</button>
+        <button type="button" class="pbtn" data-level="sentences">Sentences (about 5)</button>
+        <button type="button" class="pbtn" data-level="full">Full (about 6+)</button>
+      </div>
+    </section>
+
     <section>
       <h2>Words shown</h2>
       <label class="row">Words on the board
@@ -375,6 +393,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       </label>
       <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (Sentences and Conversation words always follow the level)</label>
       <p class="note" id="level-note"></p>
+      <p class="note">Levels go up roughly by age (about 2, 3, 4, 5, 6+). The ages are approximate, not a test or assessment: turn it up if your child is ahead.</p>
     </section>
 
     <section>
@@ -515,6 +534,25 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
         <button id="log-clear" type="button" class="pbtn warn">Clear log</button>
       </div>
       <div id="log-out"></div>
+    </section>
+
+    <section id="share-section">
+      <h2>Share Word Board</h2>
+      <p class="note">Free to share. Anyone can open this link, then on iPad tap Share, then Add to Home Screen. Ready the same day; no account, no download store.</p>
+      <input id="share-url" class="share-url" type="text" readonly aria-label="Word Board link">
+      <div class="btns">
+        <button id="share-btn" type="button" class="pbtn primary">Share link…</button>
+        <button id="share-copy" type="button" class="pbtn">Copy link</button>
+      </div>
+      <div class="share-qr"><svg id="share-qr" role="img" aria-label="QR code for the Word Board link" width="180" height="180" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h37v37H0z"/><path stroke="#000000" d="M2 2.5h7m2 0h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h3m2 0h7M2 3.5h1m5 0h1m2 0h1m3 0h3m4 0h1m1 0h1m3 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h2m3 0h1m2 0h1m2 0h1m1 0h2m3 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h1m1 0h2m2 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h4m1 0h1m1 0h1m1 0h5m1 0h1m2 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h3m1 0h1m2 0h3m8 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h3m1 0h1m1 0h2m2 0h1m2 0h2m1 0h1M2 10.5h1m1 0h5m3 0h6m1 0h1m2 0h1m1 0h1m1 0h1m1 0h5M3 11.5h2m2 0h1m4 0h3m5 0h6m2 0h2m1 0h2m1 0h1M5 12.5h2m1 0h1m2 0h2m1 0h1m2 0h1m1 0h2m1 0h3m1 0h3m1 0h1m1 0h2M2 13.5h1m1 0h3m4 0h1m1 0h1m2 0h1m3 0h2m1 0h4m3 0h4M4 14.5h2m1 0h4m2 0h1m3 0h1m1 0h1m2 0h3m1 0h2m1 0h3M2 15.5h3m2 0h1m2 0h3m2 0h4m1 0h6m2 0h1m2 0h1m1 0h2M3 16.5h1m3 0h2m2 0h2m1 0h2m3 0h1m2 0h3m2 0h2m1 0h1m2 0h1M2 17.5h2m2 0h2m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m2 0h3m3 0h2m1 0h3M3 18.5h1m4 0h2m3 0h1m2 0h1m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m3 0h1M3 19.5h1m7 0h1m1 0h2m3 0h5m2 0h1m2 0h2m1 0h2m1 0h1M2 20.5h4m2 0h1m2 0h1m1 0h1m2 0h3m3 0h1m1 0h1m4 0h2m1 0h2M3 21.5h1m2 0h1m3 0h2m1 0h2m1 0h3m1 0h1m2 0h2m2 0h1m1 0h6M3 22.5h1m1 0h1m2 0h2m3 0h5m1 0h1m1 0h2m1 0h1m2 0h1m3 0h1m1 0h2M2 23.5h1m2 0h1m1 0h1m1 0h1m4 0h4m1 0h2m1 0h1m2 0h1m2 0h1m2 0h1m2 0h1M2 24.5h1m3 0h3m1 0h2m3 0h1m1 0h2m1 0h1m2 0h1m3 0h2m2 0h1m1 0h1M2 25.5h1m2 0h1m3 0h1m1 0h1m1 0h2m3 0h1m2 0h3m1 0h1m2 0h2m1 0h2m1 0h1M2 26.5h1m1 0h1m1 0h4m2 0h1m1 0h3m1 0h2m4 0h1m1 0h6m2 0h1M10 27.5h4m4 0h2m1 0h3m1 0h2m3 0h1m1 0h1m1 0h1M2 28.5h7m5 0h4m2 0h1m2 0h4m1 0h1m1 0h1m1 0h1M2 29.5h1m5 0h1m1 0h4m1 0h1m1 0h1m4 0h2m1 0h2m3 0h5M2 30.5h1m1 0h3m1 0h1m1 0h6m3 0h1m2 0h1m1 0h1m1 0h6m1 0h2M2 31.5h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m3 0h4m1 0h3m2 0h5M2 32.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h2m3 0h5m1 0h2M2 33.5h1m5 0h1m3 0h1m7 0h1m1 0h3m2 0h2m1 0h3M2 34.5h7m1 0h2m2 0h2m1 0h1m1 0h1m2 0h1m1 0h3m1 0h2m3 0h1"/></svg></div>
+      <p class="note">Scan with a phone or iPad camera to open it.</p>
+      <p class="note" id="share-msg" role="status"></p>
+    </section>
+
+    <section id="feedback-section">
+      <h2>Send feedback</h2>
+      <p class="note">Ideas, word or pattern requests, or something not working? <a id="feedback-link" href="mailto:neuresthetics@gmail.com?subject=Word%20Board%20feedback">Email neuresthetics@gmail.com</a>. Only the app version is filled in; write what you like. Requests can also go on <a href="https://github.com/neuresthetics/anova_language_dev_public/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+      <p class="note"><strong>Privacy:</strong> no accounts, no analytics, no tracking. Everything stays on this device; nothing leaves it unless you send it yourself.</p>
     </section>
 
     <section>
@@ -726,21 +764,25 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     "levels": [
       {
         "id": "starter",
+        "age": "about 2",
         "n": 1,
         "label": "Starter"
       },
       {
         "id": "middle",
+        "age": "about 3",
         "n": 2,
         "label": "Middle"
       },
       {
         "id": "expanded",
+        "age": "about 4",
         "n": 3,
         "label": "Expanded"
       },
       {
         "id": "sentences",
+        "age": "about 5",
         "n": 4,
         "label": "Sentences",
         "hint": "adds when, word endings, more little words",
@@ -748,6 +790,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       },
       {
         "id": "conversation",
+        "age": "about 6+",
         "n": 5,
         "label": "Conversation",
         "hint": "time, thinking, school, social phrases",
@@ -6147,13 +6190,17 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
    (words.js, stories.js). Paths (paths.js) practices short phrases from those
    words. 1.5.2 adds question, protest, and sentence frames plus path settings.
+   1.5.3 adds approximate age labels on levels, a starting-level prompt, and Share / Send feedback
+   in parent settings only (no accounts, no analytics, nothing sent unless the parent sends it).
    The stories tab is not on the tab bar; story code and media stay.
    Family-only content comes from an optional private overlay
    (private/overlay.js, private copy only). Photos/recordings added on the device, or an
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.2";
+  var APP_VERSION = "1.5.3";
+  var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
+  var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -6426,10 +6473,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     LEVEL_LIST.forEach(function (l) {
       if (l.n >= MAX_LEVEL) return;
       cum = 0; for (var i = 1; i <= l.n; i++) cum += n[i];
-      opts.push([l.id, l.label + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
+      opts.push([l.id, l.label + (l.age ? " (" + l.age + ")" : "") + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
     });
     var top = LEVEL_BY_N[MAX_LEVEL];
-    opts.push(["full", "Full: every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
+    opts.push(["full", "Full" + (top && top.age ? " (" + top.age + ")" : "") + ": every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
     opts.push(["custom", "Custom: tap words below to show / hide"]);
     sel.textContent = "";
     opts.forEach(function (o) { var e = el("option", null, o[1]); e.value = o[0]; sel.appendChild(e); });
@@ -7404,6 +7451,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
+    $("level-start").hidden = !!settings.wordsShown;
     var sw = navigator.serviceWorker && navigator.serviceWorker.controller;
     $("about").textContent = "Word Board " + APP_VERSION + ". Offline copy: " + (sw ? "installed (works without Wi-Fi)" :
       location.protocol === "file:" ? "not available when opened as a file" :
@@ -7437,6 +7485,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       saveSettings();
     });
     $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#level-start [data-level]"), function (b) {
+      b.addEventListener("click", function () { setWordsShown(b.getAttribute("data-level")); syncSettingsUI(); renderVisibility(); });
+    });
+    bindShare();
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
     [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
      ["set-returnhome", "returnHome"], ["set-triple", "gateTripleTap"], ["set-log", "logEnabled"]].forEach(function (p) {
@@ -7464,6 +7516,29 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       saveFile("word-board-usage-" + today() + ".json", new Blob([JSON.stringify(readJSON(LS.log, []), null, 1)], { type: "application/json" }), false);
     });
     $("log-clear").addEventListener("click", function () { if (confirm("Delete the whole usage log on this device?")) { localStorage.removeItem(LS.log); showLog(); } });
+  }
+
+  /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
+  function shareMsg(t) { $("share-msg").textContent = t; }
+  function copyLink() {
+    function fallback() {
+      var i = $("share-url"); i.focus(); i.select();
+      try { document.execCommand("copy"); shareMsg("Link copied."); } catch (e) { shareMsg("Select the link above and copy it."); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(SHARE_URL).then(function () { shareMsg("Link copied."); }, fallback);
+    else fallback();
+  }
+  function bindShare() {
+    $("share-url").value = SHARE_URL;
+    $("share-btn").addEventListener("click", function () {
+      if (navigator.share) {
+        navigator.share({ title: "Word Board", text: "Word Board: a free talking word board for iPad. Open the link, then Share > Add to Home Screen.", url: SHARE_URL })
+          .then(function () { shareMsg(""); }, function () {});
+      } else copyLink();
+    });
+    $("share-copy").addEventListener("click", copyLink);
+    $("feedback-link").href = "mailto:" + FEEDBACK_EMAIL + "?subject=" + encodeURIComponent("Word Board feedback") +
+      "&body=" + encodeURIComponent("\n\n(Word Board " + APP_VERSION + ")");
   }
 
   /* ---------- personal pack import / export ---------- */
@@ -7756,8 +7831,8 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     if (!/\.github\.io$/i.test(location.hostname) || standalone || window.AAC_PRIVATE || window.AAC_SINGLE_FILE) return;
     try { if (localStorage.getItem("wb.tryNoticeDismissed")) return; } catch (e) {}
     var n = el("div", "try-notice"); n.id = "try-notice"; n.setAttribute("role", "note");
-    var t = el("span", null, "Voice quality depends on your device and browser: Chrome, Edge or an iPad sound best. To use it for real, ");
-    var a = el("a", null, "get your own copy"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/blob/main/docs/SETUP.md"; a.target = "_blank"; a.rel = "noopener";
+    var t = el("span", null, "Free, no account, no tracking. To keep it on an iPad: tap Share, then Add to Home Screen. Parents: hold ⚙ for 2 seconds for levels, sharing and feedback. ");
+    var a = el("a", null, "help"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/#readme"; a.target = "_blank"; a.rel = "noopener";
     t.appendChild(a); t.appendChild(document.createTextNode("."));
     var x = el("button", "try-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "dismiss notice");
     x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove();

@@ -70,21 +70,25 @@
     "levels": [
       {
         "id": "starter",
+        "age": "about 2",
         "n": 1,
         "label": "Starter"
       },
       {
         "id": "middle",
+        "age": "about 3",
         "n": 2,
         "label": "Middle"
       },
       {
         "id": "expanded",
+        "age": "about 4",
         "n": 3,
         "label": "Expanded"
       },
       {
         "id": "sentences",
+        "age": "about 5",
         "n": 4,
         "label": "Sentences",
         "hint": "adds when, word endings, more little words",
@@ -92,6 +96,7 @@
       },
       {
         "id": "conversation",
+        "age": "about 6+",
         "n": 5,
         "label": "Conversation",
         "hint": "time, thinking, school, social phrases",
