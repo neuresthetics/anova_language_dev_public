@@ -901,42 +901,39 @@
     for (var i = 0; i < pat.steps.length; i++) if (!pat.steps[i].optional && !state.pathPicks[i]) return false;
     return true;
   }
-  function pathUtterance() {
+  /* The sentence comes from AAC_PATHS.sentence: it adds the small joining words
+     ("a", "the", "to") and endings, so every finished path is a correct sentence. */
+  function pathSentence(pat) { return window.AAC_PATHS.sentence(pat, state.pathPicks); }
+  function pathUtterance(forSpeech) {
     var pat = pathById(state.pathId);
     if (!pat) return null;
-    var tokens = [], idx = [];
+    var s = pathSentence(pat), tokens = [], idx = [];
     pat.steps.forEach(function (step, i) {
-      var w = state.pathPicks[i];
-      if (!w) return;
-      if (w.ending) {
-        var prev = tokens[tokens.length - 1];
-        var out = prev && !/\s/.test(prev.text) ? inflect(prev.text, w.ending) : null;
-        if (prev && out) {
-          var base = String(prev.text || "").toLowerCase();
-          prev.text = out;
-          prev.say = SAY_INFLECTED[base + "@" + w.ending] || null;
-          prev.sayAlone = null;
-          prev.audio = null;
-          prev.inflected = w.ending;
-        }
-        return;
+      var w = state.pathPicks[i], part = s.parts[i];
+      if (!w || !part || part.ending) return;
+      if (part.pre) part.pre.split(" ").forEach(function (x) { tokens.push({ text: x, say: null, audio: null, id: null, typed: false, auto: true }); idx.push(i); });
+      var t = tokenFromWord(w);
+      var plain = String(w.label).replace(/\?$/, "");
+      if (part.text.toLowerCase() !== String(w.label).toLowerCase()) {
+        t.text = /^I\b/.test(plain) ? part.text.replace(/^i\b/, "I") : part.text;
+        if (part.inflected === "ing") { t.say = SAY_INFLECTED[String(w.label).toLowerCase() + "@ing"] || null; t.inflected = "ing"; }
+        else t.say = null;
+        t.sayAlone = null; t.audio = null;
       }
-      tokens.push(tokenFromWord(w));
-      idx.push(i);
+      if (part.comma) t.punct = ",";
+      tokens.push(t); idx.push(i);
     });
-    if (pat.punct && tokens.length) tokens[tokens.length - 1].punct = pat.punct;
-    return { tokens: tokens, idx: idx };
+    if (s.done && tokens.length) tokens[tokens.length - 1].punct = pat.punct || ".";
+    return { tokens: tokens, idx: idx, text: s.text, done: s.done };
   }
   function pathFace(pat, i) {
+    var part = pathSentence(pat).parts[i];
+    if (!part || part.ending) return "";
     var w = state.pathPicks[i];
-    if (!w) return "";
-    var nxt = state.pathPicks[i + 1];
-    if (nxt && nxt.ending && !w.ending) {
-      var out = inflect(w.label, nxt.ending);
-      if (out) return out;
-    }
-    return w.label;
+    var t = part.text;
+    return w && /^I\b/.test(w.label) ? w.label : t;
   }
+  function pathPre(pat, i) { var part = pathSentence(pat).parts[i]; return part && part.pre || ""; }
   function pathHl(i) {
     if (!settings.highlight) i = -1;
     var nodes = document.querySelectorAll("[data-path-i]");
@@ -963,13 +960,14 @@
     var speakEach = settings.pathsSpeakEach !== false;
     var finished = state.pathStep >= pat.steps.length;
     render();
+    // Finished: say the whole sentence once, calmly (it includes the word just tapped).
+    if (finished) { speakPath(); return; }
     if (speakEach) {
-      if (w.ending) {
-        var u1 = pathUtterance();
-        var tok = u1 && u1.tokens.length ? u1.tokens[u1.tokens.length - 1] : tokenFromWord(w);
-        talk([tok], [Math.max(0, i - 1)], { hl: pathHl });
-      } else talk([tokenFromWord(w)], [i], { hl: pathHl });
-    } else if (finished) speakPath();
+      var u1 = pathUtterance(), toks = [], ids = [];
+      if (u1) u1.tokens.forEach(function (t, k) { if (u1.idx[k] === (w.ending ? i - 1 : i)) { toks.push(t); ids.push(u1.idx[k]); } });
+      if (!toks.length) { toks = [tokenFromWord(w)]; ids = [i]; }
+      talk(toks, ids, { hl: pathHl });
+    }
   }
   function pathBack() {
     stopAll();
@@ -978,6 +976,10 @@
     state.pathPicks[i] = null;
     state.pathStep = i;
     render();
+  }
+  function pathAgain() {
+    stopAll();
+    state.pathPicks = []; state.pathStep = 0; render();
   }
   function pathHome() {
     stopAll();
@@ -988,6 +990,7 @@
     var u = pathUtterance();
     if (settings.pathsToWords === false) return;
     if (!pat || !u || !u.tokens.length || !pathRequiredDone(pat)) return;
+    u.tokens.forEach(function (t) { delete t.auto; });
     stopAll();
     msg.tokens = u.tokens;
     msg.buf = "";
@@ -1015,7 +1018,8 @@
     var canSend = !!(pat && pathRequiredDone(pat) && settings.pathsToWords !== false);
     bar.appendChild(btn("back", "← undo", "undo last word", "path:back", pathBack, !canUndo));
     bar.appendChild(btn("home", "all patterns", "show all patterns", "path:home", pathHome, !pat));
-    bar.appendChild(btn("say", "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
+    var finishedNow = !!(pat && pathRequiredDone(pat) && state.pathStep >= pat.steps.length);
+    bar.appendChild(btn("say", finishedNow ? "say again" : "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
     bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !canSend));
     return bar;
   }
@@ -1027,6 +1031,12 @@
       return;
     }
     layoutPathMenu(list, patterns.length);
+    var gIndex = {}, gLabel = {};
+    (window.AAC_PATHS.groups || []).forEach(function (g, i) { gIndex[g.id] = i; gLabel[g.id] = g.label; });
+    patterns = patterns.slice().sort(function (x, y) {
+      var gx = gIndex[x.group] == null ? 99 : gIndex[x.group], gy = gIndex[y.group] == null ? 99 : gIndex[y.group];
+      return gx - gy || window.AAC_PATHS.patterns.indexOf(x) - window.AAC_PATHS.patterns.indexOf(y);
+    });
     patterns.forEach(function (p) {
       var stem = window.AAC_PATHS.lookup(p.stems[0], ctx);
       var b = el("button", "cell btn path-card" + (stem && window.AAC_PATHS.fitzClass(stem) ? " " + window.AAC_PATHS.fitzClass(stem) : ""));
@@ -1036,6 +1046,7 @@
       b.style.setProperty("--pflen", String(Math.max(8, p.frame.length)));
       var pic = stem && picFor(stem);
       if (pic) b.appendChild(pic); else b.classList.add("nopic");
+      if (p.group && gLabel[p.group]) b.appendChild(el("span", "path-group", gLabel[p.group]));
       b.appendChild(el("span", "path-title", p.title));
       b.appendChild(el("span", "path-frame", p.frame));
       b.setAttribute("aria-label", p.title + ". " + p.frame);
@@ -1047,37 +1058,55 @@
     });
   }
   function renderPathPlay(phrase, mid, pat, ctx) {
+    var picOnly = showMode() === "pic";
     pat.steps.forEach(function (step, i) {
       var w = state.pathPicks[i];
+      if (w && w.ending) return;   // an ending joins the word before it ("eat" → "eating")
+      if (!w && step.endings && i > 0 && state.pathPicks[i - 1]) return;
       var slot = el("div", "path-slot" + (w ? " filled" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") : " empty"));
       slot.setAttribute("data-path-i", String(i));
-      if (i === state.pathStep) slot.classList.add("now");
+      if (i === state.pathStep) { slot.classList.add("now"); slot.setAttribute("aria-current", "step"); }
       if (w && showMode() !== "text" && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
-      slot.appendChild(el("span", "path-lab", w ? caseWord(pathFace(pat, i)) : "—"));
+      var pre = w ? pathPre(pat, i) : "";
+      var lab = el("span", "path-lab");
+      if (pre) lab.appendChild(el("span", "path-pre", caseWord(pre) + " "));
+      lab.appendChild(document.createTextNode(w ? caseWord(pathFace(pat, i)) : "?"));
+      slot.appendChild(lab);
+      slot.setAttribute("aria-label", w ? (pre ? pre + " " : "") + pathFace(pat, i) : "next word");
       phrase.appendChild(slot);
     });
-    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx);
+    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks);
     var stepNow = pat.steps[state.pathStep];
     if (state.pathStep >= pat.steps.length || (stepNow && stepNow.optional && !choices.length)) {
-      var done = el("div", "path-done"), n = 0;
-      pat.steps.forEach(function (step, i) { if (state.pathPicks[i]) n++; });
-      done.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 3)) + ", minmax(0, 1fr))";
-      if (n > 3) done.style.gridTemplateRows = "repeat(" + Math.ceil(n / 3) + ", minmax(0, 1fr))";
+      var u = pathUtterance();
+      var done = el("div", "path-finish");
+      var line = el("div", "path-sentence", u ? u.text : "");
+      line.setAttribute("aria-live", "polite");
+      done.appendChild(el("div", "path-made", "You made a sentence."));
+      done.appendChild(line);
+      var tiles = el("div", "path-done"), n = 0;
       pat.steps.forEach(function (step, i) {
         var w = state.pathPicks[i];
-        if (!w) return;
-        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : ""));
+        if (!w || w.ending) return;
+        n++;
+        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") + (picOnly ? " piconly" : ""));
         tile.setAttribute("data-path-i", String(i));
         var pic = picFor(w);
-        if (pic) tile.appendChild(pic); else tile.classList.add("nopic");
+        if (pic) tile.appendChild(pic); else { tile.classList.add("nopic"); tile.classList.remove("piconly"); }
         tile.appendChild(el("span", "lbl", caseWord(pathFace(pat, i))));
-        done.appendChild(tile);
+        tiles.appendChild(tile);
       });
+      tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
+      done.appendChild(tiles);
+      var again = el("button", "path-again", "↻ make another “" + pat.title.replace(/[.?!]$/, "") + "”");
+      again.type = "button";
+      onTap(again, "path:again", pathAgain);
+      done.appendChild(again);
       mid.appendChild(done);
       return;
     }
     if (!choices.length) {
-      mid.appendChild(el("p", "note-dark", "No words for this step at the current level."));
+      mid.appendChild(el("p", "note-dark", "No words for this step at the current level. Tap ← undo or all patterns."));
       return;
     }
     var grid = el("div", "path-choices");
@@ -1091,10 +1120,11 @@
       b.type = "button";
       b.setAttribute("data-choice", w.label);
       var pic = picFor(w);
-      if (pic) b.appendChild(pic); else b.classList.add("nopic");
-      b.appendChild(el("span", "lbl", caseWord(w.label)));
+      if (pic) { b.appendChild(pic); if (picOnly) b.classList.add("piconly"); } else b.classList.add("nopic");
+      var shown = w.ending ? "-" + w.ending : w.label;
+      b.appendChild(el("span", "lbl", caseWord(shown)));
       b.setAttribute("aria-label", w.label);
-      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { choosePath(pat, w); });
+      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { flashTapped(b); choosePath(pat, w); });
       grid.appendChild(b);
     });
     mid.appendChild(grid);

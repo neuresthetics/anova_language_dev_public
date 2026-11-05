@@ -365,3 +365,27 @@ body.hc #msg { background: #fff; color: #000; }
 .grid.big .cell.btn .emo { font-size: min(44cqh, 50cqw); margin-bottom: 1cqh; }
 /* Paths: the dashed boxes show the chosen picture + word large */
 .path-slot.filled .path-emo { font-size: 1.25em; }
+/* Paths 1.5.3: joining words, grouped menu, calm finished state */
+.path-pre { font-weight: 600; opacity: 0.6; font-size: 0.8em; }
+.path-slot.empty .path-pre { display: none; }
+.path-card .path-group {
+  font-size: min(8cqh, 14px); font-weight: 700; text-transform: lowercase;
+  color: #333; opacity: 0.75; letter-spacing: 0.02em;
+}
+.path-finish {
+  height: 100%; min-height: 0; display: grid; gap: var(--gap);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.path-made { text-align: center; color: #bdbdbd; font-weight: 600; font-size: clamp(14px, 2.4vmin, 22px); }
+.path-sentence {
+  text-align: center; color: #fff; font-weight: 800; line-height: 1.1;
+  font-size: clamp(26px, 6vmin, 64px); padding: 2px 8px; overflow-wrap: anywhere;
+}
+.path-finish .path-done { height: auto; min-height: 0; }
+.path-again {
+  justify-self: center; min-height: 52px; padding: 8px 22px; border-radius: 14px;
+  border: 3px solid #666; background: #2a2a2a; color: #fff; font-weight: 800;
+  font-size: clamp(16px, 2.6vmin, 26px);
+}
+body.hc .path-made { color: #fff; }
+body.hc .path-again { border-color: #fff; background: #000; }

@@ -141,7 +141,7 @@ async function main() {
     let snap = await page.evaluate(function () { return window.WB.paths(); });
     check(snap.picks.join("|") === "who|is|it" && snap.requiredDone, "who is it walks to the end");
     const said = await page.evaluate(function () { return window.__spoken.slice(); });
-    check(said.indexOf("who") >= 0 && said.indexOf("is") >= 0 && said.indexOf("it") >= 0, "each tap is spoken (" + said.join(" / ") + ")");
+    check(said.indexOf("who") >= 0 && said.indexOf("is") >= 0 && said.some(function (x) { return /^who is it\?$/i.test(x); }), "each tap is spoken, the finish says the whole sentence is spoken (" + said.join(" / ") + ")");
 
     await tap(page, '[aria-label="undo last word"]');
     snap = await page.evaluate(function () { return window.WB.paths(); });
@@ -202,8 +202,10 @@ async function main() {
     check(!!activity, "I like …ing has an activity (" + activity + ")");
     await tapChoice(page, activity);
     const early = await page.evaluate(function () { return document.querySelector('[aria-label="copy phrase to Words"]').disabled; });
-    check(!early, "→ words is available before the optional ending");
+    check(early, "the -ing ending is part of the sentence, so → words waits for it");
     await tapChoice(page, "-ing");
+    const late = await page.evaluate(function () { return { off: document.querySelector('[aria-label="copy phrase to Words"]').disabled, s: (document.querySelector(".path-sentence") || {}).textContent }; });
+    check(!late.off && /^I like \w+ing\.$/.test(late.s), "finished: " + late.s);
     await tap(page, '[aria-label="copy phrase to Words"]');
     const liked = await page.evaluate(function () { return document.getElementById("msg").textContent; });
     check(/like/i.test(liked) && /ing/i.test(liked) && liked.indexOf("-ing") < 0, "ending inflects into the message (" + liked + ")");

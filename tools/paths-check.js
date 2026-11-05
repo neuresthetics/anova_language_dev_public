@@ -102,11 +102,18 @@ assert(whereFringe.indexOf("school") < 0, "school is conversation-level");
 assert(labels("dont_want", 1)[0] === "don't", "don't step");
 assert(labels("can", 1, ctx(4))[0] === "can", "can step");
 assert(labels("put", 2, ctx(4)).join("|") === "on|in", "on/in " + labels("put", 2, ctx(4)));
-const spots = labels("put", 3, ctx(4));
-["box", "bag", "cup", "chair", "bed", "bath"].forEach(function (lab) {
-  assert(spots.indexOf(lab) >= 0, "put spot missing " + lab + " in " + spots);
+function putSpots(prep) {
+  const c4 = ctx(4), put = P.byId("put");
+  const picks = [P.choices(put, 0, c4)[0], P.choices(put, 1, c4)[0], P.choices(put, 2, c4).filter(function (w) { return w.label === prep; })[0]];
+  return P.choices(put, 3, c4, picks).map(function (w) { return w.label; });
+}
+const spotsOn = putSpots("on"), spotsIn = putSpots("in");
+["box", "chair", "bed"].forEach(function (lab) { assert(spotsOn.indexOf(lab) >= 0, "put on missing " + lab + " in " + spotsOn); });
+assert(spotsOn.indexOf("cup") < 0 && spotsOn.indexOf("bath") < 0, "no 'on the cup/bath'");
+["box", "bag", "cup", "bath"].forEach(function (lab) {
+  assert(spotsIn.indexOf(lab) >= 0, "put in missing " + lab + " in " + spotsIn);
 });
-assert(spots.indexOf("park") < 0, "put fringe is surfaces");
+assert(spotsOn.concat(spotsIn).indexOf("park") < 0, "put fringe is surfaces");
 assert(labels("want_please", 3, ctx(4)).join("|") === "please|thank you", "please wrapper");
 const ing = P.choices(P.byId("like_ing"), 3, ctx(4));
 assert(ing.length === 1 && ing[0].ending === "ing" && ing[0].label === "-ing", "optional -ing is the board ending");
@@ -134,10 +141,51 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 assert(/APP_VERSION = "1\.5\.3"/.test(app), "APP_VERSION");
-assert(/wordboard-v25/.test(sw), "cache bump");
+assert(/wordboard-v26/.test(sw), "cache bump");
 assert(html.indexOf("nav-stories") < 0, "stories tab stays off the bar");
 assert(html.indexOf('id="set-pathsshow"') >= 0 && html.indexOf('id="set-pathstowords"') >= 0 && html.indexOf('id="set-pathsmax"') >= 0, "path settings");
 assert(fs.existsSync(path.join(root, "stories.js")), "stories.js kept");
+
+/* ---- grammar audit: every reachable sentence at every level, every choice limit ---- */
+const G = require("./paths-grammar.js");
+const info = { words: words };
+const sentences = {};
+let deadEnds = 0, tooMany = 0;
+[1, 2, 3, 4, 5].forEach(function (level) {
+  [6, 4, 3, 2].forEach(function (max) {
+    const c = ctx(level, { maxChoices: max });
+    P.visible(c).forEach(function (p) {
+      (function walk(i, picks) {
+        if (i >= p.steps.length) {
+          const s = P.sentence(p, picks);
+          assert(s.done, p.id + " walk finished but sentence not done");
+          if (!sentences[s.text]) sentences[s.text] = { id: p.id, level: level };
+          return;
+        }
+        const ch = P.choices(p, i, c, picks);
+        if (!ch.length) {
+          if (p.steps[i].optional) return walk(i + 1, picks.concat([null]));
+          deadEnds++; assert(false, "dead end: " + p.id + " step " + i + " at level " + level); return;
+        }
+        if (ch.length > Math.max(max, 2) && p.steps[i].fringe) { tooMany++; assert(false, p.id + " step " + i + " has " + ch.length + " > " + max); }
+        ch.forEach(function (w) { walk(i + 1, picks.concat([w])); });
+        if (p.steps[i].optional) walk(i + 1, picks.concat([null]));
+      })(0, []);
+    });
+  });
+});
+let grammarBad = 0;
+Object.keys(sentences).forEach(function (t) {
+  const probs = G.check(t, info);
+  if (probs.length) { grammarBad++; assert(false, "grammar: \"" + t + "\" (" + sentences[t].id + "): " + probs.join("; ")); }
+});
+assert(Object.keys(sentences).length > 100, "sentence walk found " + Object.keys(sentences).length);
+// the checker itself catches the old mistakes
+["I want eat.", "I see cat.", "I want more ball.", "I go to outside.", "Where? is bed?", "I want an milk.", "I like huging.", "I want milk please."].forEach(function (b) {
+  assert(G.check(b, info).length > 0, "checker should flag: " + b);
+});
+if (process.argv.indexOf("--list") >= 0) Object.keys(sentences).forEach(function (t) { console.log("L" + sentences[t].level + "  " + sentences[t].id + "  " + t); });
+console.log("grammar audit:", Object.keys(sentences).length, "sentences,", grammarBad, "flagged,", deadEnds, "dead ends");
 
 if (failed) {
   console.error(failed + " failed");
