@@ -28,7 +28,16 @@
     pathsShowTab: true,      // Paths tab on the tab bar. Off keeps the empty slot so home / abc do not move.
     pathsToWords: true,      // → words copies a finished phrase. Off leaves the button in place and inert.
     pathsMaxChoices: 6,      // open-slot fringe length (2, 3, 4, or 6). Fixed pairs are not cut down.
-    pathsPreferRecent: true  // among non-preferred fringe words, float ones from the on-device usage log
+    pathsPreferRecent: true, // among non-preferred fringe words, float ones from the on-device usage log
+    /* 1.5.3 look + access (defaults keep the board looking as before) */
+    clearMode: "hold",       // tap | hold (hold ~0.8 s; a short "undo clear" follows) | hide
+    showMode: "",            // "" = follow showPictures (both / text); "both" | "pic" | "text"
+    holdMs: 0,               // a press must last this long before it counts (0 = off: tap on release)
+    spacing: "normal",       // normal | more
+    contrast: "normal",      // normal | high
+    textSize: "normal",      // normal | large | larger
+    boardColor: "dark",      // dark | light | blue
+    bigButtons: false        // "Starter (big buttons)": same words and order, empty rows/columns closed up
   };
   var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
@@ -278,6 +287,10 @@
     config.words.forEach(function (w) { if (w.page === "home" && w.type !== "folder" && cellMap.home && cellMap.home[w.row + "," + w.col] === w) n[wordLevel(w)]++; });
     return n;
   }
+  function pickLevel(v) {
+    settings.bigButtons = v === "starter-big"; saveSettings();
+    setWordsShown(v === "starter-big" ? "starter" : v); syncSettingsUI(); renderVisibility();
+  }
   function labelLevelOptions() {
     var sel = $("set-wordsshown"); if (!sel) return;
     var n = homeCountsByLevel(), cum = 0, total = 0, opts = [];
@@ -285,7 +298,8 @@
     LEVEL_LIST.forEach(function (l) {
       if (l.n >= MAX_LEVEL) return;
       cum = 0; for (var i = 1; i <= l.n; i++) cum += n[i];
-      opts.push([l.id, l.label + (l.age ? " (" + l.age + ")" : "") + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
+      if (l.n === 1) opts.push(["starter-big", l.label + " (big buttons)" + (l.age ? " (" + l.age + ")" : "") + ": same " + cum + " words, same order, bigger"]);
+      opts.splice(l.n === 1 ? opts.length - 1 : opts.length, 0, [l.id, l.label + (l.age ? " (" + l.age + ")" : "") + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
     });
     var top = LEVEL_BY_N[MAX_LEVEL];
     opts.push(["full", "Full" + (top && top.age ? " (" + top.age + ")" : "") + ": every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
@@ -429,12 +443,14 @@
 
   /* ------------------------------------------------------------ talker */
   var seq = 0, hlFn = null;
-  function stopAll() { seq++; Speech.stop(); Clips.stop(); if (hlFn) hlFn(-1); }
+  function speakingOn(on) { document.body.classList.toggle("speaking", !!on); var s = $("btn-speak"); if (s) { var t = s.querySelector(".txt"); if (t) t.textContent = on ? "speaking" : "speak"; } }
+  function stopAll() { seq++; Speech.stop(); Clips.stop(); if (hlFn) hlFn(-1); speakingOn(false); }
   /* tokens [{text, say, audio}], idx[i] = highlight index, opts {hl: fn, each: speak word by word} */
   function talk(tokens, idx, opts) {
     opts = opts || {};
     stopAll();
     var my = seq, hl = opts.hl || highlightMsg; hlFn = hl;
+    speakingOn(true);
     Clips.unlock();
     if (tokens.some(function (t) { return hasClip(t.audio); })) Speech.unlock();
     var segs = [];
@@ -450,7 +466,7 @@
     });
     function next(k) {
       if (my !== seq) return;
-      if (k >= segs.length) { hl(-1); return; }
+      if (k >= segs.length) { hl(-1); speakingOn(false); return; }
       var sg = segs[k];
       if (sg.audio) {
         hl(sg.idx);
@@ -481,7 +497,7 @@
   }
   function renderMsg() {
     var m = $("msg"); m.textContent = "";
-    msg.tokens.forEach(function (t) { m.appendChild(el("span", "tok", (t.typed ? caseTyped(t.text) : caseWord(t.text)) + (t.punct || ""))); });
+    msg.tokens.forEach(function (t, i) { m.appendChild(el("span", "tok" + (i === msg.tokens.length - 1 && msg.fresh ? " fresh" : ""), (t.typed ? caseTyped(t.text) : caseWord(t.text)) + (t.punct || ""))); });
     if (state.view === "keyboard" || msg.buf) {
       var b = el("span", "buf", msg.buf ? caseTyped(msg.buf) : "");
       if (state.view === "keyboard") b.appendChild(el("span", "caret"));
@@ -501,7 +517,8 @@
   function addWord(w) {
     commitBuf(false);
     var t = tokenFromWord(w);
-    msg.tokens.push(t); logUse(w.label); renderMsg();
+    msg.tokens.push(t); logUse(w.label); msg.fresh = true; renderMsg();
+    clearTimeout(msg.freshT); msg.freshT = setTimeout(function () { msg.fresh = false; var f = $("msg").querySelector(".tok.fresh"); if (f) f.classList.remove("fresh"); }, 1500);
     talk([t], [msg.tokens.length - 1]);
   }
   function speakMessage() {
@@ -580,7 +597,25 @@
     } else { if (msg.buf) msg.buf = ""; else msg.tokens.pop(); }
     renderMsg(); renderPreds();
   }
-  function clearMsg() { stopAll(); msg.tokens = []; msg.buf = ""; renderMsg(); renderPreds(); }
+  var undoClear = null;
+  function clearMsg() {
+    stopAll();
+    if (undoClear) {   // second tap within the undo window brings the message back
+      msg.tokens = undoClear.tokens; msg.buf = undoClear.buf; undoClear = null; clearLabel(); renderMsg(); renderPreds(); return;
+    }
+    if (!msg.tokens.length && !msg.buf) return;
+    undoClear = { tokens: msg.tokens, buf: msg.buf, t: setTimeout(function () { undoClear = null; clearLabel(); }, 5000) };
+    msg.tokens = []; msg.buf = ""; clearLabel(); renderMsg(); renderPreds();
+  }
+  function clearLabel() {
+    var b = $("btn-clear"); if (!b) return;
+    b.querySelector(".txt").textContent = undoClear ? "undo clear" : "clear";
+    b.querySelector(".ico").textContent = undoClear ? "↶" : "✖";
+    b.setAttribute("aria-label", undoClear ? "Undo clear" : "Clear message");
+    b.classList.toggle("undo", !!undoClear);
+  }
+  /* Clear needs a hold (unless a parent set it to tap); undo clear is always a plain tap. */
+  function clearHoldMs() { return settings.clearMode === "hold" && !undoClear ? 800 : 0; }
 
   /* ------------------------------------------------------------ usage log (opt-in, local only) */
   function logUse(word) {
@@ -608,23 +643,25 @@
   var PRESS_SLOP = 28;
   function onTap(node, key, fn, opts) {
     opts = opts || {};
-    var pid = null, upAt = 0;
+    var pid = null, upAt = 0, downAt = 0, readyT = null;
+    function needMs() { var a = opts.holdMs ? opts.holdMs() : 0; return Math.max(a, +settings.holdMs || 0); }
     function fire(e) { if (node.disabled || !guard(key)) return; Clips.unlock(); fn(e); }
     function near(e) {
       var r = node.getBoundingClientRect();
       return e.clientX >= r.left - PRESS_SLOP && e.clientX <= r.right + PRESS_SLOP &&
              e.clientY >= r.top - PRESS_SLOP && e.clientY <= r.bottom + PRESS_SLOP;
     }
-    function end() { pid = null; upAt = Date.now(); node.classList.remove("pressed"); }
+    function end() { pid = null; upAt = Date.now(); clearTimeout(readyT); node.classList.remove("pressed"); node.classList.remove("ready"); }
     node.style.touchAction = opts.scroll ? "pan-y" : "none";
     node.addEventListener("pointerdown", function (e) {
       if (node.disabled || pid !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
-      pid = e.pointerId; node.classList.add("pressed");
+      pid = e.pointerId; node.classList.add("pressed"); downAt = Date.now();
+      var ms = needMs(); if (ms) readyT = setTimeout(function () { node.classList.add("ready"); }, ms);
       if (!opts.scroll && node.setPointerCapture) { try { node.setPointerCapture(pid); } catch (x) { /* ignore */ } }
     });
     node.addEventListener("pointerup", function (e) {
       if (e.pointerId !== pid) return;
-      var ok = near(e); end();
+      var ok = near(e) && Date.now() - downAt >= needMs(); end();
       if (ok) { e.preventDefault(); lifted = { node: node, t: Date.now() }; fire(e); }
     });
     node.addEventListener("pointercancel", function (e) { if (e.pointerId === pid) end(); });
@@ -669,21 +706,42 @@
     renderMsg();
     fitLabels(board);
   }
+  function bigOn() { return !!settings.bigButtons && wordsShownMode() === "starter"; }
   function renderPage(board, p) {
-    var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : ""));
-    g.style.gridTemplateColumns = "repeat(" + p.cols + ", 1fr)";
-    g.style.gridTemplateRows = "repeat(" + p.rows + ", 1fr)";
-    for (var r = 1; r <= p.rows; r++) for (var c = 1; c <= p.cols; c++) {
+    var big = bigOn() && p.id === "home";
+    var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : "") + (big ? " big" : ""));
+    /* Big buttons: rows and columns with nothing shown close up, so every button grows but
+       keeps its order and its place relative to the others. */
+    var rowMap = {}, colMap = {}, nr = 0, nc = 0, r, c;
+    for (r = 1; r <= p.rows; r++) { var anyR = !big; for (c = 1; c <= p.cols && !anyR; c++) anyR = isShown(cellMap[p.id][r + "," + c], p.id); if (anyR) rowMap[r] = ++nr; }
+    for (c = 1; c <= p.cols; c++) { var anyC = !big; for (r = 1; r <= p.rows && !anyC; r++) anyC = isShown(cellMap[p.id][r + "," + c], p.id); if (anyC) colMap[c] = ++nc; }
+    g.style.gridTemplateColumns = "repeat(" + nc + ", 1fr)";
+    if (big) {   // a row holding only folders gets shorter, so the word buttons get the room
+      var tr = [];
+      for (r = 1; r <= p.rows; r++) if (rowMap[r]) {
+        var words = false; for (c = 1; c <= p.cols; c++) { var x = cellMap[p.id][r + "," + c]; if (isShown(x, p.id) && x.type !== "folder") words = true; }
+        tr.push(words ? "minmax(0, 1fr)" : "minmax(0, 0.55fr)");
+      }
+      g.style.gridTemplateRows = tr.join(" ");
+    } else g.style.gridTemplateRows = "repeat(" + nr + ", 1fr)";
+    for (r = 1; r <= p.rows; r++) for (c = 1; c <= p.cols; c++) {
+      if (!rowMap[r] || !colMap[c]) continue;
       var w = cellMap[p.id][r + "," + c], cell;
       if (!isShown(w, p.id)) { cell = el("div", "cell blank" + (w ? " masked" : "")); cell.setAttribute("aria-hidden", "true"); }
       else cell = wordButton(w);
-      cell.style.gridRow = r; cell.style.gridColumn = c;
+      cell.style.gridRow = rowMap[r]; cell.style.gridColumn = colMap[c];
       g.appendChild(cell);
     }
     board.appendChild(g);
   }
+  /* Visual feedback: the tapped button gets a short ring; the newest word in the bar is marked. */
+  function flashTapped(b) {
+    b.classList.add("just");
+    setTimeout(function () { b.classList.remove("just"); }, 700);
+  }
+  function showMode() { return settings.showMode || (settings.showPictures ? "both" : "text"); }
   function picFor(item) {
-    if (!settings.showPictures) return null;
+    if (showMode() === "text") return null;
     var url = item.image && mediaURL(item.image);
     if (url) { var img = el("img", "pic"); img.src = url; img.alt = ""; img.draggable = false; return img; }
     if (item.emoji) return el("span", "emo", item.emoji);
@@ -694,8 +752,10 @@
     var pic = picFor(w);
     if (pic) b.appendChild(pic); else b.classList.add("nopic");
     b.appendChild(el("span", "lbl", caseWord(w.label)));
+    if (pic && showMode() === "pic") b.classList.add("piconly");
     b.setAttribute("aria-label", w.label + (w.type === "folder" ? " folder" : ""));
     onTap(b, "w:" + w.id, function () {
+      flashTapped(b);
       if (w.type === "folder") { stopAll(); state.page = w.target; render(); return; }
       if (w.ending) { applyEnding(w); return; }
       addWord(w);
@@ -992,7 +1052,7 @@
       var slot = el("div", "path-slot" + (w ? " filled" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") : " empty"));
       slot.setAttribute("data-path-i", String(i));
       if (i === state.pathStep) slot.classList.add("now");
-      if (w && settings.showPictures && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
+      if (w && showMode() !== "text" && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
       slot.appendChild(el("span", "path-lab", w ? caseWord(pathFace(pat, i)) : "—"));
       phrase.appendChild(slot);
     });
@@ -1239,15 +1299,18 @@
     sel.value = settings.voiceURI && vs.some(function (v) { return v.voiceURI === settings.voiceURI; }) ? settings.voiceURI : "";
     var note = $("voice-note");
     if (!Speech.synth) note.textContent = "This browser has no speech synthesis. Recorded clips still play.";
-    else if (!Speech.voices.length) note.textContent = "No voices reported yet. On iPad they can take a moment to load; speech still uses the default en-US voice. For better voices: iPad Settings → Accessibility → Spoken Content → Voices → English → download an Enhanced or Premium voice, then reopen this app.";
-    else note.textContent = Speech.voices.length + " voices on this device. For a more natural voice, download an Enhanced/Premium voice in iPad Settings → Accessibility → Spoken Content → Voices. Siri voices are not available to web apps.";
+    else if (!Speech.voices.length) note.textContent = "No voices listed yet (iPad can be slow); the default voice still works. Better voices: iPad Settings → Accessibility → Spoken Content → Voices.";
+    else note.textContent = Speech.voices.length + " voices. More natural ones: iPad Settings → Accessibility → Spoken Content → Voices (Enhanced).";
   }
   function syncSettingsUI() {
     $("set-rate").value = settings.rate; $("rate-val").textContent = (+settings.rate).toFixed(2);
     $("set-pitch").value = settings.pitch; $("pitch-val").textContent = (+settings.pitch).toFixed(2);
     $("set-volume").value = settings.volume; $("vol-val").textContent = Math.round(settings.volume * 100) + "%";
     $("set-wordcase").value = settings.wordCase; $("set-keycase").value = settings.keyCase; $("set-storymode").value = settings.storyMode;
-    $("set-pictures").checked = !!settings.showPictures; $("set-prediction").checked = !!settings.prediction;
+    $("set-showmode").value = showMode(); $("set-clearmode").value = settings.clearMode || "hold";
+    $("set-holdms").value = String(+settings.holdMs || 0); $("set-spacing").value = settings.spacing || "normal";
+    $("set-contrast").value = settings.contrast || "normal"; $("set-textsize").value = settings.textSize || "normal";
+    $("set-boardcolor").value = settings.boardColor || "dark"; $("set-prediction").checked = !!settings.prediction;
     $("set-sayletters").checked = !!settings.sayLetters; $("set-highlight").checked = !!settings.highlight;
     $("set-returnhome").checked = !!settings.returnHome; $("set-triple").checked = !!settings.gateTripleTap;
     $("set-log").checked = !!settings.logEnabled; $("set-allvoices").checked = !!settings.allVoices;
@@ -1259,7 +1322,7 @@
     $("set-pathstowords").checked = settings.pathsToWords !== false;
     $("set-pathsrecent").checked = settings.pathsPreferRecent !== false;
     $("set-pathsmax").value = String(pathMaxChoices());
-    labelLevelOptions(); $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
+    labelLevelOptions(); $("set-wordsshown").value = bigOn() ? "starter-big" : wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
@@ -1296,13 +1359,17 @@
       settings.pathsMaxChoices = n === 2 || n === 3 || n === 4 || n === 6 ? n : 6;
       saveSettings();
     });
-    $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
+    $("set-wordsshown").addEventListener("change", function () { pickLevel(this.value); });
+    [["set-showmode", "showMode"], ["set-clearmode", "clearMode"], ["set-spacing", "spacing"], ["set-contrast", "contrast"], ["set-textsize", "textSize"], ["set-boardcolor", "boardColor"]].forEach(function (p) {
+      $(p[0]).addEventListener("change", function () { settings[p[1]] = this.value; if (p[1] === "showMode") settings.showPictures = this.value !== "text"; saveSettings(); applyLook(); renderVisibility(); });
+    });
+    $("set-holdms").addEventListener("change", function () { settings.holdMs = +this.value || 0; saveSettings(); });
     Array.prototype.forEach.call(document.querySelectorAll("#level-start [data-level]"), function (b) {
-      b.addEventListener("click", function () { setWordsShown(b.getAttribute("data-level")); syncSettingsUI(); renderVisibility(); });
+      b.addEventListener("click", function () { pickLevel(b.getAttribute("data-level")); });
     });
     bindShare();
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
-    [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
+    [["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
      ["set-returnhome", "returnHome"], ["set-triple", "gateTripleTap"], ["set-log", "logEnabled"]].forEach(function (p) {
       $(p[0]).addEventListener("change", function () { settings[p[1]] = this.checked; saveSettings(); });
     });
@@ -1330,6 +1397,17 @@
     $("log-clear").addEventListener("click", function () { if (confirm("Delete the whole usage log on this device?")) { localStorage.removeItem(LS.log); showLog(); } });
   }
 
+  /* ---------- look + access (body classes; nothing moves unless big buttons is chosen) ---------- */
+  function applyLook() {
+    var c = document.body.classList;
+    c.toggle("hc", settings.contrast === "high");
+    c.toggle("ts-large", settings.textSize === "large");
+    c.toggle("ts-larger", settings.textSize === "larger");
+    c.toggle("space-more", settings.spacing === "more");
+    c.toggle("bg-light", settings.boardColor === "light");
+    c.toggle("bg-blue", settings.boardColor === "blue");
+    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
+  }
   /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
   function shareMsg(t) { $("share-msg").textContent = t; }
   function copyLink() {
@@ -1595,8 +1673,10 @@
     Speech.init();
     onTap($("btn-speak"), "a:speak", speakMessage);
     onTap($("btn-del"), "a:del", del);
-    onTap($("btn-clear"), "a:clear", clearMsg);
-    onTap($("msg"), "a:msg", speakMessage, { scroll: true });   // the message bar scrolls when long
+    onTap($("btn-clear"), "a:clear", clearMsg, { holdMs: clearHoldMs });
+    applyLook();
+    onTap($("msg"), "a:msg", speakMessage, { scroll: true });
+    $("msg").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speakMessage(); } });   // the message bar scrolls when long
     onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
     onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
     onTap($("nav-paths"), "n:paths", function () {

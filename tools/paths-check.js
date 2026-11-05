@@ -134,7 +134,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 assert(/APP_VERSION = "1\.5\.3"/.test(app), "APP_VERSION");
-assert(/wordboard-v24/.test(sw), "cache bump");
+assert(/wordboard-v25/.test(sw), "cache bump");
 assert(html.indexOf("nav-stories") < 0, "stories tab stays off the bar");
 assert(html.indexOf('id="set-pathsshow"') >= 0 && html.indexOf('id="set-pathstowords"') >= 0 && html.indexOf('id="set-pathsmax"') >= 0, "path settings");
 assert(fs.existsSync(path.join(root, "stories.js")), "stories.js kept");

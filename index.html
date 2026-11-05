@@ -48,6 +48,7 @@
       <p class="note">Ages are rough guides, not a test. Start where it feels easy, and turn it up any time if your child is ahead. You can change this whenever you like.</p>
       <div class="btns">
         <button type="button" class="pbtn" data-level="starter">Starter (about 2)</button>
+        <button type="button" class="pbtn" data-level="starter-big">Starter, big buttons</button>
         <button type="button" class="pbtn" data-level="middle">Middle (about 3)</button>
         <button type="button" class="pbtn" data-level="expanded">Expanded (about 4)</button>
         <button type="button" class="pbtn" data-level="sentences">Sentences (about 5)</button>
@@ -65,7 +66,8 @@
           <option value="custom">Custom: tap words below to show / hide</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (Sentences and Conversation words always follow the level)</label>
+      <label class="row chk"><input type="checkbox" id="set-levelfolders"> <span>also use this level inside folders</span></label>
+      <p class="note">Sentences and Conversation words always follow the level.</p>
       <p class="note" id="level-note"></p>
       <p class="note">Levels go up roughly by age (about 2, 3, 4, 5, 6+). The ages are approximate, not a test or assessment: turn it up if your child is ahead.</p>
     </section>
@@ -89,6 +91,31 @@
       <div class="row"><button id="set-test" type="button" class="pbtn">Test voice</button></div>
     </section>
 
+    <section id="look-section">
+      <h2>Look</h2>
+      <p class="note">Let her try these and keep what she likes. Nothing moves around.</p>
+      <label class="row">Contrast
+        <select id="set-contrast">
+          <option value="normal">normal</option>
+          <option value="high">high (black, white, thick edges)</option>
+        </select>
+      </label>
+      <label class="row">Text size
+        <select id="set-textsize">
+          <option value="normal">normal</option>
+          <option value="large">large</option>
+          <option value="larger">larger</option>
+        </select>
+      </label>
+      <label class="row">Board colour
+        <select id="set-boardcolor">
+          <option value="dark">dark (as now)</option>
+          <option value="light">light</option>
+          <option value="blue">deep blue</option>
+        </select>
+      </label>
+    </section>
+
     <section>
       <h2>Display &amp; behaviour</h2>
       <label class="row">Word buttons
@@ -104,7 +131,35 @@
           <option value="lower">a b c (lowercase)</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-pictures"> show pictures (emoji) above words</label>
+      <label class="row">Buttons show
+        <select id="set-showmode">
+          <option value="both">picture and word</option>
+          <option value="pic">picture only (word if there is no picture)</option>
+          <option value="text">word only</option>
+        </select>
+      </label>
+      <label class="row">Clear button
+        <select id="set-clearmode">
+          <option value="hold">hold to clear (then tap "undo clear" within 5 s)</option>
+          <option value="tap">tap to clear (then "undo clear" within 5 s)</option>
+          <option value="hide">hidden</option>
+        </select>
+      </label>
+      <label class="row">Hold time before a press counts
+        <select id="set-holdms">
+          <option value="0">off (counts when the finger lifts)</option>
+          <option value="300">0.3 s</option>
+          <option value="500">0.5 s</option>
+          <option value="800">0.8 s</option>
+          <option value="1200">1.2 s</option>
+        </select>
+      </label>
+      <label class="row">Space between buttons
+        <select id="set-spacing">
+          <option value="normal">normal</option>
+          <option value="more">more</option>
+        </select>
+      </label>
       <label class="row chk"><input type="checkbox" id="set-prediction"> word prediction on keyboard</label>
       <label class="row chk"><input type="checkbox" id="set-sayletters"> say each letter when typed</label>
       <label class="row chk"><input type="checkbox" id="set-highlight"> highlight each word in the bar while speaking</label>
