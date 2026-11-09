@@ -10,7 +10,7 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.6";
+  var APP_VERSION = "1.6.0";
   var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
   var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
@@ -37,7 +37,8 @@
     contrast: "normal",      // normal | high
     textSize: "normal",      // normal | large | larger
     boardColor: "dark",      // dark | light | blue
-    bigButtons: false        // "Starter (big buttons)": same words and order, empty rows/columns closed up
+    bigButtons: false,       // "Starter (big buttons)": same words and order, empty rows/columns closed up
+    buttonLook: "classic"    // 1.6: classic | chunky | tint | pebble (surface only; positions never change)
   };
   /* Letter NAMES as the voice should say them (a lone "A" can come out as "uh", and
      capitals as "capital A"), so every key is spoken as its name. */
@@ -101,6 +102,8 @@
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
   var settings = Object.assign({}, DEFAULT_SETTINGS, readJSON(LS.settings, {}));
+  // 1.6: setups saved before button looks (or with an unknown look) keep the classic buttons
+  if (["classic", "chunky", "tint", "pebble"].indexOf(settings.buttonLook) < 0) settings.buttonLook = "classic";
   /* 1.5.4: letters are said by name when typed. Saved settings from before this carry the old
      "off" default, so turn it on once; a parent can still switch it off afterwards. */
   if (!settings.migrated154) { settings.sayLetters = true; settings.migrated154 = true; try { localStorage.setItem(LS.settings, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
@@ -366,6 +369,7 @@
       }
       // 1.5.6 text size: large / larger grow the word (the picture gives up a little room)
       var ts = TEXT_SCALE[settings.textSize] || 1, es = 1 / Math.sqrt(ts);
+      if (settings.buttonLook === "tint") es *= 1.3;   // 1.6 tint look: bigger pictures
       // words shorter than "more" are sized like "more", so short and 4-letter words match
       var ref = textW("more", fam);
       var eh1 = 0.37 * es, eh2 = 0.31 * es;
@@ -1494,7 +1498,7 @@
     $("set-showmode").value = showMode(); $("set-clearmode").value = settings.clearMode || "hold";
     $("set-holdms").value = String(+settings.holdMs || 0); $("set-spacing").value = settings.spacing || "normal";
     $("set-contrast").value = settings.contrast || "normal"; $("set-textsize").value = settings.textSize || "normal";
-    $("set-boardcolor").value = settings.boardColor || "dark"; $("set-prediction").checked = !!settings.prediction;
+    $("set-boardcolor").value = settings.boardColor || "dark"; $("set-buttonlook").value = settings.buttonLook || "classic"; $("set-prediction").checked = !!settings.prediction;
     $("set-sayletters").checked = !!settings.sayLetters; $("set-highlight").checked = !!settings.highlight;
     $("set-returnhome").checked = !!settings.returnHome; $("set-triple").checked = !!settings.gateTripleTap;
     $("set-log").checked = !!settings.logEnabled; $("set-allvoices").checked = !!settings.allVoices;
@@ -1544,7 +1548,7 @@
       saveSettings();
     });
     $("set-wordsshown").addEventListener("change", function () { pickLevel(this.value); });
-    [["set-showmode", "showMode"], ["set-clearmode", "clearMode"], ["set-spacing", "spacing"], ["set-contrast", "contrast"], ["set-textsize", "textSize"], ["set-boardcolor", "boardColor"]].forEach(function (p) {
+    [["set-showmode", "showMode"], ["set-clearmode", "clearMode"], ["set-spacing", "spacing"], ["set-contrast", "contrast"], ["set-textsize", "textSize"], ["set-boardcolor", "boardColor"], ["set-buttonlook", "buttonLook"]].forEach(function (p) {
       $(p[0]).addEventListener("change", function () { settings[p[1]] = this.value; if (p[1] === "showMode") settings.showPictures = this.value !== "text"; saveSettings(); applyLook(); renderVisibility(); });
     });
     $("set-holdms").addEventListener("change", function () { settings.holdMs = +this.value || 0; saveSettings(); });
@@ -1590,6 +1594,7 @@
     c.toggle("space-more", settings.spacing === "more");
     c.toggle("bg-light", settings.boardColor === "light");
     c.toggle("bg-blue", settings.boardColor === "blue");
+    ["chunky", "tint", "pebble"].forEach(function (k) { c.toggle("look-" + k, settings.buttonLook === k); });
     var cl = $("btn-clear"); if (cl) { cl.classList.toggle("hold-mode", settings.clearMode === "hold"); cl.style.setProperty("--hold-ms", Math.max(800, +settings.holdMs || 0) + "ms"); }
     if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
   }
