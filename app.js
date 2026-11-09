@@ -10,7 +10,7 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.5";
+  var APP_VERSION = "1.5.6";
   var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
   var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
@@ -67,7 +67,11 @@
   function voiceScore(v) {
     var n = v.name || "", s = 0;
     if (!/^en/i.test(v.lang || "")) return -1000;
-    if (/^en[-_]US/i.test(v.lang)) s += 100;
+    // 1.5.6: the iPad's own English (e.g. en-GB) wins; otherwise en-US over other English
+    var want = String((navigator.languages && navigator.languages[0]) || navigator.language || "en-US").replace("_", "-").toLowerCase();
+    var vl = String(v.lang || "").replace("_", "-").toLowerCase();
+    if (/^en-/.test(want) && vl === want) s += 200;   // beats any name bonus below
+    else if (/^en[-_]US/i.test(v.lang)) s += 100;
     if (NOVELTY.test(n) || ROBOTIC.test(n)) s -= 200;
     if (/premium/i.test(n)) s += 60;
     else if (/enhanced/i.test(n)) s += 55;
@@ -333,6 +337,7 @@
   }
   function caseTyped(t) { t = String(t).toLowerCase(); if (t === "i") t = "I"; return caseWord(t); }
   function caseKey(L) { return settings.keyCase === "lower" ? L.toLowerCase() : L.toUpperCase(); }
+  var TEXT_SCALE = { normal: 1, large: 1.18, larger: 1.36 };
   var mctx = document.createElement("canvas").getContext("2d");
   function textW(t, fam) { mctx.font = "800 100px " + fam; return mctx.measureText(t).width || t.length * 60; }
   /* Size each label so its longest word fits the button width; short words share the same max size. */
@@ -352,20 +357,29 @@
       if (W <= 0 || H <= 0) continue;
       var fam = getComputedStyle(l).fontFamily, text = l.textContent, words = text.split(/\s+/);
       var pic = !b.classList.contains("nopic"), usable = W * 0.9;
+      var e = b.querySelector(".emo"), ph = b.querySelector(".pic");
+      // 1.5.6 picture only: the picture fills the button (the word stays for screen readers only)
+      if (pic && b.classList.contains("piconly")) {
+        if (e) e.style.fontSize = Math.floor(Math.min(H * 0.78, W * 0.78)) + "px";
+        if (ph) { var hp = Math.floor(Math.min(H * 0.9, W)); ph.style.height = hp + "px"; ph.style.maxWidth = W + "px"; }
+        continue;
+      }
+      // 1.5.6 text size: large / larger grow the word (the picture gives up a little room)
+      var ts = TEXT_SCALE[settings.textSize] || 1, es = 1 / Math.sqrt(ts);
       // words shorter than "more" are sized like "more", so short and 4-letter words match
       var ref = textW("more", fam);
-      var size = Math.min(100 * usable / Math.max(ref, textW(text, fam)), H * (pic ? 0.36 : 0.5)), two = false;
+      var eh1 = 0.37 * es, eh2 = 0.31 * es;
+      var size = Math.min(100 * usable / Math.max(ref, textW(text, fam)), H * (pic ? Math.min(0.36 * ts, (0.9 - eh1) / 1.08) : Math.min(0.5 * ts, 0.85))), two = false;
       if (words.length > 1) {
         var widest = Math.max.apply(null, words.map(function (w) { return Math.max(ref, textW(w, fam)); }));
-        var s2 = Math.min(100 * usable / widest, H * (pic ? 0.27 : 0.38));
+        var s2 = Math.min(100 * usable / widest, H * (pic ? Math.min(0.27 * ts, (0.9 - eh2) / 2.1) : Math.min(0.38 * ts, 0.43)));
         if (s2 > size * 1.08) { size = s2; two = true; }
       }
-      size = Math.min(size, pic ? 60 : 84);
+      size = Math.min(size, (pic ? 60 : 84) * ts);
       l.style.fontSize = Math.floor(size) + "px";
       l.style.whiteSpace = two ? "normal" : "nowrap";
-      var e = b.querySelector(".emo"), ph = b.querySelector(".pic");
-      if (e) e.style.fontSize = Math.floor(Math.min(H * (two ? 0.31 : 0.37), W * 0.55)) + "px";
-      if (ph) { var h = Math.floor(Math.min(H * (two ? 0.34 : 0.42), W)); ph.style.height = h + "px"; ph.style.maxWidth = W + "px"; }
+      if (e) e.style.fontSize = Math.floor(Math.min(H * (two ? eh2 : eh1), W * 0.55)) + "px";
+      if (ph) { var h = Math.floor(Math.min(H * (two ? 0.34 : 0.42) * es, W)); ph.style.height = h + "px"; ph.style.maxWidth = W + "px"; }
     }
   }
 
@@ -408,6 +422,11 @@
       u.onerror = function (e) { if (e && e.error && e.error !== "interrupted" && e.error !== "canceled") console.info("speech:", e.error); finish(); };
       if (opts.onboundary) u.onboundary = function (e) { if (e.name === "word" || e.name === undefined) opts.onboundary(e.charIndex); };
       this.keep.push(u);            // keep a reference: engines can garbage-collect utterances mid-speech
+      // 1.5.6: if the engine never reports the end, stop showing "speaking" after a generous estimate
+      var guessMs = 3000 + String(text).length * 200 / Math.max(0.5, +settings.rate || 1);
+      var wd = setTimeout(finish, guessMs);
+      var fin0 = finish; finish = function () { clearTimeout(wd); fin0(); };
+      u.onend = finish;
       s.speak(u);
       this.unlocked = true;
     },
@@ -514,12 +533,16 @@
       if (state.view === "keyboard") b.appendChild(el("span", "caret"));
       m.appendChild(b);
     }
+    // 1.5.6: a long message starts at the top (so the first line can be scrolled back to) and
+    // jumps to the newest word; a short one stays centred.
+    m.classList.toggle("overflow", m.scrollHeight > m.clientHeight + 2);
     m.scrollTop = m.scrollHeight;
-    // Something new went in after a clear: the old message can't come back over it, and the
-    // button is a plain clear again (before, a tap brought the OLD message back over the new one).
-    if (undoClear && (msg.tokens.length || msg.buf)) { clearTimeout(undoClear.t); undoClear = null; clearLabel(); }
+    // Something new went in after a clear (or after a Paths sentence was added): the old message
+    // can't come back over it, and the button is a plain clear again.
+    if (undoClear && msgSig() !== undoClear.sig) { clearTimeout(undoClear.t); undoClear = null; clearLabel(); }
     updateEndingButtons();
   }
+  function msgSig() { return msg.tokens.map(function (t) { return t.text + (t.punct || ""); }).join(" ") + "|" + msg.buf; }
   function tokenFromWord(w) { return { text: w.label, say: w.say || (w.type !== "folder" ? SAY_DEFAULTS[String(w.label).toLowerCase()] : null), sayAlone: w.sayAlone, audio: w.audio, id: w.id, typed: false }; }
   function tokenFromTyped(text) { var w = wordByLabel[text.toLowerCase()]; return { text: text.toLowerCase(), say: sayFor(text), audio: w && w.audio, id: w ? w.id : null, typed: true }; }
   function commitBuf(speakIt) {
@@ -640,23 +663,36 @@
     renderMsg(); renderPreds();
   }
   var undoClear = null;
-  function clearMsg() {
+  function setUndo(tokens, buf, kind) {
+    if (undoClear) clearTimeout(undoClear.t);
+    undoClear = { tokens: tokens, buf: buf, kind: kind || "clear", sig: msgSig(), t: setTimeout(function () { undoClear = null; clearLabel(); }, 5000) };
+    clearLabel();
+  }
+  function clearMsg(e, pressMs) {
     stopAll();
-    if (undoClear) {   // second tap within the undo window brings the message back
+    // Undo is a plain TAP on the (yellow, dashed) undo button. In hold mode a HOLD always means
+    // "clear", even inside the undo window, so holding again never brings an old message back.
+    var held = settings.clearMode === "hold" && (pressMs || 0) >= 800;
+    if (undoClear && !held) {
       msg.tokens = undoClear.tokens; msg.buf = undoClear.buf; undoClear = null; clearLabel(); renderMsg(); renderPreds(); return;
     }
-    if (!msg.tokens.length && !msg.buf) return;
-    undoClear = { tokens: msg.tokens, buf: msg.buf, t: setTimeout(function () { undoClear = null; clearLabel(); }, 5000) };
-    msg.tokens = []; msg.buf = ""; clearLabel(); renderMsg(); renderPreds();
+    if (!msg.tokens.length && !msg.buf) {   // a hold on an already-empty bar: the clear stands, the undo goes
+      if (undoClear) { clearTimeout(undoClear.t); undoClear = null; clearLabel(); }
+      return;
+    }
+    var old = { tokens: msg.tokens, buf: msg.buf };
+    msg.tokens = []; msg.buf = "";
+    setUndo(old.tokens, old.buf, "clear"); renderMsg(); renderPreds();
   }
   function clearLabel() {
     var b = $("btn-clear"); if (!b) return;
-    b.querySelector(".txt").textContent = undoClear ? "undo clear" : "clear";
+    b.querySelector(".txt").textContent = undoClear ? (undoClear.kind === "paths" ? "undo add" : "undo clear") : "clear";
     b.querySelector(".ico").textContent = undoClear ? "↶" : "✖";
-    b.setAttribute("aria-label", undoClear ? "Undo clear" : "Clear message");
+    b.setAttribute("aria-label", undoClear ? (undoClear.kind === "paths" ? "Undo adding the sentence" : "Undo clear") : "Clear message");
     b.classList.toggle("undo", !!undoClear);
   }
-  /* Clear needs a hold (unless a parent set it to tap); undo clear is always a plain tap. */
+  /* Clear needs a hold (unless a parent set it to tap); undo is a plain tap (clearMsg tells a tap
+     from a hold by the press length). */
   function clearHoldMs() { return settings.clearMode === "hold" && !undoClear ? 800 : 0; }
 
   /* ------------------------------------------------------------ usage log (opt-in, local only) */
@@ -673,8 +709,8 @@
   /* Button whose finger-up already counted. iPad Safari can deliver the leftover click to a
      different button if this gesture redraws the board (return home after a folder word). */
   var lifted = null;
-  function guard(key) {
-    var now = Date.now(), ms = +settings.tapGuardMs || 0;
+  function guard(key, override) {
+    var now = Date.now(), ms = override != null ? override : (+settings.tapGuardMs || 0);
     if (ms && lastTap.key === key && now - lastTap.t < ms) return false;
     lastTap = { key: key, t: now }; return true;
   }
@@ -687,7 +723,7 @@
     opts = opts || {};
     var pid = null, upAt = 0, downAt = 0, readyT = null;
     function needMs() { var a = opts.holdMs ? opts.holdMs() : 0; return Math.max(a, +settings.holdMs || 0); }
-    function fire(e) { if (node.disabled || !guard(key)) return; Clips.unlock(); fn(e); }
+    function fire(e, pressMs) { if (node.disabled || (opts.settle && !settled()) || !guard(key, opts.guardMs)) return; Clips.unlock(); fn(e, pressMs || 0); }
     function near(e) {
       var r = node.getBoundingClientRect();
       return e.clientX >= r.left - PRESS_SLOP && e.clientX <= r.right + PRESS_SLOP &&
@@ -704,7 +740,8 @@
     node.addEventListener("pointerup", function (e) {
       if (e.pointerId !== pid) return;
       var ok = near(e) && Date.now() - downAt >= needMs(); end();
-      if (ok) { e.preventDefault(); lifted = { node: node, t: Date.now() }; fire(e); }
+      var dur = Date.now() - downAt;
+      if (ok) { e.preventDefault(); lifted = { node: node, t: Date.now() }; fire(e, dur); }
     });
     node.addEventListener("pointercancel", function (e) { if (e.pointerId === pid) end(); });
     // Stop iOS long-press callouts, text selection and the magnifier from taking over the touch.
@@ -722,7 +759,14 @@
 
   /* ------------------------------------------------------------ views */
   var state = { view: "words", page: "home", story: null, storyPage: 0, pathId: null, pathStep: 0, pathPicks: [] };
+  /* 1.5.6: right after the board changes (folder opened, back to Home, tab switch) a quick second
+     tap would land on a button she hasn't seen yet. Board buttons ignore taps for a moment. */
+  var SETTLE_MS = 250, settleUntil = 0, lastBoardKey = null;
+  function settled() { return Date.now() >= settleUntil; }
   function render() {
+    var boardKey = state.view + ":" + (state.view === "words" ? state.page : state.view === "paths" ? (state.pathId || "") : "");
+    if (lastBoardKey !== null && boardKey !== lastBoardKey) settleUntil = Date.now() + SETTLE_MS;
+    lastBoardKey = boardKey;
     var board = $("board"); board.textContent = "";
     $("page-title").style.fontSize = "";
     var pathsNav = $("nav-paths");
@@ -746,9 +790,11 @@
     else if (state.view === "paths") renderPaths(board);
     else { var p = pageById[state.page] || pageById.home; state.page = p.id; $("page-title").textContent = p.id === "home" ? "" : p.title; renderPage(board, p); }
     renderMsg();
+    var pm = board.querySelector(".path-menu"); if (pm) layoutPathMenu(pm, pm.children.length);   // now it has a size
     fitLabels(board);
   }
-  function bigOn() { return !!settings.bigButtons && wordsShownMode() === "starter"; }
+  /* Big buttons: Starter, or a Custom board made from Starter (hiding one word keeps big buttons). */
+  function bigOn() { var m = wordsShownMode(); return !!settings.bigButtons && (m === "starter" || (m === "custom" && currentLevel() === 1)); }
   function renderPage(board, p) {
     var big = bigOn() && p.id === "home";
     var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : "") + (big ? " big" : ""));
@@ -759,10 +805,10 @@
     for (c = 1; c <= p.cols; c++) { var anyC = !big; for (r = 1; r <= p.rows && !anyC; r++) anyC = isShown(cellMap[p.id][r + "," + c], p.id); if (anyC) colMap[c] = ++nc; }
     g.style.gridTemplateColumns = "repeat(" + nc + ", 1fr)";
     if (big) {   // a row holding only folders gets shorter, so the word buttons get the room
-      var tr = [];
+      var tr = [], landscape = innerWidth > innerHeight;   // (landscape: rows are short already, keep folders readable)
       for (r = 1; r <= p.rows; r++) if (rowMap[r]) {
         var words = false; for (c = 1; c <= p.cols; c++) { var x = cellMap[p.id][r + "," + c]; if (isShown(x, p.id) && x.type !== "folder") words = true; }
-        tr.push(words ? "minmax(0, 1fr)" : "minmax(0, 0.55fr)");
+        tr.push(words ? "minmax(0, 1fr)" : (landscape ? "minmax(0, 0.9fr)" : "minmax(0, 0.55fr)"));
       }
       g.style.gridTemplateRows = tr.join(" ");
     } else g.style.gridTemplateRows = "repeat(" + nr + ", 1fr)";
@@ -803,7 +849,7 @@
       if (w.ending) { applyEnding(w); return; }
       addWord(w);
       if (settings.returnHome && state.page !== "home") { state.page = "home"; render(); }
-    });
+    }, { settle: true });
     return b;
   }
 
@@ -815,23 +861,23 @@
     LETTERS.forEach(function (L) {
       var b = el("button", "cell btn t-key key nopic"); b.type = "button"; b.setAttribute("aria-label", L);
       b.appendChild(el("span", "lbl", caseKey(L)));
-      onTap(b, "k:" + L, function () { typeLetter(L.toLowerCase()); });
+      onTap(b, "k:" + L, function () { typeLetter(L.toLowerCase()); }, { guardMs: 60 });   // double letters ("ball") must work
       keys.appendChild(b);
     });
     [[".", "period"], ["?", "question mark"]].forEach(function (pk) {
       var b = el("button", "cell btn t-key key punct nopic"); b.type = "button"; b.setAttribute("aria-label", pk[1]);
       b.appendChild(el("span", "lbl", pk[0]));
-      onTap(b, "k:" + pk[0], function () { punct(pk[0]); });
+      onTap(b, "k:" + pk[0], function () { punct(pk[0]); }, { guardMs: 60 });
       keys.appendChild(b);
     });
     var sp = el("button", "cell btn t-key key space nopic"); sp.type = "button"; sp.setAttribute("aria-label", "space");
     sp.style.gridColumn = "1 / 6";
     sp.appendChild(el("span", "lbl", "space"));
-    onTap(sp, "k:space", space);
+    onTap(sp, "k:space", space, { guardMs: 60 });
     keys.appendChild(sp);
     var bs = el("button", "cell btn t-key key bksp nopic"); bs.type = "button"; bs.setAttribute("aria-label", "backspace");
     bs.appendChild(el("span", "lbl", "\u232B"));
-    onTap(bs, "k:bksp", backspace);
+    onTap(bs, "k:bksp", backspace, { guardMs: 60 });
     bs.style.gridColumn = "6 / -1";
     keys.appendChild(bs);
     k.appendChild(preds); k.appendChild(keys); board.appendChild(k);
@@ -1000,6 +1046,7 @@
     node.setAttribute("aria-label", label);
     node.classList.add("path-replay");
     onTap(node, "path:replay", function () { if (pathLocked()) return; flashTapped(node); speakPath(); });
+    node.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (guard("path:replay")) { flashTapped(node); speakPath(); } } });
   }
   /* A quick second tap lands on the NEW button in the same spot (a different key, so the
      per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
@@ -1064,14 +1111,32 @@
     if (!pat || !u || !u.tokens.length || !pathRequiredDone(pat)) return;
     u.tokens.forEach(function (t) { delete t.auto; });
     stopAll();
-    msg.tokens = u.tokens;
+    // 1.5.6: the sentence is ADDED after what is already in the bar (the old words end with "."),
+    // and the Clear button offers "undo add" for 5 s.
+    commitBuf(false);
+    var before = msg.tokens.map(function (t) { return Object.assign({}, t); }), beforeBuf = msg.buf;
+    var kept = msg.tokens.map(function (t) { return Object.assign({}, t); });
+    var lastOld = kept[kept.length - 1];
+    if (lastOld && !lastOld.punct) lastOld.punct = ".";
+    msg.tokens = kept.concat(u.tokens);
     msg.buf = "";
+    if (before.length) setUndo(before, beforeBuf, "paths");
     state.pathId = null; state.pathPicks = []; state.pathStep = 0;
     state.view = "words"; state.page = "home";
     render();
   }
   function layoutPathMenu(list, n) {
     var cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
+    // 1.5.6: pick the column count that gives the roomiest cards for this screen shape
+    // (17 cards in landscape: 5 columns instead of 6 thin rows).
+    var W = list.clientWidth || 0, H = list.clientHeight || 0;
+    if (W && H && n > 4) {
+      var best = 0;
+      for (var c = 2; c <= 6; c++) {
+        var r = Math.ceil(n / c), cw = W / c, ch = H / r, score = Math.min(cw / 2.2, ch);
+        if (score > best + 0.5) { best = score; cols = c; }
+      }
+    }
     var rows = Math.max(1, Math.ceil(n / cols));
     list.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
     list.style.gridTemplateRows = "repeat(" + rows + ", minmax(0, 1fr))";
@@ -1407,7 +1472,7 @@
     var sel = $("set-voice"); if (!sel) return;
     var cur = Speech.voice(), vs = Speech.voices.slice();
     sel.textContent = "";
-    if (!settings.allVoices) vs = vs.filter(function (v) { return /^en/i.test(v.lang) && !NOVELTY.test(v.name); });
+    if (!settings.allVoices) vs = vs.filter(function (v) { return (/^en/i.test(v.lang) && !NOVELTY.test(v.name)) || (settings.voiceURI && v.voiceURI === settings.voiceURI); });
     vs.sort(function (a, b) {
       var au = /^en[-_]US/i.test(a.lang) ? 0 : 1, bu = /^en[-_]US/i.test(b.lang) ? 0 : 1;
       return au - bu || (a.lang < b.lang ? -1 : a.lang > b.lang ? 1 : 0) || (a.name < b.name ? -1 : 1);
@@ -1441,7 +1506,7 @@
     $("set-pathstowords").checked = settings.pathsToWords !== false;
     $("set-pathsrecent").checked = settings.pathsPreferRecent !== false;
     $("set-pathsmax").value = String(pathMaxChoices());
-    labelLevelOptions(); $("set-wordsshown").value = bigOn() ? "starter-big" : wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
+    labelLevelOptions(); $("set-wordsshown").value = bigOn() && wordsShownMode() === "starter" ? "starter-big" : wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
@@ -1819,7 +1884,7 @@
     // refit can measure the old (landscape) button size and keep the huge labels.
     // Refit whenever the board itself changes size, plus a few delayed passes after rotating.
     var rz = 0, rzT = [];
-    function refit() { cancelAnimationFrame(rz); rz = requestAnimationFrame(function () { var sl = $("board").querySelector(".story-list"); if (sl) layoutStoryList(sl, $("board")); fitLabels($("board")); }); }
+    function refit() { cancelAnimationFrame(rz); rz = requestAnimationFrame(function () { var sl = $("board").querySelector(".story-list"); if (sl) layoutStoryList(sl, $("board")); var pm = $("board").querySelector(".path-menu"); if (pm) layoutPathMenu(pm, pm.children.length); fitLabels($("board")); }); }
     function refitSoon() { refit(); rzT.forEach(clearTimeout); rzT = [150, 400, 900].map(function (ms) { return setTimeout(refit, ms); }); }
     window.addEventListener("resize", refitSoon);
     window.addEventListener("orientationchange", refitSoon);

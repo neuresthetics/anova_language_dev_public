@@ -1,6 +1,6 @@
 /* Service worker: makes the app work with no network after the first visit.
    Only runs on https:// or http://localhost (browser rule). */
-var CACHE = "wordboard-v30";   // bump this whenever app files change so devices update
+var CACHE = "wordboard-v31";   // bump this whenever app files change so devices update
 var SHELL = ["./", "styles.css", "store.js", "app.js", "words.js", "stories.js", "paths.js", "endings.js", "manifest.json",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
   "private/overlay.js"]   // optional: only exists in the private copy; a 404 is simply skipped
@@ -17,13 +17,21 @@ function clean(res) {
 }
 
 self.addEventListener("install", function (event) {
-  event.waitUntil(caches.open(CACHE).then(function (cache) {
-    return Promise.all(SHELL.map(function (u) {
-      return fetch(new Request(u, { cache: "reload" })).then(clean).then(function (res) {
-        if (res && res.ok) return cache.put(u, res);
-      }).catch(function () {});
-    }));   // personal media lives in IndexedDB, not here
-  }).then(function () { return self.skipWaiting(); }));
+  /* 1.5.6: all-or-nothing. Every core file is downloaded first; if one fails, this install fails
+     and the old (complete) offline copy stays in charge until the next try. Optional files
+     (private overlay, story pictures) may be missing. */
+  var OPTIONAL = /^(private\/|media\/)/;
+  event.waitUntil(Promise.all(SHELL.map(function (u) {
+    return fetch(new Request(u, { cache: "reload" })).then(clean).then(function (res) {
+      if (res && res.ok) return [u, res];
+      if (OPTIONAL.test(u)) return null;
+      throw new Error("offline copy: could not fetch " + u);
+    }, function (e) { if (OPTIONAL.test(u)) return null; throw e; });
+  })).then(function (got) {
+    return caches.open(CACHE).then(function (cache) {
+      return Promise.all(got.filter(Boolean).map(function (x) { return cache.put(x[0], x[1]); }));
+    });
+  }).then(function () { return self.skipWaiting(); }));   // personal media lives in IndexedDB, not here
 });
 
 self.addEventListener("activate", function (event) {
