@@ -10,14 +10,14 @@
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.3";
+  var APP_VERSION = "1.5.4";
   var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
   var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
     wordCase: "asis", keyCase: "upper",
-    showPictures: true, prediction: true, sayLetters: false, highlight: true,
+    showPictures: true, prediction: true, sayLetters: true, highlight: true,
     storyMode: "smooth", returnHome: false, tapGuardMs: 400, gateTripleTap: false,
     logEnabled: false, allVoices: false,
     wordsShown: "",          // "" = the pack's default (config.wordsShown), else starter | middle | full | custom
@@ -39,7 +39,9 @@
     boardColor: "dark",      // dark | light | blue
     bigButtons: false        // "Starter (big buttons)": same words and order, empty rows/columns closed up
   };
-  var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
+  /* Letter NAMES as the voice should say them (a lone "A" can come out as "uh", and
+     capitals as "capital A"), so every key is spoken as its name. */
+  var LETTER_NAMES = { a: "ay", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
     s: "ess", t: "tee", u: "you", v: "vee", w: "double you", x: "ex", y: "why", z: "zee" };
   /* Spoken forms used when no board word supplies a "say" (iOS reads a lone "I" as "capital I"). */
@@ -89,6 +91,9 @@
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
   var settings = Object.assign({}, DEFAULT_SETTINGS, readJSON(LS.settings, {}));
+  /* 1.5.4: letters are said by name when typed. Saved settings from before this carry the old
+     "off" default, so turn it on once; a parent can still switch it off afterwards. */
+  if (!settings.migrated154) { settings.sayLetters = true; settings.migrated154 = true; try { localStorage.setItem(LS.settings, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
   function saveSettings() { writeJSON(LS.settings, settings); }
 
   /* ------------------------------------------------------------ pack + media (on-device only) */
@@ -504,6 +509,10 @@
       m.appendChild(b);
     }
     m.scrollTop = m.scrollHeight;
+    // Something new went in after a clear: the old message can't come back over it, and the
+    // button is a plain clear again (before, a tap brought the OLD message back over the new one).
+    if (undoClear && (msg.tokens.length || msg.buf)) { clearTimeout(undoClear.t); undoClear = null; clearLabel(); }
+    updateEndingButtons();
   }
   function tokenFromWord(w) { return { text: w.label, say: w.say || (w.type !== "folder" ? SAY_DEFAULTS[String(w.label).toLowerCase()] : null), sayAlone: w.sayAlone, audio: w.audio, id: w.id, typed: false }; }
   function tokenFromTyped(text) { var w = wordByLabel[text.toLowerCase()]; return { text: text.toLowerCase(), say: sayFor(text), audio: w && w.audio, id: w ? w.id : null, typed: true }; }
@@ -572,12 +581,39 @@
     }
     return null;
   }
+  /* Endings only go on words that can take them (endings.js knows each board word's kind):
+     "door" + -ing or "again" + -s does nothing, and the ending button is dimmed. */
+  function endingWordFor(t) {
+    if (!t) return null;
+    var w = null;
+    if (t.id) for (var i = 0; i < config.words.length; i++) if (config.words[i].id === t.id && !config.words[i].ending) { w = config.words[i]; break; }
+    return w || wordByLabel[String(t.text).toLowerCase()] || null;
+  }
+  function endingForm(t, kind) {
+    if (!t || t.punct || t.inflected || t.prev || !window.AAC_ENDINGS) return null;
+    var E = window.AAC_ENDINGS, w = endingWordFor(t), text = String(t.text);
+    if (w) return text.toLowerCase() === String(w.label).toLowerCase() ? E.form(w, kind) : null;
+    // a typed word the board doesn't know: trust the spelling rules
+    if (!t.typed || !/^[a-z]+$/i.test(text)) return null;
+    var k = text.toLowerCase();
+    return kind === "s" ? E.plural(k) : kind === "ing" ? E.ing(k) : kind === "ed" ? E.past(k) : kind === "poss" ? k + "'s" : null;
+  }
+  function lastTokenForEnding() { return msg.buf ? { text: msg.buf, typed: true } : msg.tokens[msg.tokens.length - 1]; }
+  function updateEndingButtons() {
+    var t = lastTokenForEnding();
+    [].forEach.call(document.querySelectorAll("#board .cell.ending[data-ending]"), function (b) {
+      var ok = !!endingForm(t, b.getAttribute("data-ending"));
+      b.classList.toggle("ending-off", !ok);
+      b.setAttribute("aria-disabled", ok ? "false" : "true");
+    });
+  }
   function applyEnding(w) {
     var kind = w.ending;
+    if (!endingForm(lastTokenForEnding(), kind)) { updateEndingButtons(); return; }   // dimmed: the tap does nothing
     commitBuf(false);
     var t = msg.tokens[msg.tokens.length - 1];
-    var out = t && !t.punct && !/\s/.test(t.text) ? inflect(t.text, kind) : null;
-    if (!out) { stopAll(); Speech.speak(ENDING_SAY[kind] || w.label); renderMsg(); return; }
+    var out = endingForm(t, kind);
+    if (!out) { renderMsg(); return; }
     var keepCase = t.typed ? out : (/^[A-Z]/.test(t.text) && t.text !== "I" ? out.charAt(0).toUpperCase() + out.slice(1) : out);
     t.prev = { text: t.text, say: t.say, sayAlone: t.sayAlone, audio: t.audio, id: t.id, prev: t.prev };
     var base = t.prev.text.toLowerCase();
@@ -749,6 +785,7 @@
   }
   function wordButton(w) {
     var b = el("button", "cell btn t-" + (w.type || "noun") + (w.ending ? " ending" : "")); b.type = "button";
+    if (w.ending) b.setAttribute("data-ending", w.ending);
     var pic = picFor(w);
     if (pic) b.appendChild(pic); else b.classList.add("nopic");
     b.appendChild(el("span", "lbl", caseWord(w.label)));
@@ -796,7 +833,7 @@
   }
   function typeLetter(ch) {
     msg.buf += ch; renderMsg(); renderPreds();
-    if (settings.sayLetters) { stopAll(); Speech.speak(LETTER_NAMES[ch] || ch); }
+    if (settings.sayLetters !== false) { stopAll(); Speech.speak(LETTER_NAMES[String(ch).toLowerCase()] || ch); }
   }
   /* keyboard backspace: removes one character at a time ("." / "?" first, then letters,
      including letters of a word tapped from the board). The top-bar delete is unchanged. */
@@ -946,7 +983,17 @@
   function speakPath() {
     var u = pathUtterance();
     if (!u || !u.tokens.length) return;
+    stopAll();   // a new tap restarts the sentence; speech never stacks
     talk(u.tokens, u.idx, { hl: pathHl });
+  }
+  /* Finished view: every big word (and its slot) says the whole sentence again. One key for all
+     of them, so the tap guard covers quick taps across buttons, and not while a pick is settling. */
+  function replayButton(node, label) {
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    node.setAttribute("aria-label", label);
+    node.classList.add("path-replay");
+    onTap(node, "path:replay", function () { if (pathLocked()) return; flashTapped(node); speakPath(); });
   }
   /* A quick second tap lands on the NEW button in the same spot (a different key, so the
      per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
@@ -998,6 +1045,8 @@
     }
     state.pathPicks = state.pathPicks.slice(0, keep); state.pathStep = keep; render();
   }
+  /* Leaving Paths drops a half-made sentence, so Paths opens at its menu next time. */
+  function leavePaths() { state.pathId = null; state.pathPicks = []; state.pathStep = 0; }
   function pathHome() {
     stopAll();
     state.pathId = null; state.pathPicks = []; state.pathStep = 0; render();
@@ -1097,6 +1146,7 @@
       lab.appendChild(document.createTextNode(w ? caseWord(pathFace(pat, i)) : "?"));
       slot.appendChild(lab);
       slot.setAttribute("aria-label", w ? (pre ? pre + " " : "") + pathFace(pat, i) : "next word");
+      if (w && state.pathStep >= pat.steps.length && pathRequiredDone(pat)) replayButton(slot, (pathUtterance() || {}).text + " (say it again)");
       phrase.appendChild(slot);
     });
     var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks);
@@ -1118,6 +1168,7 @@
         var pic = picFor(w);
         if (pic) tile.appendChild(pic); else { tile.classList.add("nopic"); tile.classList.remove("piconly"); }
         tile.appendChild(el("span", "lbl", caseWord(pathFace(pat, i))));
+        replayButton(tile, (u ? u.text : "") + " (say it again)");
         tiles.appendChild(tile);
       });
       tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
@@ -1468,7 +1519,8 @@
     c.toggle("space-more", settings.spacing === "more");
     c.toggle("bg-light", settings.boardColor === "light");
     c.toggle("bg-blue", settings.boardColor === "blue");
-    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
+    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("hold-mode", settings.clearMode === "hold"); cl.style.setProperty("--hold-ms", Math.max(800, +settings.holdMs || 0) + "ms"); }
+    if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
   }
   /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
   function shareMsg(t) { $("share-msg").textContent = t; }
@@ -1739,13 +1791,19 @@
     applyLook();
     onTap($("msg"), "a:msg", speakMessage, { scroll: true });
     $("msg").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speakMessage(); } });   // the message bar scrolls when long
-    onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
-    onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
+    onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); leavePaths(); state.view = "words"; state.page = "home"; render(); });
+    onTap($("nav-kbd"), "n:kbd", function () { stopAll(); leavePaths(); state.view = "keyboard"; render(); });
     onTap($("nav-paths"), "n:paths", function () {
       if (settings.pathsShowTab === false) return;
       stopAll(); commitBuf(false); state.view = "paths"; render();
     });
-    if ($("nav-stories")) onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
+    // Going away (another app, the lock button) and coming back starts Paths at its menu again.
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "hidden" || state.view !== "paths" || !state.pathId) return;
+      stopAll(); leavePaths(); render();
+    });
+    window.addEventListener("pagehide", function () { if (state.view === "paths") leavePaths(); });
+    if ($("nav-stories")) onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); leavePaths(); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
     setupGate(); bindSettings();
     document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
     $("app").addEventListener("contextmenu", function (e) { e.preventDefault(); });
