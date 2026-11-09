@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Email feedback (no GitHub account needed)
+    url: mailto:neuresthetics@gmail.com?subject=Word%20Board%20feedback
+    about: Send ideas or requests by email instead.

@@ -2,13 +2,17 @@
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
    (words.js, stories.js). Paths (paths.js) practices short phrases from those
    words. 1.5.2 adds question, protest, and sentence frames plus path settings.
+   1.5.3 adds approximate age labels on levels, a starting-level prompt, and Share / Send feedback
+   in parent settings only (no accounts, no analytics, nothing sent unless the parent sends it).
    The stories tab is not on the tab bar; story code and media stay.
    Family-only content comes from an optional private overlay
    (private/overlay.js, private copy only). Photos/recordings added on the device, or an
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.2";
+  var APP_VERSION = "1.5.3";
+  var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
+  var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -24,7 +28,16 @@
     pathsShowTab: true,      // Paths tab on the tab bar. Off keeps the empty slot so home / abc do not move.
     pathsToWords: true,      // → words copies a finished phrase. Off leaves the button in place and inert.
     pathsMaxChoices: 6,      // open-slot fringe length (2, 3, 4, or 6). Fixed pairs are not cut down.
-    pathsPreferRecent: true  // among non-preferred fringe words, float ones from the on-device usage log
+    pathsPreferRecent: true, // among non-preferred fringe words, float ones from the on-device usage log
+    /* 1.5.3 look + access (defaults keep the board looking as before) */
+    clearMode: "hold",       // tap | hold (hold ~0.8 s; a short "undo clear" follows) | hide
+    showMode: "",            // "" = follow showPictures (both / text); "both" | "pic" | "text"
+    holdMs: 0,               // a press must last this long before it counts (0 = off: tap on release)
+    spacing: "normal",       // normal | more
+    contrast: "normal",      // normal | high
+    textSize: "normal",      // normal | large | larger
+    boardColor: "dark",      // dark | light | blue
+    bigButtons: false        // "Starter (big buttons)": same words and order, empty rows/columns closed up
   };
   var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
@@ -274,6 +287,10 @@
     config.words.forEach(function (w) { if (w.page === "home" && w.type !== "folder" && cellMap.home && cellMap.home[w.row + "," + w.col] === w) n[wordLevel(w)]++; });
     return n;
   }
+  function pickLevel(v) {
+    settings.bigButtons = v === "starter-big"; saveSettings();
+    setWordsShown(v === "starter-big" ? "starter" : v); syncSettingsUI(); renderVisibility();
+  }
   function labelLevelOptions() {
     var sel = $("set-wordsshown"); if (!sel) return;
     var n = homeCountsByLevel(), cum = 0, total = 0, opts = [];
@@ -281,10 +298,11 @@
     LEVEL_LIST.forEach(function (l) {
       if (l.n >= MAX_LEVEL) return;
       cum = 0; for (var i = 1; i <= l.n; i++) cum += n[i];
-      opts.push([l.id, l.label + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
+      if (l.n === 1) opts.push(["starter-big", l.label + " (big buttons)" + (l.age ? " (" + l.age + ")" : "") + ": same " + cum + " words, same order, bigger"]);
+      opts.splice(l.n === 1 ? opts.length - 1 : opts.length, 0, [l.id, l.label + (l.age ? " (" + l.age + ")" : "") + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
     });
     var top = LEVEL_BY_N[MAX_LEVEL];
-    opts.push(["full", "Full: every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
+    opts.push(["full", "Full" + (top && top.age ? " (" + top.age + ")" : "") + ": every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
     opts.push(["custom", "Custom: tap words below to show / hide"]);
     sel.textContent = "";
     opts.forEach(function (o) { var e = el("option", null, o[1]); e.value = o[0]; sel.appendChild(e); });
@@ -425,12 +443,14 @@
 
   /* ------------------------------------------------------------ talker */
   var seq = 0, hlFn = null;
-  function stopAll() { seq++; Speech.stop(); Clips.stop(); if (hlFn) hlFn(-1); }
+  function speakingOn(on) { document.body.classList.toggle("speaking", !!on); var s = $("btn-speak"); if (s) { var t = s.querySelector(".txt"); if (t) t.textContent = on ? "speaking" : "speak"; } }
+  function stopAll() { seq++; Speech.stop(); Clips.stop(); if (hlFn) hlFn(-1); speakingOn(false); }
   /* tokens [{text, say, audio}], idx[i] = highlight index, opts {hl: fn, each: speak word by word} */
   function talk(tokens, idx, opts) {
     opts = opts || {};
     stopAll();
     var my = seq, hl = opts.hl || highlightMsg; hlFn = hl;
+    speakingOn(true);
     Clips.unlock();
     if (tokens.some(function (t) { return hasClip(t.audio); })) Speech.unlock();
     var segs = [];
@@ -446,7 +466,7 @@
     });
     function next(k) {
       if (my !== seq) return;
-      if (k >= segs.length) { hl(-1); return; }
+      if (k >= segs.length) { hl(-1); speakingOn(false); return; }
       var sg = segs[k];
       if (sg.audio) {
         hl(sg.idx);
@@ -477,7 +497,7 @@
   }
   function renderMsg() {
     var m = $("msg"); m.textContent = "";
-    msg.tokens.forEach(function (t) { m.appendChild(el("span", "tok", (t.typed ? caseTyped(t.text) : caseWord(t.text)) + (t.punct || ""))); });
+    msg.tokens.forEach(function (t, i) { m.appendChild(el("span", "tok" + (i === msg.tokens.length - 1 && msg.fresh ? " fresh" : ""), (t.typed ? caseTyped(t.text) : caseWord(t.text)) + (t.punct || ""))); });
     if (state.view === "keyboard" || msg.buf) {
       var b = el("span", "buf", msg.buf ? caseTyped(msg.buf) : "");
       if (state.view === "keyboard") b.appendChild(el("span", "caret"));
@@ -497,7 +517,8 @@
   function addWord(w) {
     commitBuf(false);
     var t = tokenFromWord(w);
-    msg.tokens.push(t); logUse(w.label); renderMsg();
+    msg.tokens.push(t); logUse(w.label); msg.fresh = true; renderMsg();
+    clearTimeout(msg.freshT); msg.freshT = setTimeout(function () { msg.fresh = false; var f = $("msg").querySelector(".tok.fresh"); if (f) f.classList.remove("fresh"); }, 1500);
     talk([t], [msg.tokens.length - 1]);
   }
   function speakMessage() {
@@ -576,7 +597,25 @@
     } else { if (msg.buf) msg.buf = ""; else msg.tokens.pop(); }
     renderMsg(); renderPreds();
   }
-  function clearMsg() { stopAll(); msg.tokens = []; msg.buf = ""; renderMsg(); renderPreds(); }
+  var undoClear = null;
+  function clearMsg() {
+    stopAll();
+    if (undoClear) {   // second tap within the undo window brings the message back
+      msg.tokens = undoClear.tokens; msg.buf = undoClear.buf; undoClear = null; clearLabel(); renderMsg(); renderPreds(); return;
+    }
+    if (!msg.tokens.length && !msg.buf) return;
+    undoClear = { tokens: msg.tokens, buf: msg.buf, t: setTimeout(function () { undoClear = null; clearLabel(); }, 5000) };
+    msg.tokens = []; msg.buf = ""; clearLabel(); renderMsg(); renderPreds();
+  }
+  function clearLabel() {
+    var b = $("btn-clear"); if (!b) return;
+    b.querySelector(".txt").textContent = undoClear ? "undo clear" : "clear";
+    b.querySelector(".ico").textContent = undoClear ? "↶" : "✖";
+    b.setAttribute("aria-label", undoClear ? "Undo clear" : "Clear message");
+    b.classList.toggle("undo", !!undoClear);
+  }
+  /* Clear needs a hold (unless a parent set it to tap); undo clear is always a plain tap. */
+  function clearHoldMs() { return settings.clearMode === "hold" && !undoClear ? 800 : 0; }
 
   /* ------------------------------------------------------------ usage log (opt-in, local only) */
   function logUse(word) {
@@ -604,23 +643,25 @@
   var PRESS_SLOP = 28;
   function onTap(node, key, fn, opts) {
     opts = opts || {};
-    var pid = null, upAt = 0;
+    var pid = null, upAt = 0, downAt = 0, readyT = null;
+    function needMs() { var a = opts.holdMs ? opts.holdMs() : 0; return Math.max(a, +settings.holdMs || 0); }
     function fire(e) { if (node.disabled || !guard(key)) return; Clips.unlock(); fn(e); }
     function near(e) {
       var r = node.getBoundingClientRect();
       return e.clientX >= r.left - PRESS_SLOP && e.clientX <= r.right + PRESS_SLOP &&
              e.clientY >= r.top - PRESS_SLOP && e.clientY <= r.bottom + PRESS_SLOP;
     }
-    function end() { pid = null; upAt = Date.now(); node.classList.remove("pressed"); }
+    function end() { pid = null; upAt = Date.now(); clearTimeout(readyT); node.classList.remove("pressed"); node.classList.remove("ready"); }
     node.style.touchAction = opts.scroll ? "pan-y" : "none";
     node.addEventListener("pointerdown", function (e) {
       if (node.disabled || pid !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
-      pid = e.pointerId; node.classList.add("pressed");
+      pid = e.pointerId; node.classList.add("pressed"); downAt = Date.now();
+      var ms = needMs(); if (ms) readyT = setTimeout(function () { node.classList.add("ready"); }, ms);
       if (!opts.scroll && node.setPointerCapture) { try { node.setPointerCapture(pid); } catch (x) { /* ignore */ } }
     });
     node.addEventListener("pointerup", function (e) {
       if (e.pointerId !== pid) return;
-      var ok = near(e); end();
+      var ok = near(e) && Date.now() - downAt >= needMs(); end();
       if (ok) { e.preventDefault(); lifted = { node: node, t: Date.now() }; fire(e); }
     });
     node.addEventListener("pointercancel", function (e) { if (e.pointerId === pid) end(); });
@@ -665,21 +706,42 @@
     renderMsg();
     fitLabels(board);
   }
+  function bigOn() { return !!settings.bigButtons && wordsShownMode() === "starter"; }
   function renderPage(board, p) {
-    var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : ""));
-    g.style.gridTemplateColumns = "repeat(" + p.cols + ", 1fr)";
-    g.style.gridTemplateRows = "repeat(" + p.rows + ", 1fr)";
-    for (var r = 1; r <= p.rows; r++) for (var c = 1; c <= p.cols; c++) {
+    var big = bigOn() && p.id === "home";
+    var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : "") + (big ? " big" : ""));
+    /* Big buttons: rows and columns with nothing shown close up, so every button grows but
+       keeps its order and its place relative to the others. */
+    var rowMap = {}, colMap = {}, nr = 0, nc = 0, r, c;
+    for (r = 1; r <= p.rows; r++) { var anyR = !big; for (c = 1; c <= p.cols && !anyR; c++) anyR = isShown(cellMap[p.id][r + "," + c], p.id); if (anyR) rowMap[r] = ++nr; }
+    for (c = 1; c <= p.cols; c++) { var anyC = !big; for (r = 1; r <= p.rows && !anyC; r++) anyC = isShown(cellMap[p.id][r + "," + c], p.id); if (anyC) colMap[c] = ++nc; }
+    g.style.gridTemplateColumns = "repeat(" + nc + ", 1fr)";
+    if (big) {   // a row holding only folders gets shorter, so the word buttons get the room
+      var tr = [];
+      for (r = 1; r <= p.rows; r++) if (rowMap[r]) {
+        var words = false; for (c = 1; c <= p.cols; c++) { var x = cellMap[p.id][r + "," + c]; if (isShown(x, p.id) && x.type !== "folder") words = true; }
+        tr.push(words ? "minmax(0, 1fr)" : "minmax(0, 0.55fr)");
+      }
+      g.style.gridTemplateRows = tr.join(" ");
+    } else g.style.gridTemplateRows = "repeat(" + nr + ", 1fr)";
+    for (r = 1; r <= p.rows; r++) for (c = 1; c <= p.cols; c++) {
+      if (!rowMap[r] || !colMap[c]) continue;
       var w = cellMap[p.id][r + "," + c], cell;
       if (!isShown(w, p.id)) { cell = el("div", "cell blank" + (w ? " masked" : "")); cell.setAttribute("aria-hidden", "true"); }
       else cell = wordButton(w);
-      cell.style.gridRow = r; cell.style.gridColumn = c;
+      cell.style.gridRow = rowMap[r]; cell.style.gridColumn = colMap[c];
       g.appendChild(cell);
     }
     board.appendChild(g);
   }
+  /* Visual feedback: the tapped button gets a short ring; the newest word in the bar is marked. */
+  function flashTapped(b) {
+    b.classList.add("just");
+    setTimeout(function () { b.classList.remove("just"); }, 700);
+  }
+  function showMode() { return settings.showMode || (settings.showPictures ? "both" : "text"); }
   function picFor(item) {
-    if (!settings.showPictures) return null;
+    if (showMode() === "text") return null;
     var url = item.image && mediaURL(item.image);
     if (url) { var img = el("img", "pic"); img.src = url; img.alt = ""; img.draggable = false; return img; }
     if (item.emoji) return el("span", "emo", item.emoji);
@@ -690,8 +752,10 @@
     var pic = picFor(w);
     if (pic) b.appendChild(pic); else b.classList.add("nopic");
     b.appendChild(el("span", "lbl", caseWord(w.label)));
+    if (pic && showMode() === "pic") b.classList.add("piconly");
     b.setAttribute("aria-label", w.label + (w.type === "folder" ? " folder" : ""));
     onTap(b, "w:" + w.id, function () {
+      flashTapped(b);
       if (w.type === "folder") { stopAll(); state.page = w.target; render(); return; }
       if (w.ending) { applyEnding(w); return; }
       addWord(w);
@@ -837,42 +901,43 @@
     for (var i = 0; i < pat.steps.length; i++) if (!pat.steps[i].optional && !state.pathPicks[i]) return false;
     return true;
   }
+  /* The sentence comes from AAC_PATHS.sentence: it adds the small joining words
+     ("a", "the", "to") and endings, so every finished path is a correct sentence. */
+  function pathSentence(pat) { return window.AAC_PATHS.sentence(pat, state.pathPicks); }
   function pathUtterance() {
     var pat = pathById(state.pathId);
     if (!pat) return null;
+    // A Paths sentence starts with a capital in the Words bar and the voice, unless the
+    // parent chose lowercase or ALL CAPS for words (then the board's own case rule wins).
+    var wc = settings.wordCase;
+    var u = window.AAC_PATHS.utterance(pat, state.pathPicks, { capital: wc !== "lower" && wc !== "upper" });
     var tokens = [], idx = [];
-    pat.steps.forEach(function (step, i) {
-      var w = state.pathPicks[i];
-      if (!w) return;
-      if (w.ending) {
-        var prev = tokens[tokens.length - 1];
-        var out = prev && !/\s/.test(prev.text) ? inflect(prev.text, w.ending) : null;
-        if (prev && out) {
-          var base = String(prev.text || "").toLowerCase();
-          prev.text = out;
-          prev.say = SAY_INFLECTED[base + "@" + w.ending] || null;
-          prev.sayAlone = null;
-          prev.audio = null;
-          prev.inflected = w.ending;
+    u.tokens.forEach(function (x) {
+      var t;
+      if (x.pre) t = { text: x.text, say: null, audio: null, id: null, typed: false, auto: true };
+      else {
+        var w = x.word;
+        t = tokenFromWord(w);
+        t.text = x.text;
+        if (x.changed) {
+          if (x.inflected === "ing") { t.say = SAY_INFLECTED[String(w.label).toLowerCase() + "@ing"] || null; t.inflected = "ing"; }
+          else t.say = null;
+          t.sayAlone = null; t.audio = null;
         }
-        return;
       }
-      tokens.push(tokenFromWord(w));
-      idx.push(i);
+      if (x.punct) t.punct = x.punct;
+      tokens.push(t); idx.push(x.step);
     });
-    if (pat.punct && tokens.length) tokens[tokens.length - 1].punct = pat.punct;
-    return { tokens: tokens, idx: idx };
+    return { tokens: tokens, idx: idx, text: u.text, done: u.done };
   }
   function pathFace(pat, i) {
+    var part = pathSentence(pat).parts[i];
+    if (!part || part.ending) return "";
     var w = state.pathPicks[i];
-    if (!w) return "";
-    var nxt = state.pathPicks[i + 1];
-    if (nxt && nxt.ending && !w.ending) {
-      var out = inflect(w.label, nxt.ending);
-      if (out) return out;
-    }
-    return w.label;
+    var t = part.text;
+    return w && /^I\b/.test(w.label) ? w.label : t;
   }
+  function pathPre(pat, i) { var part = pathSentence(pat).parts[i]; return part && part.pre || ""; }
   function pathHl(i) {
     if (!settings.highlight) i = -1;
     var nodes = document.querySelectorAll("[data-path-i]");
@@ -883,7 +948,13 @@
     if (!u || !u.tokens.length) return;
     talk(u.tokens, u.idx, { hl: pathHl });
   }
+  /* A quick second tap lands on the NEW button in the same spot (a different key, so the
+     per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
+  var pathLockUntil = 0;
+  function pathLocked() { return Date.now() < pathLockUntil; }
   function choosePath(pat, w) {
+    if (pathLocked()) return;
+    pathLockUntil = Date.now() + 220;
     var i = state.pathStep;
     if (!pat || i < 0 || i >= pat.steps.length || !w) return;
     stopAll();
@@ -899,13 +970,14 @@
     var speakEach = settings.pathsSpeakEach !== false;
     var finished = state.pathStep >= pat.steps.length;
     render();
+    // Finished: say the whole sentence once, calmly (it includes the word just tapped).
+    if (finished) { speakPath(); return; }
     if (speakEach) {
-      if (w.ending) {
-        var u1 = pathUtterance();
-        var tok = u1 && u1.tokens.length ? u1.tokens[u1.tokens.length - 1] : tokenFromWord(w);
-        talk([tok], [Math.max(0, i - 1)], { hl: pathHl });
-      } else talk([tokenFromWord(w)], [i], { hl: pathHl });
-    } else if (finished) speakPath();
+      var u1 = pathUtterance(), toks = [], ids = [];
+      if (u1) u1.tokens.forEach(function (t, k) { if (u1.idx[k] === (w.ending ? i - 1 : i)) { toks.push(t); ids.push(u1.idx[k]); } });
+      if (!toks.length) { toks = [tokenFromWord(w)]; ids = [i]; }
+      talk(toks, ids, { hl: pathHl });
+    }
   }
   function pathBack() {
     stopAll();
@@ -914,6 +986,17 @@
     state.pathPicks[i] = null;
     state.pathStep = i;
     render();
+  }
+  /* "Make another" keeps the frame she already built ("I want") and goes straight back to
+     the first step that has a real choice, so a second sentence is one or two taps. */
+  function pathAgain() {
+    stopAll();
+    var pat = pathById(state.pathId), keep = 0;
+    if (pat) {
+      var c = pathContext();
+      while (keep < pat.steps.length - 1 && window.AAC_PATHS.choices(pat, keep, c, state.pathPicks).length <= 1) keep++;
+    }
+    state.pathPicks = state.pathPicks.slice(0, keep); state.pathStep = keep; render();
   }
   function pathHome() {
     stopAll();
@@ -924,6 +1007,7 @@
     var u = pathUtterance();
     if (settings.pathsToWords === false) return;
     if (!pat || !u || !u.tokens.length || !pathRequiredDone(pat)) return;
+    u.tokens.forEach(function (t) { delete t.auto; });
     stopAll();
     msg.tokens = u.tokens;
     msg.buf = "";
@@ -951,8 +1035,15 @@
     var canSend = !!(pat && pathRequiredDone(pat) && settings.pathsToWords !== false);
     bar.appendChild(btn("back", "← undo", "undo last word", "path:back", pathBack, !canUndo));
     bar.appendChild(btn("home", "all patterns", "show all patterns", "path:home", pathHome, !pat));
-    bar.appendChild(btn("say", "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
+    var finishedNow = !!(pat && pathRequiredDone(pat) && state.pathStep >= pat.steps.length);
+    bar.appendChild(btn("say", finishedNow ? "say again" : "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
     bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !canSend));
+    // Once the sentence is made, "say again" and "→ Words" move up into the finished view;
+    // their bar spots stay empty (not reflowed) so undo / all patterns never move.
+    if (finishedNow) {
+      bar.classList.add("finished");
+      [].forEach.call(bar.querySelectorAll(".say, .to-words"), function (b) { b.disabled = true; b.setAttribute("aria-hidden", "true"); b.tabIndex = -1; });
+    }
     return bar;
   }
   function renderPathMenu(mid, patterns, ctx) {
@@ -963,6 +1054,12 @@
       return;
     }
     layoutPathMenu(list, patterns.length);
+    var gIndex = {}, gLabel = {};
+    (window.AAC_PATHS.groups || []).forEach(function (g, i) { gIndex[g.id] = i; gLabel[g.id] = g.label; });
+    patterns = patterns.slice().sort(function (x, y) {
+      var gx = gIndex[x.group] == null ? 99 : gIndex[x.group], gy = gIndex[y.group] == null ? 99 : gIndex[y.group];
+      return gx - gy || window.AAC_PATHS.patterns.indexOf(x) - window.AAC_PATHS.patterns.indexOf(y);
+    });
     patterns.forEach(function (p) {
       var stem = window.AAC_PATHS.lookup(p.stems[0], ctx);
       var b = el("button", "cell btn path-card" + (stem && window.AAC_PATHS.fitzClass(stem) ? " " + window.AAC_PATHS.fitzClass(stem) : ""));
@@ -970,8 +1067,10 @@
       b.setAttribute("data-pattern", p.id);
       b.style.setProperty("--ptlen", String(Math.max(8, p.title.length)));
       b.style.setProperty("--pflen", String(Math.max(8, p.frame.length)));
-      var pic = stem && picFor(stem);
+      var pic = p.emoji && showMode() !== "text" ? el("span", "emo", p.emoji) : stem && picFor(stem);
+      b.setAttribute("aria-label", p.title.replace(/…/g, "blank").replace(/\s*\/\s*/g, " or "));
       if (pic) b.appendChild(pic); else b.classList.add("nopic");
+      if (p.group && gLabel[p.group]) b.appendChild(el("span", "path-group", gLabel[p.group]));
       b.appendChild(el("span", "path-title", p.title));
       b.appendChild(el("span", "path-frame", p.frame));
       b.setAttribute("aria-label", p.title + ". " + p.frame);
@@ -983,37 +1082,62 @@
     });
   }
   function renderPathPlay(phrase, mid, pat, ctx) {
+    var picOnly = showMode() === "pic";
     pat.steps.forEach(function (step, i) {
       var w = state.pathPicks[i];
+      if (w && w.ending) return;   // an ending joins the word before it ("eat" → "eating")
+      if (!w && step.endings && i > 0 && state.pathPicks[i - 1]) return;
       var slot = el("div", "path-slot" + (w ? " filled" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") : " empty"));
       slot.setAttribute("data-path-i", String(i));
-      if (i === state.pathStep) slot.classList.add("now");
-      if (w && settings.showPictures && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
-      slot.appendChild(el("span", "path-lab", w ? caseWord(pathFace(pat, i)) : "—"));
+      if (i === state.pathStep) { slot.classList.add("now"); slot.setAttribute("aria-current", "step"); }
+      if (w && showMode() !== "text" && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
+      var pre = w ? pathPre(pat, i) : "";
+      var lab = el("span", "path-lab");
+      if (pre) lab.appendChild(el("span", "path-pre", caseWord(pre) + " "));
+      lab.appendChild(document.createTextNode(w ? caseWord(pathFace(pat, i)) : "?"));
+      slot.appendChild(lab);
+      slot.setAttribute("aria-label", w ? (pre ? pre + " " : "") + pathFace(pat, i) : "next word");
       phrase.appendChild(slot);
     });
-    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx);
+    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks);
     var stepNow = pat.steps[state.pathStep];
     if (state.pathStep >= pat.steps.length || (stepNow && stepNow.optional && !choices.length)) {
-      var done = el("div", "path-done"), n = 0;
-      pat.steps.forEach(function (step, i) { if (state.pathPicks[i]) n++; });
-      done.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 3)) + ", minmax(0, 1fr))";
-      if (n > 3) done.style.gridTemplateRows = "repeat(" + Math.ceil(n / 3) + ", minmax(0, 1fr))";
+      var u = pathUtterance();
+      var done = el("div", "path-finish");
+      var line = el("div", "path-sentence", u ? u.text : "");
+      line.setAttribute("aria-live", "polite");
+      done.appendChild(el("div", "path-made", "You made a sentence."));
+      done.appendChild(line);
+      var tiles = el("div", "path-done"), n = 0;
       pat.steps.forEach(function (step, i) {
         var w = state.pathPicks[i];
-        if (!w) return;
-        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : ""));
+        if (!w || w.ending) return;
+        n++;
+        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") + (picOnly ? " piconly" : ""));
         tile.setAttribute("data-path-i", String(i));
         var pic = picFor(w);
-        if (pic) tile.appendChild(pic); else tile.classList.add("nopic");
+        if (pic) tile.appendChild(pic); else { tile.classList.add("nopic"); tile.classList.remove("piconly"); }
         tile.appendChild(el("span", "lbl", caseWord(pathFace(pat, i))));
-        done.appendChild(tile);
+        tiles.appendChild(tile);
       });
+      tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
+      done.appendChild(tiles);
+      // The three next steps sit right under the sentence, big and in a fixed order.
+      var acts = el("div", "path-acts");
+      function act(cls, text, label, key, fn) {
+        var b = el("button", "path-act " + cls, text); b.type = "button";
+        b.setAttribute("aria-label", label); onTap(b, key, fn); acts.appendChild(b); return b;
+      }
+      act("say", "🔊 say again", "say the sentence again", "path:done-say", speakPath);
+      act("path-again", "↻ another", "make another sentence like this", "path:again", pathAgain);
+      if (settings.pathsToWords !== false) act("to-words", "→ Words", "put the sentence in Words", "path:done-words", sendPathToWords);
+      acts.style.gridTemplateColumns = "repeat(" + acts.children.length + ", minmax(0, 1fr))";
+      done.appendChild(acts);
       mid.appendChild(done);
       return;
     }
     if (!choices.length) {
-      mid.appendChild(el("p", "note-dark", "No words for this step at the current level."));
+      mid.appendChild(el("p", "note-dark", "No words for this step at the current level. Tap ← undo or all patterns."));
       return;
     }
     var grid = el("div", "path-choices");
@@ -1027,10 +1151,11 @@
       b.type = "button";
       b.setAttribute("data-choice", w.label);
       var pic = picFor(w);
-      if (pic) b.appendChild(pic); else b.classList.add("nopic");
-      b.appendChild(el("span", "lbl", caseWord(w.label)));
+      if (pic) { b.appendChild(pic); if (picOnly) b.classList.add("piconly"); } else b.classList.add("nopic");
+      var shown = w.ending ? "-" + w.ending : w.label;
+      b.appendChild(el("span", "lbl", caseWord(shown)));
       b.setAttribute("aria-label", w.label);
-      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { choosePath(pat, w); });
+      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { if (pathLocked()) return; flashTapped(b); choosePath(pat, w); });
       grid.appendChild(b);
     });
     mid.appendChild(grid);
@@ -1052,6 +1177,7 @@
     // menu would then sit in the auto row and collapse to one thin strip.
     if (!pat) wrap.style.gridTemplateRows = "minmax(0, 1fr) auto";
     var phrase = pat ? el("div", "path-phrase") : null;
+    if (phrase) { phrase.setAttribute("role", "group"); phrase.setAttribute("aria-label", "sentence so far"); }
     if (phrase) wrap.appendChild(phrase);
     wrap.appendChild(mid);
     wrap.appendChild(pathChrome(pat));
@@ -1235,15 +1361,18 @@
     sel.value = settings.voiceURI && vs.some(function (v) { return v.voiceURI === settings.voiceURI; }) ? settings.voiceURI : "";
     var note = $("voice-note");
     if (!Speech.synth) note.textContent = "This browser has no speech synthesis. Recorded clips still play.";
-    else if (!Speech.voices.length) note.textContent = "No voices reported yet. On iPad they can take a moment to load; speech still uses the default en-US voice. For better voices: iPad Settings → Accessibility → Spoken Content → Voices → English → download an Enhanced or Premium voice, then reopen this app.";
-    else note.textContent = Speech.voices.length + " voices on this device. For a more natural voice, download an Enhanced/Premium voice in iPad Settings → Accessibility → Spoken Content → Voices. Siri voices are not available to web apps.";
+    else if (!Speech.voices.length) note.textContent = "No voices listed yet (iPad can be slow); the default voice still works. Better voices: iPad Settings → Accessibility → Spoken Content → Voices.";
+    else note.textContent = Speech.voices.length + " voices. More natural ones: iPad Settings → Accessibility → Spoken Content → Voices (Enhanced).";
   }
   function syncSettingsUI() {
     $("set-rate").value = settings.rate; $("rate-val").textContent = (+settings.rate).toFixed(2);
     $("set-pitch").value = settings.pitch; $("pitch-val").textContent = (+settings.pitch).toFixed(2);
     $("set-volume").value = settings.volume; $("vol-val").textContent = Math.round(settings.volume * 100) + "%";
     $("set-wordcase").value = settings.wordCase; $("set-keycase").value = settings.keyCase; $("set-storymode").value = settings.storyMode;
-    $("set-pictures").checked = !!settings.showPictures; $("set-prediction").checked = !!settings.prediction;
+    $("set-showmode").value = showMode(); $("set-clearmode").value = settings.clearMode || "hold";
+    $("set-holdms").value = String(+settings.holdMs || 0); $("set-spacing").value = settings.spacing || "normal";
+    $("set-contrast").value = settings.contrast || "normal"; $("set-textsize").value = settings.textSize || "normal";
+    $("set-boardcolor").value = settings.boardColor || "dark"; $("set-prediction").checked = !!settings.prediction;
     $("set-sayletters").checked = !!settings.sayLetters; $("set-highlight").checked = !!settings.highlight;
     $("set-returnhome").checked = !!settings.returnHome; $("set-triple").checked = !!settings.gateTripleTap;
     $("set-log").checked = !!settings.logEnabled; $("set-allvoices").checked = !!settings.allVoices;
@@ -1255,10 +1384,11 @@
     $("set-pathstowords").checked = settings.pathsToWords !== false;
     $("set-pathsrecent").checked = settings.pathsPreferRecent !== false;
     $("set-pathsmax").value = String(pathMaxChoices());
-    labelLevelOptions(); $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
+    labelLevelOptions(); $("set-wordsshown").value = bigOn() ? "starter-big" : wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
+    $("level-start").hidden = !!settings.wordsShown;
     var sw = navigator.serviceWorker && navigator.serviceWorker.controller;
     $("about").textContent = "Word Board " + APP_VERSION + ". Offline copy: " + (sw ? "installed (works without Wi-Fi)" :
       location.protocol === "file:" ? "not available when opened as a file" :
@@ -1291,9 +1421,17 @@
       settings.pathsMaxChoices = n === 2 || n === 3 || n === 4 || n === 6 ? n : 6;
       saveSettings();
     });
-    $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
+    $("set-wordsshown").addEventListener("change", function () { pickLevel(this.value); });
+    [["set-showmode", "showMode"], ["set-clearmode", "clearMode"], ["set-spacing", "spacing"], ["set-contrast", "contrast"], ["set-textsize", "textSize"], ["set-boardcolor", "boardColor"]].forEach(function (p) {
+      $(p[0]).addEventListener("change", function () { settings[p[1]] = this.value; if (p[1] === "showMode") settings.showPictures = this.value !== "text"; saveSettings(); applyLook(); renderVisibility(); });
+    });
+    $("set-holdms").addEventListener("change", function () { settings.holdMs = +this.value || 0; saveSettings(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#level-start [data-level]"), function (b) {
+      b.addEventListener("click", function () { pickLevel(b.getAttribute("data-level")); });
+    });
+    bindShare();
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
-    [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
+    [["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
      ["set-returnhome", "returnHome"], ["set-triple", "gateTripleTap"], ["set-log", "logEnabled"]].forEach(function (p) {
       $(p[0]).addEventListener("change", function () { settings[p[1]] = this.checked; saveSettings(); });
     });
@@ -1319,6 +1457,40 @@
       saveFile("word-board-usage-" + today() + ".json", new Blob([JSON.stringify(readJSON(LS.log, []), null, 1)], { type: "application/json" }), false);
     });
     $("log-clear").addEventListener("click", function () { if (confirm("Delete the whole usage log on this device?")) { localStorage.removeItem(LS.log); showLog(); } });
+  }
+
+  /* ---------- look + access (body classes; nothing moves unless big buttons is chosen) ---------- */
+  function applyLook() {
+    var c = document.body.classList;
+    c.toggle("hc", settings.contrast === "high");
+    c.toggle("ts-large", settings.textSize === "large");
+    c.toggle("ts-larger", settings.textSize === "larger");
+    c.toggle("space-more", settings.spacing === "more");
+    c.toggle("bg-light", settings.boardColor === "light");
+    c.toggle("bg-blue", settings.boardColor === "blue");
+    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
+  }
+  /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
+  function shareMsg(t) { $("share-msg").textContent = t; }
+  function copyLink() {
+    function fallback() {
+      var i = $("share-url"); i.focus(); i.select();
+      try { document.execCommand("copy"); shareMsg("Link copied."); } catch (e) { shareMsg("Select the link above and copy it."); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(SHARE_URL).then(function () { shareMsg("Link copied."); }, fallback);
+    else fallback();
+  }
+  function bindShare() {
+    $("share-url").value = SHARE_URL;
+    $("share-btn").addEventListener("click", function () {
+      if (navigator.share) {
+        navigator.share({ title: "Word Board", text: "Word Board: a free talking word board for iPad. Open the link, then Share > Add to Home Screen.", url: SHARE_URL })
+          .then(function () { shareMsg(""); }, function () {});
+      } else copyLink();
+    });
+    $("share-copy").addEventListener("click", copyLink);
+    $("feedback-link").href = "mailto:" + FEEDBACK_EMAIL + "?subject=" + encodeURIComponent("Word Board feedback") +
+      "&body=" + encodeURIComponent("\n\n(Word Board " + APP_VERSION + ")");
   }
 
   /* ---------- personal pack import / export ---------- */
@@ -1563,8 +1735,10 @@
     Speech.init();
     onTap($("btn-speak"), "a:speak", speakMessage);
     onTap($("btn-del"), "a:del", del);
-    onTap($("btn-clear"), "a:clear", clearMsg);
-    onTap($("msg"), "a:msg", speakMessage, { scroll: true });   // the message bar scrolls when long
+    onTap($("btn-clear"), "a:clear", clearMsg, { holdMs: clearHoldMs });
+    applyLook();
+    onTap($("msg"), "a:msg", speakMessage, { scroll: true });
+    $("msg").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speakMessage(); } });   // the message bar scrolls when long
     onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
     onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
     onTap($("nav-paths"), "n:paths", function () {
@@ -1600,7 +1774,7 @@
           visible: window.AAC_PATHS ? window.AAC_PATHS.visible(ctx).map(function (p) { return p.id; }) : [],
           pathId: state.pathId, step: state.pathStep,
           picks: state.pathPicks.map(function (w) { return w ? w.label : null; }),
-          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx).map(function (w) { return w.label; }) : [],
+          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks).map(function (w) { return w.label; }) : [],
           requiredDone: pathRequiredDone(pat)
         };
       } };
@@ -1611,8 +1785,8 @@
     if (!/\.github\.io$/i.test(location.hostname) || standalone || window.AAC_PRIVATE || window.AAC_SINGLE_FILE) return;
     try { if (localStorage.getItem("wb.tryNoticeDismissed")) return; } catch (e) {}
     var n = el("div", "try-notice"); n.id = "try-notice"; n.setAttribute("role", "note");
-    var t = el("span", null, "Voice quality depends on your device and browser: Chrome, Edge or an iPad sound best. To use it for real, ");
-    var a = el("a", null, "get your own copy"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/blob/main/docs/SETUP.md"; a.target = "_blank"; a.rel = "noopener";
+    var t = el("span", null, "Free, no account, no tracking. To keep it on an iPad: tap Share, then Add to Home Screen. Parents: hold ⚙ for 2 seconds for levels, sharing and feedback. ");
+    var a = el("a", null, "help"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/#readme"; a.target = "_blank"; a.rel = "noopener";
     t.appendChild(a); t.appendChild(document.createTextNode("."));
     var x = el("button", "try-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "dismiss notice");
     x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove();

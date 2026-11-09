@@ -171,11 +171,11 @@ button, [role="button"] {
 }
 .cell .lbl {
   /* --len = longest word in the label (min 4): long words shrink to fit */
-  font-size: min(calc(150cqw / var(--len, 4)), 30cqh, 64px);
+  font-size: calc(var(--ts, 1) * min(calc(150cqw / var(--len, 4)), 30cqh, 64px));
   line-height: 1.02; text-align: center; overflow-wrap: normal; word-break: keep-all;
   letter-spacing: 0.01em;
 }
-.cell.nopic .lbl { font-size: min(calc(165cqw / var(--len, 4)), 42cqh, 84px); }
+.cell.nopic .lbl { font-size: calc(var(--ts, 1) * min(calc(165cqw / var(--len, 4)), 42cqh, 84px)); }
 .cell.key .lbl { font-size: min(62cqh, 62cqw); line-height: 1; }
 .cell.space .lbl { font-size: min(40cqh, 20cqw); }
 .cell.pred .lbl { font-size: min(calc(150cqw / var(--len, 4)), 44cqh, 60px); }
@@ -274,8 +274,9 @@ button, [role="button"] {
 }
 .path-btn.say { background: #0b5; color: #000; border-color: #000; }
 .path-btn.to-words { background: #fff; color: #000; }
-.path-btn:disabled { opacity: 0.35; border-color: #555; color: #ddd; }
-.path-btn.say:disabled { color: #222; }
+/* off state: no opacity fade; dashed edge + muted (but readable, > 4.5:1) text */
+.path-btn:disabled { background: #262626; border: 4px dashed #8a8a8a; color: #c4c4c4; }
+.path-btn.say:disabled { background: #17402a; color: #d8f5e4; border-color: #6fbf8f; }
 
 /* ---------- stories ---------- */
 .story-list { height: 100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: calc((100% - var(--gap)) / 2); gap: var(--gap); overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -335,6 +336,87 @@ button, [role="button"] {
 .try-notice .try-x { flex: none; background: none; border: 1px solid #777; color: #eee; border-radius: 6px; width: 28px; height: 26px; font-size: 14px; padding: 0; }
 body.has-try-notice #app { top: var(--try-h, 0px); }
 
+/* 1.5.3 share / feedback / starting level (parent settings only) */
+.level-start { border: 2px solid #f0b400; border-radius: 12px; padding: 10px 12px; background: #fff8e0; }
+.share-url { width: 100%; max-width: 520px; font-size: 16px; padding: 8px; box-sizing: border-box; }
+.share-qr { margin: 10px 0 0; }
+.share-qr svg { display: block; width: 180px; height: 180px; border: 1px solid #ddd; border-radius: 8px; }
+
+/* ===== 1.5.3 look + access ===== */
+/* visible focus for keyboard and iPad Switch Control */
+button:focus-visible, select:focus-visible, input:focus-visible, [role="button"]:focus-visible, a:focus-visible {
+  outline: 5px solid #FFE14D !important; outline-offset: 2px; box-shadow: 0 0 0 9px #000;
+}
+#settings .row.chk { flex-wrap: nowrap; align-items: center; }
+#settings .row.chk > span { flex: 1 1 auto; min-width: 0; }
+/* just tapped + newest word */
+.cell.btn.just { outline: 6px solid #FFE14D; outline-offset: -2px; border-color: #000; }
+#msg .tok.fresh { background: #FFE14D; color: #000; border-radius: 6px; padding: 0 4px; }
+/* speaking indicator */
+body.speaking #btn-speak { background: #FFE14D; color: #000; outline: 4px solid #fff; }
+body.speaking #msg { box-shadow: inset 0 0 0 4px #FFE14D; }
+/* hold-to-press: shows when the hold is long enough */
+.ready { box-shadow: inset 0 0 0 6px #0b5 !important; }
+#btn-clear.undo { background: #FFE14D; color: #000; }
+#btn-clear.is-hidden { visibility: hidden; pointer-events: none; }
+/* picture only */
+.cell.btn.piconly .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.cell.btn.piconly .emo { font-size: min(70cqh, 70cqw); }
+/* spacing */
+body.space-more { --gap: clamp(10px, 2vmin, 20px); }
+/* text size */
+body.ts-large { --ts: 1.18; } body.ts-larger { --ts: 1.36; }
+body.ts-large #msg { font-size: 1.15em; } body.ts-larger #msg { font-size: 1.3em; }
+/* board colour */
+body.bg-light { --bg: #e9e6df; background: #e9e6df; } body.bg-light #page-title { color: #111; }
+body.bg-blue { --bg: #0d2240; background: #0d2240; }
+/* high contrast */
+body.hc { --bg: #000; background: #000; }
+body.hc .cell.btn { border: 5px solid #000; box-shadow: 0 0 0 2px #fff; }
+body.hc .cell.btn .lbl { color: #000; font-weight: 900; }
+body.hc .action, body.hc .tab, body.hc .path-btn { border-color: #fff; }
+body.hc #msg { background: #fff; color: #000; }
+/* Starter (big buttons): tighter gaps, bigger pictures and words */
+.grid.big { gap: max(3px, calc(var(--gap) * 0.6)); }
+.grid.big .cell.btn { border-width: 3px; padding: 1px; }
+.grid.big .cell.btn .emo { font-size: min(44cqh, 50cqw); margin-bottom: 1cqh; }
+/* Paths: the dashed boxes show the chosen picture + word large */
+.path-slot.filled .path-emo { font-size: 1.25em; }
+/* Paths 1.5.3: joining words, grouped menu, calm finished state */
+.path-pre { font-weight: 700; color: rgba(0, 0, 0, 0.74); font-size: 0.8em; }
+.path-slot.empty .path-pre { display: none; }
+.path-card .path-group {
+  font-size: min(8cqh, 14px); font-weight: 700; text-transform: lowercase;
+  color: #333; opacity: 0.75; letter-spacing: 0.02em;
+}
+.path-finish {
+  height: 100%; min-height: 0; display: grid; gap: var(--gap);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.path-made { text-align: center; color: #bdbdbd; font-weight: 600; font-size: clamp(14px, 2.4vmin, 22px); }
+.path-sentence {
+  text-align: center; color: #fff; font-weight: 800; line-height: 1.1;
+  font-size: clamp(26px, 6vmin, 64px); padding: 2px 8px; overflow-wrap: anywhere;
+}
+.path-finish .path-done { height: auto; min-height: 0; }
+.path-acts { display: grid; gap: var(--gap); }
+.path-act {
+  min-height: 56px; padding: 6px 10px; border-radius: 14px;
+  border: 3px solid #666; background: #2a2a2a; color: #fff; font-weight: 800;
+  font-size: clamp(16px, 2.8vmin, 28px);
+}
+.path-act.say { background: #00B050; border-color: #00B050; color: #000; }
+.path-act.to-words { background: #fff; border-color: #fff; color: #000; }
+body.hc .path-made { color: #fff; }
+body.hc .path-act:not(.say):not(.to-words) { border-color: #fff; background: #000; }
+.path-chrome.finished .say, .path-chrome.finished .to-words { visibility: hidden; }
+/* light board: finished view + empty slot text stay readable */
+body.bg-light .path-made { color: #444; }
+body.bg-light .path-sentence { color: #111; }
+body.bg-light .path-slot.empty { color: #555; border-color: #888; }
+body.bg-light .path-slot.empty.now { color: #111; border-color: #b8860b; }
+body.bg-light .note-dark { color: #333; }
+
 </style>
 </head>
 <body>
@@ -363,6 +445,19 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   </div>
   <div class="set-body">
 
+    <section id="level-start" class="level-start" hidden>
+      <h2>Pick a starting level</h2>
+      <p class="note">Ages are rough guides, not a test. Start where it feels easy, and turn it up any time if your child is ahead. You can change this whenever you like.</p>
+      <div class="btns">
+        <button type="button" class="pbtn" data-level="starter">Starter (about 2)</button>
+        <button type="button" class="pbtn" data-level="starter-big">Starter, big buttons</button>
+        <button type="button" class="pbtn" data-level="middle">Middle (about 3)</button>
+        <button type="button" class="pbtn" data-level="expanded">Expanded (about 4)</button>
+        <button type="button" class="pbtn" data-level="sentences">Sentences (about 5)</button>
+        <button type="button" class="pbtn" data-level="full">Full (about 6+)</button>
+      </div>
+    </section>
+
     <section>
       <h2>Words shown</h2>
       <label class="row">Words on the board
@@ -373,8 +468,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
           <option value="custom">Custom: tap words below to show / hide</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (Sentences and Conversation words always follow the level)</label>
+      <label class="row chk"><input type="checkbox" id="set-levelfolders"> <span>also use this level inside folders</span></label>
+      <p class="note">Sentences and Conversation words always follow the level.</p>
       <p class="note" id="level-note"></p>
+      <p class="note">Levels go up roughly by age (about 2, 3, 4, 5, 6+). The ages are approximate, not a test or assessment: turn it up if your child is ahead.</p>
     </section>
 
     <section>
@@ -396,6 +493,31 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       <div class="row"><button id="set-test" type="button" class="pbtn">Test voice</button></div>
     </section>
 
+    <section id="look-section">
+      <h2>Look</h2>
+      <p class="note">Let her try these and keep what she likes. Nothing moves around.</p>
+      <label class="row">Contrast
+        <select id="set-contrast">
+          <option value="normal">normal</option>
+          <option value="high">high (black, white, thick edges)</option>
+        </select>
+      </label>
+      <label class="row">Text size
+        <select id="set-textsize">
+          <option value="normal">normal</option>
+          <option value="large">large</option>
+          <option value="larger">larger</option>
+        </select>
+      </label>
+      <label class="row">Board colour
+        <select id="set-boardcolor">
+          <option value="dark">dark (as now)</option>
+          <option value="light">light</option>
+          <option value="blue">deep blue</option>
+        </select>
+      </label>
+    </section>
+
     <section>
       <h2>Display &amp; behaviour</h2>
       <label class="row">Word buttons
@@ -411,7 +533,35 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
           <option value="lower">a b c (lowercase)</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-pictures"> show pictures (emoji) above words</label>
+      <label class="row">Buttons show
+        <select id="set-showmode">
+          <option value="both">picture and word</option>
+          <option value="pic">picture only (word if there is no picture)</option>
+          <option value="text">word only</option>
+        </select>
+      </label>
+      <label class="row">Clear button
+        <select id="set-clearmode">
+          <option value="hold">hold to clear (then tap "undo clear" within 5 s)</option>
+          <option value="tap">tap to clear (then "undo clear" within 5 s)</option>
+          <option value="hide">hidden</option>
+        </select>
+      </label>
+      <label class="row">Hold time before a press counts
+        <select id="set-holdms">
+          <option value="0">off (counts when the finger lifts)</option>
+          <option value="300">0.3 s</option>
+          <option value="500">0.5 s</option>
+          <option value="800">0.8 s</option>
+          <option value="1200">1.2 s</option>
+        </select>
+      </label>
+      <label class="row">Space between buttons
+        <select id="set-spacing">
+          <option value="normal">normal</option>
+          <option value="more">more</option>
+        </select>
+      </label>
       <label class="row chk"><input type="checkbox" id="set-prediction"> word prediction on keyboard</label>
       <label class="row chk"><input type="checkbox" id="set-sayletters"> say each letter when typed</label>
       <label class="row chk"><input type="checkbox" id="set-highlight"> highlight each word in the bar while speaking</label>
@@ -515,6 +665,25 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
         <button id="log-clear" type="button" class="pbtn warn">Clear log</button>
       </div>
       <div id="log-out"></div>
+    </section>
+
+    <section id="share-section">
+      <h2>Share Word Board</h2>
+      <p class="note">Free to share. Anyone can open this link, then on iPad tap Share, then Add to Home Screen. Ready the same day; no account, no download store.</p>
+      <input id="share-url" class="share-url" type="text" readonly aria-label="Word Board link">
+      <div class="btns">
+        <button id="share-btn" type="button" class="pbtn primary">Share link…</button>
+        <button id="share-copy" type="button" class="pbtn">Copy link</button>
+      </div>
+      <div class="share-qr"><svg id="share-qr" role="img" aria-label="QR code for the Word Board link" width="180" height="180" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h37v37H0z"/><path stroke="#000000" d="M2 2.5h7m2 0h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h3m2 0h7M2 3.5h1m5 0h1m2 0h1m3 0h3m4 0h1m1 0h1m3 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h2m3 0h1m2 0h1m2 0h1m1 0h2m3 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h1m1 0h2m2 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h4m1 0h1m1 0h1m1 0h5m1 0h1m2 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h3m1 0h1m2 0h3m8 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h3m1 0h1m1 0h2m2 0h1m2 0h2m1 0h1M2 10.5h1m1 0h5m3 0h6m1 0h1m2 0h1m1 0h1m1 0h1m1 0h5M3 11.5h2m2 0h1m4 0h3m5 0h6m2 0h2m1 0h2m1 0h1M5 12.5h2m1 0h1m2 0h2m1 0h1m2 0h1m1 0h2m1 0h3m1 0h3m1 0h1m1 0h2M2 13.5h1m1 0h3m4 0h1m1 0h1m2 0h1m3 0h2m1 0h4m3 0h4M4 14.5h2m1 0h4m2 0h1m3 0h1m1 0h1m2 0h3m1 0h2m1 0h3M2 15.5h3m2 0h1m2 0h3m2 0h4m1 0h6m2 0h1m2 0h1m1 0h2M3 16.5h1m3 0h2m2 0h2m1 0h2m3 0h1m2 0h3m2 0h2m1 0h1m2 0h1M2 17.5h2m2 0h2m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m2 0h3m3 0h2m1 0h3M3 18.5h1m4 0h2m3 0h1m2 0h1m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m3 0h1M3 19.5h1m7 0h1m1 0h2m3 0h5m2 0h1m2 0h2m1 0h2m1 0h1M2 20.5h4m2 0h1m2 0h1m1 0h1m2 0h3m3 0h1m1 0h1m4 0h2m1 0h2M3 21.5h1m2 0h1m3 0h2m1 0h2m1 0h3m1 0h1m2 0h2m2 0h1m1 0h6M3 22.5h1m1 0h1m2 0h2m3 0h5m1 0h1m1 0h2m1 0h1m2 0h1m3 0h1m1 0h2M2 23.5h1m2 0h1m1 0h1m1 0h1m4 0h4m1 0h2m1 0h1m2 0h1m2 0h1m2 0h1m2 0h1M2 24.5h1m3 0h3m1 0h2m3 0h1m1 0h2m1 0h1m2 0h1m3 0h2m2 0h1m1 0h1M2 25.5h1m2 0h1m3 0h1m1 0h1m1 0h2m3 0h1m2 0h3m1 0h1m2 0h2m1 0h2m1 0h1M2 26.5h1m1 0h1m1 0h4m2 0h1m1 0h3m1 0h2m4 0h1m1 0h6m2 0h1M10 27.5h4m4 0h2m1 0h3m1 0h2m3 0h1m1 0h1m1 0h1M2 28.5h7m5 0h4m2 0h1m2 0h4m1 0h1m1 0h1m1 0h1M2 29.5h1m5 0h1m1 0h4m1 0h1m1 0h1m4 0h2m1 0h2m3 0h5M2 30.5h1m1 0h3m1 0h1m1 0h6m3 0h1m2 0h1m1 0h1m1 0h6m1 0h2M2 31.5h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m3 0h4m1 0h3m2 0h5M2 32.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h2m3 0h5m1 0h2M2 33.5h1m5 0h1m3 0h1m7 0h1m1 0h3m2 0h2m1 0h3M2 34.5h7m1 0h2m2 0h2m1 0h1m1 0h1m2 0h1m1 0h3m1 0h2m3 0h1"/></svg></div>
+      <p class="note">Scan with a phone or iPad camera to open it.</p>
+      <p class="note" id="share-msg" role="status"></p>
+    </section>
+
+    <section id="feedback-section">
+      <h2>Send feedback</h2>
+      <p class="note">Ideas, word or pattern requests, or something not working? <a id="feedback-link" href="mailto:neuresthetics@gmail.com?subject=Word%20Board%20feedback">Email neuresthetics@gmail.com</a>. Only the app version is filled in; write what you like. Requests can also go on <a href="https://github.com/neuresthetics/anova_language_dev_public/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+      <p class="note"><strong>Privacy:</strong> no accounts, no analytics, no tracking. Everything stays on this device; nothing leaves it unless you send it yourself.</p>
     </section>
 
     <section>
@@ -726,21 +895,25 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     "levels": [
       {
         "id": "starter",
+        "age": "about 2",
         "n": 1,
         "label": "Starter"
       },
       {
         "id": "middle",
+        "age": "about 3",
         "n": 2,
         "label": "Middle"
       },
       {
         "id": "expanded",
+        "age": "about 4",
         "n": 3,
         "label": "Expanded"
       },
       {
         "id": "sentences",
+        "age": "about 5",
         "n": 4,
         "label": "Sentences",
         "hint": "adds when, word endings, more little words",
@@ -748,6 +921,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       },
       {
         "id": "conversation",
+        "age": "about 6+",
         "n": 5,
         "label": "Conversation",
         "hint": "time, thinking, school, social phrases",
@@ -5895,68 +6069,223 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
      caps the row at 6. */
   var FOOD = { page: "food", types: ["noun"], prefer: ["milk", "juice", "water", "apple", "banana", "snack", "cheese"] };
   var THINGS = { page: "things", types: ["noun"], prefer: ["ball", "book", "shoes", "door", "box", "toy", "cup", "hat"] };
+  /* Things you can see, find or ask for ("I see music." / "I want rain." are not sentences she needs). */
+  var OBJECTS = { page: "things", types: ["noun"], not: ["music", "rain"], prefer: THINGS.prefer };
+  /* Food you'd say you like in general ("I like bites." / "I like squeezes." read oddly). */
+  var FOOD_LIKE = { page: "food", types: ["noun"], not: ["bite", "squeeze"], prefer: FOOD.prefer };
+  /* Only verbs that make a real sentence after "I want to / I can / I like …ing" with nothing
+     after them ("find" and "make" need an object, so they stay on the Words board only). */
+  var ACTIVITY_VERBS = ["go", "jog", "stomp", "come", "read", "sleep", "wait", "hug", "walk", "run",
+    "jump", "sit", "stand", "pretend", "write", "draw", "paint", "listen", "talk", "wash", "watch", "brush", "get dressed"];
   var ACTIVITIES = {
     any: [
       { page: "home", labels: ["eat", "drink", "play"] },
-      { page: "actions", types: ["verb"] }
+      { page: "actions", types: ["verb"], labels: ACTIVITY_VERBS }
     ],
     prefer: ["eat", "drink", "play", "read", "sleep", "hug", "walk", "run", "jump", "sit"]
   };
   var ANIMALS = { page: "animals", types: ["noun"], prefer: ["cat", "dog", "bird", "fish", "cow", "horse", "duck", "pig", "lion", "bear"] };
-  var PEOPLE = { page: "people", types: ["people"], prefer: ["mom", "dad", "kid", "baby", "friend", "teacher"] };
+  var PEOPLE = { page: "people", types: ["people"], not: ["me", "everyone"], prefer: ["mom", "dad", "kid", "baby", "friend", "teacher"] };
   var VEHICLES = { page: "vehicles", types: ["noun"], prefer: ["car", "bus", "boat", "van", "jet"] };
   var PLACES = {
     page: "where",
-    labels: ["home", "outside", "inside", "bath", "bed", "potty", "park", "school", "store", "playground", "bathroom"],
-    prefer: ["bed", "school", "park", "store", "playground", "bathroom", "bath", "potty", "home", "outside", "inside"]
+    labels: ["home", "outside", "inside", "bed", "potty", "park", "school", "store", "playground", "bathroom"],
+    prefer: ["home", "outside", "potty", "bed", "park", "school", "store", "playground", "bathroom", "inside"]
   };
-  var OPEN_THINGS = { page: "things", types: ["noun"], prefer: ["door", "book", "box", "bag", "cup", "toy"] };
+  /* "Where is …?" — real places only ("where is outside?" is not a question she needs). */
+  var WHERE_PLACES = { page: "where", labels: ["home", "bed", "potty", "park", "school", "store", "playground", "bathroom", "bath"],
+    prefer: ["bed", "park", "school", "store", "playground", "bathroom", "bath", "potty", "home"] };
+  /* Things you really open and close. */
+  var OPEN_THINGS = { page: "things", types: ["noun"], labels: ["door", "book", "box", "bag"], prefer: ["door", "book", "box", "bag"] };
   /* Containers and surfaces only, so "put it on / in …" stays a real place to put something. */
-  var PUT_SPOTS = {
+  /* "on" takes surfaces, "in" takes containers, so every sentence is a real place to put something. */
+  var PUT_ON = {
     any: [
-      { page: "things", types: ["noun"], labels: ["box", "bag", "cup", "chair"] },
-      { page: "where", types: ["noun"], labels: ["bed", "bath"] },
+      { page: "things", types: ["noun"], labels: ["box", "chair", "mat", "blanket"] },
+      { page: "where", types: ["noun"], labels: ["bed"] }
+    ],
+    prefer: ["chair", "bed", "box", "mat", "blanket"]
+  };
+  var PUT_IN = {
+    any: [
+      { page: "things", types: ["noun"], labels: ["box", "bag", "cup", "pot"] },
+      { page: "where", types: ["noun"], labels: ["bath"] },
       { page: "food", types: ["noun"], labels: ["cup"] }
     ],
-    prefer: ["box", "bag", "cup", "chair", "bed", "bath"]
+    prefer: ["box", "bag", "cup", "bath", "pot"]
   };
 
   /* Titles and frames are the sentence a child is building. Fixed steps use board
      labels (lookup). "I'm" and "the" are on the board (little words / home). */
+  /* group: menu sections. np: how a chosen noun joins the sentence (see nounPhrase).
+     verb: how a chosen action joins ("to" → "I want to eat", "bare" → "I can eat").
+     Small joining words ("a", "the", "to") are added for her and shown in grey, so
+     every finished path is a correct sentence without extra taps. */
   var PATTERNS = [
-    { id: "want", title: "I want …", frame: "I → want → …", minLevel: 1, stems: ["want"],
-      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
-    { id: "more", title: "I want more …", frame: "I → want → more → …", minLevel: 1, stems: ["more"],
-      steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, THINGS] } }] },
-    { id: "dont_want", title: "I don't want …", frame: "I → don't → want → …", minLevel: 2, stems: ["don't"],
-      steps: [{ words: ["I"] }, { words: ["don't"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }] },
-    { id: "want_please", title: "I want … please", frame: "I → want → … → please | thank you", minLevel: 4, stems: ["please", "thank you"],
-      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] } }, { words: ["please", "thank you"] }] },
-    { id: "help", title: "Help me", frame: "Help → me", minLevel: 1, stems: ["help"],
+    { id: "want", group: "wants", title: "I want …", frame: "I → want → …", minLevel: 1, stems: ["want"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS, ACTIVITIES] }, np: "a", verb: "to" }] },
+    { id: "more", group: "wants", title: "I want more …", frame: "I → want → more → …", minLevel: 1, stems: ["more"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS] }, np: "more" }] },
+    { id: "dont_want", group: "wants", title: "I don't want …", frame: "I → don't → want → …", minLevel: 2, stems: ["don't"],
+      steps: [{ words: ["I"] }, { words: ["don't"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS, ACTIVITIES] }, np: "a", verb: "to" }] },
+    { id: "want_please", group: "polite", title: "I want …, please.", frame: "I → want → … → please", minLevel: 4, stems: ["please"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS, ACTIVITIES] }, np: "a", verb: "to" }, { words: ["please"], comma: true }] },
+    /* "Thank you" thanks someone for something given; it is its own sentence, not a way to ask. */
+    { id: "thank_you", group: "polite", title: "Thank you.", frame: "Thank you.", minLevel: 4, stems: ["thank you"],
+      steps: [{ words: ["thank you"] }] },
+    { id: "help", group: "quick", title: "Help me.", frame: "Help → me", minLevel: 1, stems: ["help"],
       steps: [{ words: ["help"] }, { words: ["me"] }] },
-    { id: "see", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
-      steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] } }] },
-    { id: "who_what", title: "Who / what is …?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
-      steps: [{ words: ["who", "what"] }, { words: ["is"] }, { words: ["it", "that"] }] },
-    { id: "where_is", title: "Where is …?", frame: "where? → is → …", minLevel: 3, stems: ["where?"], punct: "?",
-      steps: [{ words: ["where?"] }, { words: ["is"] }, { fringe: { max: 6, pools: [PLACES, PEOPLE, THINGS] } }] },
-    { id: "go", title: "I go to …", frame: "I → go → to → …", minLevel: 2, stems: ["go"],
-      steps: [{ words: ["I"] }, { words: ["go"] }, { words: ["to"] }, { fringe: { max: 6, pools: [PLACES, VEHICLES] } }] },
-    { id: "can", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
-      steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] } }] },
-    { id: "like", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
-      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD, ANIMALS, ACTIVITIES, THINGS] } }] },
-    { id: "like_ing", title: "I like …ing", frame: "I → like → … → -ing", minLevel: 4, stems: ["like"],
-      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] } }, { optional: true, endings: ["ing"] }] },
-    { id: "stop", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"],
+    { id: "see", group: "people", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
+      steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, OBJECTS] }, np: "a" }] },
+    { id: "who_what", group: "questions", title: "Who / what is it?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
+      steps: [{ words: ["who", "what"], emoji: { who: "🧑", what: "❓" } }, { words: ["is"] }, { words: ["it", "that"] }] },
+    { id: "where_is", group: "questions", title: "Where is …?", frame: "Where → is → …", minLevel: 3, stems: ["where?"], punct: "?",
+      steps: [{ words: ["where?"] }, { words: ["is"], agree: true }, { fringe: { max: 6, pools: [WHERE_PLACES, PEOPLE, OBJECTS] }, np: "the" }] },
+    { id: "go", group: "places", title: "I go …", frame: "I → go → …", minLevel: 2, stems: ["go"], emoji: "🚶",
+      steps: [{ words: ["I"] }, { words: ["go"] }, { fringe: { max: 6, pools: [PLACES, PLACES, VEHICLES] }, np: "go" }] },
+    { id: "can", group: "doing", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
+      steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }] },
+    { id: "like", group: "people", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
+      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD_LIKE, ANIMALS, ACTIVITIES, THINGS] }, np: "plural", verb: "to" }] },
+    { id: "like_ing", group: "doing", title: "I like …ing", frame: "I → like → … → -ing", minLevel: 4, stems: ["like"],
+      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }, { endings: ["ing"] }] },
+    { id: "stop", group: "quick", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"], punct: "!",
       steps: [{ words: ["stop"] }] },
-    { id: "open_close", title: "Open the … / Close the …", frame: "Open | Close → the → …", minLevel: 3, stems: ["open", "close"],
-      steps: [{ words: ["open", "close"] }, { words: ["the"] }, { fringe: { max: 6, pools: [OPEN_THINGS] } }] },
-    { id: "all_done", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
+    { id: "open_close", group: "doing", title: "Open / close the …", frame: "Open | Close → …", minLevel: 3, stems: ["open", "close"],
+      steps: [{ words: ["open", "close"] }, { fringe: { max: 6, pools: [OPEN_THINGS] }, np: "the" }] },
+    { id: "all_done", group: "quick", title: "I'm all done.", frame: "I'm → all done", minLevel: 1, stems: ["all done"],
       steps: [{ words: ["I'm"] }, { words: ["all done"] }] },
-    { id: "put", title: "Put it on / in …", frame: "put → it → on | in → …", minLevel: 4, stems: ["put"],
-      steps: [{ words: ["put"] }, { words: ["it"] }, { words: ["on", "in"] }, { fringe: { max: 6, pools: [PUT_SPOTS] } }] }
+    { id: "put", group: "places", title: "Put it on / in …", frame: "Put → it → on | in → …", minLevel: 4, stems: ["put"],
+      steps: [{ words: ["put"] }, { words: ["it"] }, { words: ["on", "in"] }, { fringeBy: { on: { max: 6, pools: [PUT_ON] }, "in": { max: 6, pools: [PUT_IN] } }, np: "the" }] }
   ];
+  var GROUPS = [
+    { id: "wants", label: "wants" }, { id: "people", label: "people and things" }, { id: "places", label: "places" },
+    { id: "doing", label: "doing" }, { id: "questions", label: "questions" }, { id: "polite", label: "polite" }, { id: "quick", label: "quick" }
+  ];
+
+  /* ---------- grammar: small, explicit word lists; nothing guessed from outside ---------- */
+  var MASS = { milk: 1, water: 1, juice: 1, cheese: 1, toast: 1, bacon: 1, chicken: 1, steak: 1, goldfish: 1, music: 1,
+    paper: 1, glue: 1, rain: 1, food: 1, bread: 1, rice: 1, pasta: 1, cereal: 1, yogurt: 1, soup: 1, "ice cream": 1, candy: 1 };
+  var ALREADY_PLURAL = { eggs: 1, pants: 1, shoes: 1, socks: 1, scissors: 1, hands: 1, feet: 1, teeth: 1, eyes: 1 };
+  var NAMES = { mom: 1, dad: 1, grandma: 1, grandpa: 1, me: 1, everyone: 1, home: 1 };
+  /* Mass only as food: the animal is "a chicken" / "chickens". */
+  var MASS_AS_FOOD_ONLY = { chicken: 1 };
+  /* People you'd call "my …" rather than "the …" / "a …". */
+  var MY_PEOPLE = { friend: 1, teacher: 1 };
+  function isMass(w) { var k = labelKey(w); return !!MASS[k] && !(MASS_AS_FOOD_ONLY[k] && w && w.page && w.page !== "food"); }
+  function isPluralWord(w, text) { var k = labelKey(w); return !!ALREADY_PLURAL[k] || (text != null && text !== k && plural(k) === text && !isMass(w)); }
+  var PLURAL = { child: "children", man: "men", woman: "women", mouse: "mice", foot: "feet", tooth: "teeth", person: "people",
+    goose: "geese", sheep: "sheep", fish: "fish", deer: "deer", moose: "moose", bison: "bison", shrimp: "shrimp", squid: "squid",
+    jellyfish: "jellyfish", mosquito: "mosquitoes", hero: "heroes", wolf: "wolves", leaf: "leaves", knife: "knives", calf: "calves", potato: "potatoes", tomato: "tomatoes" };
+  var ING = { see: "seeing", lie: "lying", tie: "tying", begin: "beginning", forget: "forgetting", visit: "visiting",
+    open: "opening", listen: "listening", happen: "happening" };
+  /* go: words that take no "to", and vehicles you ride in or on */
+  var GO_BARE = { home: 1, outside: 1, inside: 1 };
+  var GO_TO = { bed: 1, school: 1 };
+  var RIDE_IN = { car: 1, van: 1 };
+  var RIDE_ON = { bus: 1, boat: 1, jet: 1, train: 1, bike: 1 };
+
+  function plural(label, countable) {
+    var w = String(label).toLowerCase();
+    if (ALREADY_PLURAL[w] || (MASS[w] && !countable)) return w;
+    var sp = w.lastIndexOf(" ");
+    if (sp > 0) return w.slice(0, sp + 1) + plural(w.slice(sp + 1));
+    if (PLURAL[w]) return PLURAL[w];
+    if (/(s|x|z|sh|ch)$/.test(w)) return w + "es";
+    if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
+    return w + "s";
+  }
+  function ing(label) {
+    var w = String(label).toLowerCase(), sp = w.indexOf(" ");
+    if (sp > 0) return ing(w.slice(0, sp)) + w.slice(sp);
+    if (ING[w]) return ING[w];
+    if (/ie$/.test(w)) return w.slice(0, -2) + "ying";
+    if (/[^aeiouy]e$/.test(w) && w !== "be") return w.slice(0, -1) + "ing";
+    if (/^[^aeiou]*[aeiou][^aeiouwxy]$/.test(w)) return w + w.slice(-1) + "ing";
+    return w + "ing";
+  }
+  function aOrAn(word) { return /^[aeiou]/i.test(word) && !/^(uni|use|one)/i.test(word) ? "an" : "a"; }
+  function isVerb(w) { return w && w.type === "verb"; }
+  function isName(w) { var k = labelKey(w); return !!NAMES[k] || (w && w.type === "people" && /^[A-Z]/.test(w.label)); }
+  /* Returns { pre: "joining words", text: "word as said" } for a chosen fringe word. */
+  function joinPick(step, w) {
+    var k = labelKey(w), np = step.np || "bare";
+    if (isVerb(w)) {
+      if (step.verb === "to") return { pre: "to", text: k };
+      return { pre: "", text: k };
+    }
+    if (np === "go") {
+      if (GO_BARE[k]) return { pre: "", text: k };
+      if (RIDE_IN[k]) return { pre: "in the", text: k };
+      if (RIDE_ON[k]) return { pre: "on the", text: k };
+      if (GO_TO[k]) return { pre: "to", text: k };
+      return { pre: "to the", text: k };
+    }
+    if (isName(w) || np === "bare") return { pre: "", text: k };
+    if (MY_PEOPLE[k] && w.type === "people" && np !== "more" && np !== "plural") return { pre: "my", text: k };
+    if (np === "the") return { pre: "the", text: k };
+    if (isMass(w) || ALREADY_PLURAL[k]) return { pre: "", text: k };
+    if (np === "more" || np === "plural") return { pre: "", text: plural(k, true) };
+    return { pre: aOrAn(k), text: k };   // np "a"
+  }
+  /* The sentence for the picks so far. parts[i] = { pre, text } for each step i that has a pick
+     (an -ing ending changes the word before it). text = the full sentence, capitalized,
+     with a final mark once every required step is done. */
+  function sentence(pattern, picks) {
+    var parts = [], last = -1, done = true;
+    (pattern.steps || []).forEach(function (step, i) {
+      var w = picks && picks[i];
+      if (!w) { if (!step.optional) done = false; return; }
+      if (w.ending) {
+        if (last >= 0 && w.ending === "ing") { parts[last].text = ing(parts[last].text); parts[last].inflected = "ing"; }
+        parts[i] = { pre: "", text: "", ending: true };
+        return;
+      }
+      var p = step.fringe || step.fringeBy ? joinPick(step, w) : { pre: "", text: String(w.label).replace(/\?$/, "") };
+      if (p.text !== String(w.label) && p.text !== labelKey(w)) p.changed = true;
+      if (step.comma && last >= 0) parts[last].comma = true;
+      parts[i] = p; last = i;
+    });
+    // "Where is the ball?" / "Where are the shoes?": an agree step follows the last word's number.
+    (pattern.steps || []).forEach(function (step, i) {
+      if (!step.agree || !parts[i]) return;
+      var lastPick = picks[last], lp = parts[last];
+      if (last > i && lastPick && isPluralWord(lastPick, lp.text) && parts[i].text === "is") { parts[i].text = "are"; parts[i].changed = true; }
+    });
+    var words = [];
+    parts.forEach(function (p) { if (!p || p.ending) return; words.push((p.pre ? p.pre + " " : "") + p.text + (p.comma ? "," : "")); });
+    var text = words.join(" ");
+    if (text) text = text.charAt(0).toUpperCase() + text.slice(1);
+    text = text.replace(/\bi\b/g, "I").replace(/\bi'm\b/g, "I'm");
+    if (text && done) text += pattern.punct || ".";
+    return { parts: parts, text: text, done: done };
+  }
+
+  /* The words that go to the Words bar and the voice, one entry per board token.
+     pre: a joining word added for her; word: the tapped board word (null for pre);
+     text: what is shown; changed: text differs from the board label (so its recorded
+     voice clip can't be used). The first word gets a capital (opts.capital !== false)
+     and the last gets the sentence's final mark once it is done. */
+  function utterance(pattern, picks, opts) {
+    opts = opts || {};
+    var s = sentence(pattern, picks), out = [];
+    (pattern.steps || []).forEach(function (step, i) {
+      var w = picks && picks[i], part = s.parts[i];
+      if (!w || !part || part.ending) return;
+      if (part.pre) part.pre.split(" ").forEach(function (x) { out.push({ text: x, pre: true, word: null, step: i }); });
+      var plain = String(w.label).replace(/\?$/, "");
+      var text = part.text, changed = text.toLowerCase() !== String(w.label).toLowerCase();
+      if (/^i\b/i.test(plain) && !changed) text = plain;
+      out.push({ text: text, pre: false, word: w, step: i, changed: changed, inflected: part.inflected || null, punct: part.comma ? "," : "" });
+    });
+    if (out.length && opts.capital !== false) {
+      var f = out[0];
+      var cap = f.text.charAt(0).toUpperCase() + f.text.slice(1);
+      if (cap !== f.text) { f.text = cap; f.capitalized = true; }
+    }
+    if (s.done && out.length) out[out.length - 1].punct = pattern.punct || ".";
+    return { tokens: out, text: s.text, done: s.done };
+  }
 
   function labelKey(w) { return String(w && w.label || "").toLowerCase(); }
   function fitzClass(w) { return w && FITZ[w.type] ? "t-" + w.type : ""; }
@@ -6023,8 +6352,19 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     return PATTERNS.filter(function (p) {
       if (p.minLevel > cap) return false;
       if (ctx.hideHiddenStem !== false && stemsHidden(p, ctx)) return false;
-      return true;
+      return completable(p, ctx);
     });
+  }
+  /* A pattern only shows when she can finish it: every required step has at least one
+     choice at this level with these hidden words (no "I like stand" with no -ing to tap). */
+  function completable(p, ctx) {
+    for (var i = 0; i < p.steps.length; i++) {
+      var st = p.steps[i];
+      if (st.optional) continue;
+      if (st.fringeBy) continue;            // checked through the step before it (see choices)
+      if (!choices(p, i, ctx, []).length) return false;
+    }
+    return true;
   }
   function matchesPool(w, pool) {
     if (pool.any) {
@@ -6032,6 +6372,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       return false;
     }
     if (pool.page && w.page !== pool.page) return false;
+    if (pool.not && pool.not.indexOf(labelKey(w)) >= 0) return false;
     if (pool.types && pool.types.indexOf(w.type) < 0) return false;
     if (pool.labels) {
       var lab = labelKey(w), ok = false;
@@ -6113,17 +6454,34 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     order.forEach(function (k) { if (byKind[k]) out.push(byKind[k]); });
     return out;
   }
-  function choices(pattern, stepIndex, ctx) {
+  function choices(pattern, stepIndex, ctx, picks) {
     var step = pattern && pattern.steps && pattern.steps[stepIndex];
     if (!step) return [];
+    if (step.fringeBy) {
+      var prev = picks && picks[stepIndex - 1], key = prev ? labelKey(prev) : "";
+      var spec = step.fringeBy[key] || step.fringeBy[Object.keys(step.fringeBy)[0]];
+      return pickFringe(spec, ctx, pattern);
+    }
     if (step.words) {
       var multi = step.words.length > 1, out = [];
       step.words.forEach(function (lab) {
         var w = lookup(lab, ctx);
         if (!w || w._pathOnly) return;
         if (multi && ctx.hidden && ctx.hidden(w)) return;
+        // Two words with the same picture can't be told apart in picture-only; a step can
+        // give one its own picture here (Paths only; the main board is untouched).
+        if (step.emoji && step.emoji[lab] && !w.image && w.emoji !== step.emoji[lab]) {
+          var copy = {}; for (var k in w) copy[k] = w[k]; copy.emoji = step.emoji[lab]; w = copy;
+        }
         out.push(w);
       });
+      var next = pattern.steps[stepIndex + 1];
+      if (next && next.fringeBy) {
+        out = out.filter(function (w) {
+          var spec = next.fringeBy[labelKey(w)];
+          return !spec || pickFringe(spec, ctx, pattern).length > 0;
+        });
+      }
       return out;
     }
     if (step.endings) return endingChoices(step, ctx);
@@ -6137,7 +6495,14 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     choices: choices,
     lookup: lookup,
     fitzClass: fitzClass,
-    byId: byId
+    byId: byId,
+    groups: GROUPS,
+    sentence: sentence,
+    utterance: utterance,
+    completable: completable,
+    joinPick: joinPick,
+    plural: plural,
+    ing: ing
   };
 })(typeof self !== "undefined" ? self : globalThis);
 
@@ -6147,13 +6512,17 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
    (words.js, stories.js). Paths (paths.js) practices short phrases from those
    words. 1.5.2 adds question, protest, and sentence frames plus path settings.
+   1.5.3 adds approximate age labels on levels, a starting-level prompt, and Share / Send feedback
+   in parent settings only (no accounts, no analytics, nothing sent unless the parent sends it).
    The stories tab is not on the tab bar; story code and media stay.
    Family-only content comes from an optional private overlay
    (private/overlay.js, private copy only). Photos/recordings added on the device, or an
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.2";
+  var APP_VERSION = "1.5.3";
+  var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
+  var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
@@ -6169,7 +6538,16 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     pathsShowTab: true,      // Paths tab on the tab bar. Off keeps the empty slot so home / abc do not move.
     pathsToWords: true,      // → words copies a finished phrase. Off leaves the button in place and inert.
     pathsMaxChoices: 6,      // open-slot fringe length (2, 3, 4, or 6). Fixed pairs are not cut down.
-    pathsPreferRecent: true  // among non-preferred fringe words, float ones from the on-device usage log
+    pathsPreferRecent: true, // among non-preferred fringe words, float ones from the on-device usage log
+    /* 1.5.3 look + access (defaults keep the board looking as before) */
+    clearMode: "hold",       // tap | hold (hold ~0.8 s; a short "undo clear" follows) | hide
+    showMode: "",            // "" = follow showPictures (both / text); "both" | "pic" | "text"
+    holdMs: 0,               // a press must last this long before it counts (0 = off: tap on release)
+    spacing: "normal",       // normal | more
+    contrast: "normal",      // normal | high
+    textSize: "normal",      // normal | large | larger
+    boardColor: "dark",      // dark | light | blue
+    bigButtons: false        // "Starter (big buttons)": same words and order, empty rows/columns closed up
   };
   var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
@@ -6419,6 +6797,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     config.words.forEach(function (w) { if (w.page === "home" && w.type !== "folder" && cellMap.home && cellMap.home[w.row + "," + w.col] === w) n[wordLevel(w)]++; });
     return n;
   }
+  function pickLevel(v) {
+    settings.bigButtons = v === "starter-big"; saveSettings();
+    setWordsShown(v === "starter-big" ? "starter" : v); syncSettingsUI(); renderVisibility();
+  }
   function labelLevelOptions() {
     var sel = $("set-wordsshown"); if (!sel) return;
     var n = homeCountsByLevel(), cum = 0, total = 0, opts = [];
@@ -6426,10 +6808,11 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     LEVEL_LIST.forEach(function (l) {
       if (l.n >= MAX_LEVEL) return;
       cum = 0; for (var i = 1; i <= l.n; i++) cum += n[i];
-      opts.push([l.id, l.label + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
+      if (l.n === 1) opts.push(["starter-big", l.label + " (big buttons)" + (l.age ? " (" + l.age + ")" : "") + ": same " + cum + " words, same order, bigger"]);
+      opts.splice(l.n === 1 ? opts.length - 1 : opts.length, 0, [l.id, l.label + (l.age ? " (" + l.age + ")" : "") + ": " + (l.n === 1 ? "the " + cum + " most-used home words" : cum + " home words") + (l.hint ? " (" + l.hint + ")" : "")]);
     });
     var top = LEVEL_BY_N[MAX_LEVEL];
-    opts.push(["full", "Full: every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
+    opts.push(["full", "Full" + (top && top.age ? " (" + top.age + ")" : "") + ": every word" + (top && top.n > 3 ? ", all levels up to " + top.label : "") + " (" + total + " on home)"]);
     opts.push(["custom", "Custom: tap words below to show / hide"]);
     sel.textContent = "";
     opts.forEach(function (o) { var e = el("option", null, o[1]); e.value = o[0]; sel.appendChild(e); });
@@ -6570,12 +6953,14 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
 
   /* ------------------------------------------------------------ talker */
   var seq = 0, hlFn = null;
-  function stopAll() { seq++; Speech.stop(); Clips.stop(); if (hlFn) hlFn(-1); }
+  function speakingOn(on) { document.body.classList.toggle("speaking", !!on); var s = $("btn-speak"); if (s) { var t = s.querySelector(".txt"); if (t) t.textContent = on ? "speaking" : "speak"; } }
+  function stopAll() { seq++; Speech.stop(); Clips.stop(); if (hlFn) hlFn(-1); speakingOn(false); }
   /* tokens [{text, say, audio}], idx[i] = highlight index, opts {hl: fn, each: speak word by word} */
   function talk(tokens, idx, opts) {
     opts = opts || {};
     stopAll();
     var my = seq, hl = opts.hl || highlightMsg; hlFn = hl;
+    speakingOn(true);
     Clips.unlock();
     if (tokens.some(function (t) { return hasClip(t.audio); })) Speech.unlock();
     var segs = [];
@@ -6591,7 +6976,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     });
     function next(k) {
       if (my !== seq) return;
-      if (k >= segs.length) { hl(-1); return; }
+      if (k >= segs.length) { hl(-1); speakingOn(false); return; }
       var sg = segs[k];
       if (sg.audio) {
         hl(sg.idx);
@@ -6622,7 +7007,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   }
   function renderMsg() {
     var m = $("msg"); m.textContent = "";
-    msg.tokens.forEach(function (t) { m.appendChild(el("span", "tok", (t.typed ? caseTyped(t.text) : caseWord(t.text)) + (t.punct || ""))); });
+    msg.tokens.forEach(function (t, i) { m.appendChild(el("span", "tok" + (i === msg.tokens.length - 1 && msg.fresh ? " fresh" : ""), (t.typed ? caseTyped(t.text) : caseWord(t.text)) + (t.punct || ""))); });
     if (state.view === "keyboard" || msg.buf) {
       var b = el("span", "buf", msg.buf ? caseTyped(msg.buf) : "");
       if (state.view === "keyboard") b.appendChild(el("span", "caret"));
@@ -6642,7 +7027,8 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   function addWord(w) {
     commitBuf(false);
     var t = tokenFromWord(w);
-    msg.tokens.push(t); logUse(w.label); renderMsg();
+    msg.tokens.push(t); logUse(w.label); msg.fresh = true; renderMsg();
+    clearTimeout(msg.freshT); msg.freshT = setTimeout(function () { msg.fresh = false; var f = $("msg").querySelector(".tok.fresh"); if (f) f.classList.remove("fresh"); }, 1500);
     talk([t], [msg.tokens.length - 1]);
   }
   function speakMessage() {
@@ -6721,7 +7107,25 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     } else { if (msg.buf) msg.buf = ""; else msg.tokens.pop(); }
     renderMsg(); renderPreds();
   }
-  function clearMsg() { stopAll(); msg.tokens = []; msg.buf = ""; renderMsg(); renderPreds(); }
+  var undoClear = null;
+  function clearMsg() {
+    stopAll();
+    if (undoClear) {   // second tap within the undo window brings the message back
+      msg.tokens = undoClear.tokens; msg.buf = undoClear.buf; undoClear = null; clearLabel(); renderMsg(); renderPreds(); return;
+    }
+    if (!msg.tokens.length && !msg.buf) return;
+    undoClear = { tokens: msg.tokens, buf: msg.buf, t: setTimeout(function () { undoClear = null; clearLabel(); }, 5000) };
+    msg.tokens = []; msg.buf = ""; clearLabel(); renderMsg(); renderPreds();
+  }
+  function clearLabel() {
+    var b = $("btn-clear"); if (!b) return;
+    b.querySelector(".txt").textContent = undoClear ? "undo clear" : "clear";
+    b.querySelector(".ico").textContent = undoClear ? "↶" : "✖";
+    b.setAttribute("aria-label", undoClear ? "Undo clear" : "Clear message");
+    b.classList.toggle("undo", !!undoClear);
+  }
+  /* Clear needs a hold (unless a parent set it to tap); undo clear is always a plain tap. */
+  function clearHoldMs() { return settings.clearMode === "hold" && !undoClear ? 800 : 0; }
 
   /* ------------------------------------------------------------ usage log (opt-in, local only) */
   function logUse(word) {
@@ -6749,23 +7153,25 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
   var PRESS_SLOP = 28;
   function onTap(node, key, fn, opts) {
     opts = opts || {};
-    var pid = null, upAt = 0;
+    var pid = null, upAt = 0, downAt = 0, readyT = null;
+    function needMs() { var a = opts.holdMs ? opts.holdMs() : 0; return Math.max(a, +settings.holdMs || 0); }
     function fire(e) { if (node.disabled || !guard(key)) return; Clips.unlock(); fn(e); }
     function near(e) {
       var r = node.getBoundingClientRect();
       return e.clientX >= r.left - PRESS_SLOP && e.clientX <= r.right + PRESS_SLOP &&
              e.clientY >= r.top - PRESS_SLOP && e.clientY <= r.bottom + PRESS_SLOP;
     }
-    function end() { pid = null; upAt = Date.now(); node.classList.remove("pressed"); }
+    function end() { pid = null; upAt = Date.now(); clearTimeout(readyT); node.classList.remove("pressed"); node.classList.remove("ready"); }
     node.style.touchAction = opts.scroll ? "pan-y" : "none";
     node.addEventListener("pointerdown", function (e) {
       if (node.disabled || pid !== null || (e.pointerType === "mouse" && e.button !== 0)) return;
-      pid = e.pointerId; node.classList.add("pressed");
+      pid = e.pointerId; node.classList.add("pressed"); downAt = Date.now();
+      var ms = needMs(); if (ms) readyT = setTimeout(function () { node.classList.add("ready"); }, ms);
       if (!opts.scroll && node.setPointerCapture) { try { node.setPointerCapture(pid); } catch (x) { /* ignore */ } }
     });
     node.addEventListener("pointerup", function (e) {
       if (e.pointerId !== pid) return;
-      var ok = near(e); end();
+      var ok = near(e) && Date.now() - downAt >= needMs(); end();
       if (ok) { e.preventDefault(); lifted = { node: node, t: Date.now() }; fire(e); }
     });
     node.addEventListener("pointercancel", function (e) { if (e.pointerId === pid) end(); });
@@ -6810,21 +7216,42 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     renderMsg();
     fitLabels(board);
   }
+  function bigOn() { return !!settings.bigButtons && wordsShownMode() === "starter"; }
   function renderPage(board, p) {
-    var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : ""));
-    g.style.gridTemplateColumns = "repeat(" + p.cols + ", 1fr)";
-    g.style.gridTemplateRows = "repeat(" + p.rows + ", 1fr)";
-    for (var r = 1; r <= p.rows; r++) for (var c = 1; c <= p.cols; c++) {
+    var big = bigOn() && p.id === "home";
+    var g = el("div", "grid" + (wordsShownMode() !== "full" ? " masking" : "") + (big ? " big" : ""));
+    /* Big buttons: rows and columns with nothing shown close up, so every button grows but
+       keeps its order and its place relative to the others. */
+    var rowMap = {}, colMap = {}, nr = 0, nc = 0, r, c;
+    for (r = 1; r <= p.rows; r++) { var anyR = !big; for (c = 1; c <= p.cols && !anyR; c++) anyR = isShown(cellMap[p.id][r + "," + c], p.id); if (anyR) rowMap[r] = ++nr; }
+    for (c = 1; c <= p.cols; c++) { var anyC = !big; for (r = 1; r <= p.rows && !anyC; r++) anyC = isShown(cellMap[p.id][r + "," + c], p.id); if (anyC) colMap[c] = ++nc; }
+    g.style.gridTemplateColumns = "repeat(" + nc + ", 1fr)";
+    if (big) {   // a row holding only folders gets shorter, so the word buttons get the room
+      var tr = [];
+      for (r = 1; r <= p.rows; r++) if (rowMap[r]) {
+        var words = false; for (c = 1; c <= p.cols; c++) { var x = cellMap[p.id][r + "," + c]; if (isShown(x, p.id) && x.type !== "folder") words = true; }
+        tr.push(words ? "minmax(0, 1fr)" : "minmax(0, 0.55fr)");
+      }
+      g.style.gridTemplateRows = tr.join(" ");
+    } else g.style.gridTemplateRows = "repeat(" + nr + ", 1fr)";
+    for (r = 1; r <= p.rows; r++) for (c = 1; c <= p.cols; c++) {
+      if (!rowMap[r] || !colMap[c]) continue;
       var w = cellMap[p.id][r + "," + c], cell;
       if (!isShown(w, p.id)) { cell = el("div", "cell blank" + (w ? " masked" : "")); cell.setAttribute("aria-hidden", "true"); }
       else cell = wordButton(w);
-      cell.style.gridRow = r; cell.style.gridColumn = c;
+      cell.style.gridRow = rowMap[r]; cell.style.gridColumn = colMap[c];
       g.appendChild(cell);
     }
     board.appendChild(g);
   }
+  /* Visual feedback: the tapped button gets a short ring; the newest word in the bar is marked. */
+  function flashTapped(b) {
+    b.classList.add("just");
+    setTimeout(function () { b.classList.remove("just"); }, 700);
+  }
+  function showMode() { return settings.showMode || (settings.showPictures ? "both" : "text"); }
   function picFor(item) {
-    if (!settings.showPictures) return null;
+    if (showMode() === "text") return null;
     var url = item.image && mediaURL(item.image);
     if (url) { var img = el("img", "pic"); img.src = url; img.alt = ""; img.draggable = false; return img; }
     if (item.emoji) return el("span", "emo", item.emoji);
@@ -6835,8 +7262,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     var pic = picFor(w);
     if (pic) b.appendChild(pic); else b.classList.add("nopic");
     b.appendChild(el("span", "lbl", caseWord(w.label)));
+    if (pic && showMode() === "pic") b.classList.add("piconly");
     b.setAttribute("aria-label", w.label + (w.type === "folder" ? " folder" : ""));
     onTap(b, "w:" + w.id, function () {
+      flashTapped(b);
       if (w.type === "folder") { stopAll(); state.page = w.target; render(); return; }
       if (w.ending) { applyEnding(w); return; }
       addWord(w);
@@ -6982,42 +7411,43 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     for (var i = 0; i < pat.steps.length; i++) if (!pat.steps[i].optional && !state.pathPicks[i]) return false;
     return true;
   }
+  /* The sentence comes from AAC_PATHS.sentence: it adds the small joining words
+     ("a", "the", "to") and endings, so every finished path is a correct sentence. */
+  function pathSentence(pat) { return window.AAC_PATHS.sentence(pat, state.pathPicks); }
   function pathUtterance() {
     var pat = pathById(state.pathId);
     if (!pat) return null;
+    // A Paths sentence starts with a capital in the Words bar and the voice, unless the
+    // parent chose lowercase or ALL CAPS for words (then the board's own case rule wins).
+    var wc = settings.wordCase;
+    var u = window.AAC_PATHS.utterance(pat, state.pathPicks, { capital: wc !== "lower" && wc !== "upper" });
     var tokens = [], idx = [];
-    pat.steps.forEach(function (step, i) {
-      var w = state.pathPicks[i];
-      if (!w) return;
-      if (w.ending) {
-        var prev = tokens[tokens.length - 1];
-        var out = prev && !/\s/.test(prev.text) ? inflect(prev.text, w.ending) : null;
-        if (prev && out) {
-          var base = String(prev.text || "").toLowerCase();
-          prev.text = out;
-          prev.say = SAY_INFLECTED[base + "@" + w.ending] || null;
-          prev.sayAlone = null;
-          prev.audio = null;
-          prev.inflected = w.ending;
+    u.tokens.forEach(function (x) {
+      var t;
+      if (x.pre) t = { text: x.text, say: null, audio: null, id: null, typed: false, auto: true };
+      else {
+        var w = x.word;
+        t = tokenFromWord(w);
+        t.text = x.text;
+        if (x.changed) {
+          if (x.inflected === "ing") { t.say = SAY_INFLECTED[String(w.label).toLowerCase() + "@ing"] || null; t.inflected = "ing"; }
+          else t.say = null;
+          t.sayAlone = null; t.audio = null;
         }
-        return;
       }
-      tokens.push(tokenFromWord(w));
-      idx.push(i);
+      if (x.punct) t.punct = x.punct;
+      tokens.push(t); idx.push(x.step);
     });
-    if (pat.punct && tokens.length) tokens[tokens.length - 1].punct = pat.punct;
-    return { tokens: tokens, idx: idx };
+    return { tokens: tokens, idx: idx, text: u.text, done: u.done };
   }
   function pathFace(pat, i) {
+    var part = pathSentence(pat).parts[i];
+    if (!part || part.ending) return "";
     var w = state.pathPicks[i];
-    if (!w) return "";
-    var nxt = state.pathPicks[i + 1];
-    if (nxt && nxt.ending && !w.ending) {
-      var out = inflect(w.label, nxt.ending);
-      if (out) return out;
-    }
-    return w.label;
+    var t = part.text;
+    return w && /^I\b/.test(w.label) ? w.label : t;
   }
+  function pathPre(pat, i) { var part = pathSentence(pat).parts[i]; return part && part.pre || ""; }
   function pathHl(i) {
     if (!settings.highlight) i = -1;
     var nodes = document.querySelectorAll("[data-path-i]");
@@ -7028,7 +7458,13 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     if (!u || !u.tokens.length) return;
     talk(u.tokens, u.idx, { hl: pathHl });
   }
+  /* A quick second tap lands on the NEW button in the same spot (a different key, so the
+     per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
+  var pathLockUntil = 0;
+  function pathLocked() { return Date.now() < pathLockUntil; }
   function choosePath(pat, w) {
+    if (pathLocked()) return;
+    pathLockUntil = Date.now() + 220;
     var i = state.pathStep;
     if (!pat || i < 0 || i >= pat.steps.length || !w) return;
     stopAll();
@@ -7044,13 +7480,14 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     var speakEach = settings.pathsSpeakEach !== false;
     var finished = state.pathStep >= pat.steps.length;
     render();
+    // Finished: say the whole sentence once, calmly (it includes the word just tapped).
+    if (finished) { speakPath(); return; }
     if (speakEach) {
-      if (w.ending) {
-        var u1 = pathUtterance();
-        var tok = u1 && u1.tokens.length ? u1.tokens[u1.tokens.length - 1] : tokenFromWord(w);
-        talk([tok], [Math.max(0, i - 1)], { hl: pathHl });
-      } else talk([tokenFromWord(w)], [i], { hl: pathHl });
-    } else if (finished) speakPath();
+      var u1 = pathUtterance(), toks = [], ids = [];
+      if (u1) u1.tokens.forEach(function (t, k) { if (u1.idx[k] === (w.ending ? i - 1 : i)) { toks.push(t); ids.push(u1.idx[k]); } });
+      if (!toks.length) { toks = [tokenFromWord(w)]; ids = [i]; }
+      talk(toks, ids, { hl: pathHl });
+    }
   }
   function pathBack() {
     stopAll();
@@ -7059,6 +7496,17 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     state.pathPicks[i] = null;
     state.pathStep = i;
     render();
+  }
+  /* "Make another" keeps the frame she already built ("I want") and goes straight back to
+     the first step that has a real choice, so a second sentence is one or two taps. */
+  function pathAgain() {
+    stopAll();
+    var pat = pathById(state.pathId), keep = 0;
+    if (pat) {
+      var c = pathContext();
+      while (keep < pat.steps.length - 1 && window.AAC_PATHS.choices(pat, keep, c, state.pathPicks).length <= 1) keep++;
+    }
+    state.pathPicks = state.pathPicks.slice(0, keep); state.pathStep = keep; render();
   }
   function pathHome() {
     stopAll();
@@ -7069,6 +7517,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     var u = pathUtterance();
     if (settings.pathsToWords === false) return;
     if (!pat || !u || !u.tokens.length || !pathRequiredDone(pat)) return;
+    u.tokens.forEach(function (t) { delete t.auto; });
     stopAll();
     msg.tokens = u.tokens;
     msg.buf = "";
@@ -7096,8 +7545,15 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     var canSend = !!(pat && pathRequiredDone(pat) && settings.pathsToWords !== false);
     bar.appendChild(btn("back", "← undo", "undo last word", "path:back", pathBack, !canUndo));
     bar.appendChild(btn("home", "all patterns", "show all patterns", "path:home", pathHome, !pat));
-    bar.appendChild(btn("say", "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
+    var finishedNow = !!(pat && pathRequiredDone(pat) && state.pathStep >= pat.steps.length);
+    bar.appendChild(btn("say", finishedNow ? "say again" : "say whole", "say whole phrase", "path:say", speakPath, !pat || !pathHasPick()));
     bar.appendChild(btn("to-words", "→ words", "copy phrase to Words", "path:words", sendPathToWords, !canSend));
+    // Once the sentence is made, "say again" and "→ Words" move up into the finished view;
+    // their bar spots stay empty (not reflowed) so undo / all patterns never move.
+    if (finishedNow) {
+      bar.classList.add("finished");
+      [].forEach.call(bar.querySelectorAll(".say, .to-words"), function (b) { b.disabled = true; b.setAttribute("aria-hidden", "true"); b.tabIndex = -1; });
+    }
     return bar;
   }
   function renderPathMenu(mid, patterns, ctx) {
@@ -7108,6 +7564,12 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       return;
     }
     layoutPathMenu(list, patterns.length);
+    var gIndex = {}, gLabel = {};
+    (window.AAC_PATHS.groups || []).forEach(function (g, i) { gIndex[g.id] = i; gLabel[g.id] = g.label; });
+    patterns = patterns.slice().sort(function (x, y) {
+      var gx = gIndex[x.group] == null ? 99 : gIndex[x.group], gy = gIndex[y.group] == null ? 99 : gIndex[y.group];
+      return gx - gy || window.AAC_PATHS.patterns.indexOf(x) - window.AAC_PATHS.patterns.indexOf(y);
+    });
     patterns.forEach(function (p) {
       var stem = window.AAC_PATHS.lookup(p.stems[0], ctx);
       var b = el("button", "cell btn path-card" + (stem && window.AAC_PATHS.fitzClass(stem) ? " " + window.AAC_PATHS.fitzClass(stem) : ""));
@@ -7115,8 +7577,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       b.setAttribute("data-pattern", p.id);
       b.style.setProperty("--ptlen", String(Math.max(8, p.title.length)));
       b.style.setProperty("--pflen", String(Math.max(8, p.frame.length)));
-      var pic = stem && picFor(stem);
+      var pic = p.emoji && showMode() !== "text" ? el("span", "emo", p.emoji) : stem && picFor(stem);
+      b.setAttribute("aria-label", p.title.replace(/…/g, "blank").replace(/\s*\/\s*/g, " or "));
       if (pic) b.appendChild(pic); else b.classList.add("nopic");
+      if (p.group && gLabel[p.group]) b.appendChild(el("span", "path-group", gLabel[p.group]));
       b.appendChild(el("span", "path-title", p.title));
       b.appendChild(el("span", "path-frame", p.frame));
       b.setAttribute("aria-label", p.title + ". " + p.frame);
@@ -7128,37 +7592,62 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     });
   }
   function renderPathPlay(phrase, mid, pat, ctx) {
+    var picOnly = showMode() === "pic";
     pat.steps.forEach(function (step, i) {
       var w = state.pathPicks[i];
+      if (w && w.ending) return;   // an ending joins the word before it ("eat" → "eating")
+      if (!w && step.endings && i > 0 && state.pathPicks[i - 1]) return;
       var slot = el("div", "path-slot" + (w ? " filled" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") : " empty"));
       slot.setAttribute("data-path-i", String(i));
-      if (i === state.pathStep) slot.classList.add("now");
-      if (w && settings.showPictures && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
-      slot.appendChild(el("span", "path-lab", w ? caseWord(pathFace(pat, i)) : "—"));
+      if (i === state.pathStep) { slot.classList.add("now"); slot.setAttribute("aria-current", "step"); }
+      if (w && showMode() !== "text" && w.emoji) slot.appendChild(el("span", "path-emo", w.emoji));
+      var pre = w ? pathPre(pat, i) : "";
+      var lab = el("span", "path-lab");
+      if (pre) lab.appendChild(el("span", "path-pre", caseWord(pre) + " "));
+      lab.appendChild(document.createTextNode(w ? caseWord(pathFace(pat, i)) : "?"));
+      slot.appendChild(lab);
+      slot.setAttribute("aria-label", w ? (pre ? pre + " " : "") + pathFace(pat, i) : "next word");
       phrase.appendChild(slot);
     });
-    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx);
+    var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks);
     var stepNow = pat.steps[state.pathStep];
     if (state.pathStep >= pat.steps.length || (stepNow && stepNow.optional && !choices.length)) {
-      var done = el("div", "path-done"), n = 0;
-      pat.steps.forEach(function (step, i) { if (state.pathPicks[i]) n++; });
-      done.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 3)) + ", minmax(0, 1fr))";
-      if (n > 3) done.style.gridTemplateRows = "repeat(" + Math.ceil(n / 3) + ", minmax(0, 1fr))";
+      var u = pathUtterance();
+      var done = el("div", "path-finish");
+      var line = el("div", "path-sentence", u ? u.text : "");
+      line.setAttribute("aria-live", "polite");
+      done.appendChild(el("div", "path-made", "You made a sentence."));
+      done.appendChild(line);
+      var tiles = el("div", "path-done"), n = 0;
       pat.steps.forEach(function (step, i) {
         var w = state.pathPicks[i];
-        if (!w) return;
-        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : ""));
+        if (!w || w.ending) return;
+        n++;
+        var tile = el("div", "cell btn" + (window.AAC_PATHS.fitzClass(w) ? " " + window.AAC_PATHS.fitzClass(w) : "") + (picOnly ? " piconly" : ""));
         tile.setAttribute("data-path-i", String(i));
         var pic = picFor(w);
-        if (pic) tile.appendChild(pic); else tile.classList.add("nopic");
+        if (pic) tile.appendChild(pic); else { tile.classList.add("nopic"); tile.classList.remove("piconly"); }
         tile.appendChild(el("span", "lbl", caseWord(pathFace(pat, i))));
-        done.appendChild(tile);
+        tiles.appendChild(tile);
       });
+      tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
+      done.appendChild(tiles);
+      // The three next steps sit right under the sentence, big and in a fixed order.
+      var acts = el("div", "path-acts");
+      function act(cls, text, label, key, fn) {
+        var b = el("button", "path-act " + cls, text); b.type = "button";
+        b.setAttribute("aria-label", label); onTap(b, key, fn); acts.appendChild(b); return b;
+      }
+      act("say", "🔊 say again", "say the sentence again", "path:done-say", speakPath);
+      act("path-again", "↻ another", "make another sentence like this", "path:again", pathAgain);
+      if (settings.pathsToWords !== false) act("to-words", "→ Words", "put the sentence in Words", "path:done-words", sendPathToWords);
+      acts.style.gridTemplateColumns = "repeat(" + acts.children.length + ", minmax(0, 1fr))";
+      done.appendChild(acts);
       mid.appendChild(done);
       return;
     }
     if (!choices.length) {
-      mid.appendChild(el("p", "note-dark", "No words for this step at the current level."));
+      mid.appendChild(el("p", "note-dark", "No words for this step at the current level. Tap ← undo or all patterns."));
       return;
     }
     var grid = el("div", "path-choices");
@@ -7172,10 +7661,11 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       b.type = "button";
       b.setAttribute("data-choice", w.label);
       var pic = picFor(w);
-      if (pic) b.appendChild(pic); else b.classList.add("nopic");
-      b.appendChild(el("span", "lbl", caseWord(w.label)));
+      if (pic) { b.appendChild(pic); if (picOnly) b.classList.add("piconly"); } else b.classList.add("nopic");
+      var shown = w.ending ? "-" + w.ending : w.label;
+      b.appendChild(el("span", "lbl", caseWord(shown)));
       b.setAttribute("aria-label", w.label);
-      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { choosePath(pat, w); });
+      onTap(b, "path:" + state.pathStep + ":" + (w.id || w.label), function () { if (pathLocked()) return; flashTapped(b); choosePath(pat, w); });
       grid.appendChild(b);
     });
     mid.appendChild(grid);
@@ -7197,6 +7687,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     // menu would then sit in the auto row and collapse to one thin strip.
     if (!pat) wrap.style.gridTemplateRows = "minmax(0, 1fr) auto";
     var phrase = pat ? el("div", "path-phrase") : null;
+    if (phrase) { phrase.setAttribute("role", "group"); phrase.setAttribute("aria-label", "sentence so far"); }
     if (phrase) wrap.appendChild(phrase);
     wrap.appendChild(mid);
     wrap.appendChild(pathChrome(pat));
@@ -7380,15 +7871,18 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     sel.value = settings.voiceURI && vs.some(function (v) { return v.voiceURI === settings.voiceURI; }) ? settings.voiceURI : "";
     var note = $("voice-note");
     if (!Speech.synth) note.textContent = "This browser has no speech synthesis. Recorded clips still play.";
-    else if (!Speech.voices.length) note.textContent = "No voices reported yet. On iPad they can take a moment to load; speech still uses the default en-US voice. For better voices: iPad Settings → Accessibility → Spoken Content → Voices → English → download an Enhanced or Premium voice, then reopen this app.";
-    else note.textContent = Speech.voices.length + " voices on this device. For a more natural voice, download an Enhanced/Premium voice in iPad Settings → Accessibility → Spoken Content → Voices. Siri voices are not available to web apps.";
+    else if (!Speech.voices.length) note.textContent = "No voices listed yet (iPad can be slow); the default voice still works. Better voices: iPad Settings → Accessibility → Spoken Content → Voices.";
+    else note.textContent = Speech.voices.length + " voices. More natural ones: iPad Settings → Accessibility → Spoken Content → Voices (Enhanced).";
   }
   function syncSettingsUI() {
     $("set-rate").value = settings.rate; $("rate-val").textContent = (+settings.rate).toFixed(2);
     $("set-pitch").value = settings.pitch; $("pitch-val").textContent = (+settings.pitch).toFixed(2);
     $("set-volume").value = settings.volume; $("vol-val").textContent = Math.round(settings.volume * 100) + "%";
     $("set-wordcase").value = settings.wordCase; $("set-keycase").value = settings.keyCase; $("set-storymode").value = settings.storyMode;
-    $("set-pictures").checked = !!settings.showPictures; $("set-prediction").checked = !!settings.prediction;
+    $("set-showmode").value = showMode(); $("set-clearmode").value = settings.clearMode || "hold";
+    $("set-holdms").value = String(+settings.holdMs || 0); $("set-spacing").value = settings.spacing || "normal";
+    $("set-contrast").value = settings.contrast || "normal"; $("set-textsize").value = settings.textSize || "normal";
+    $("set-boardcolor").value = settings.boardColor || "dark"; $("set-prediction").checked = !!settings.prediction;
     $("set-sayletters").checked = !!settings.sayLetters; $("set-highlight").checked = !!settings.highlight;
     $("set-returnhome").checked = !!settings.returnHome; $("set-triple").checked = !!settings.gateTripleTap;
     $("set-log").checked = !!settings.logEnabled; $("set-allvoices").checked = !!settings.allVoices;
@@ -7400,10 +7894,11 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     $("set-pathstowords").checked = settings.pathsToWords !== false;
     $("set-pathsrecent").checked = settings.pathsPreferRecent !== false;
     $("set-pathsmax").value = String(pathMaxChoices());
-    labelLevelOptions(); $("set-wordsshown").value = wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
+    labelLevelOptions(); $("set-wordsshown").value = bigOn() ? "starter-big" : wordsShownMode(); $("set-levelfolders").checked = !!settings.levelInFolders;
     var hc = shownCount("home"), dm = config.wordsShown && LEVELS[config.wordsShown] ? config.wordsShown : "full";
     $("level-note").textContent = "Home shows " + hc[0] + " of " + hc[1] + " words. Hidden words leave their cell empty, so no button ever moves. " +
       (settings.wordsShown ? "Saved on this device; importing a pack keeps it." : "Not chosen yet, so this pack's default (" + dm + ") is used.");
+    $("level-start").hidden = !!settings.wordsShown;
     var sw = navigator.serviceWorker && navigator.serviceWorker.controller;
     $("about").textContent = "Word Board " + APP_VERSION + ". Offline copy: " + (sw ? "installed (works without Wi-Fi)" :
       location.protocol === "file:" ? "not available when opened as a file" :
@@ -7436,9 +7931,17 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       settings.pathsMaxChoices = n === 2 || n === 3 || n === 4 || n === 6 ? n : 6;
       saveSettings();
     });
-    $("set-wordsshown").addEventListener("change", function () { setWordsShown(this.value); syncSettingsUI(); renderVisibility(); });
+    $("set-wordsshown").addEventListener("change", function () { pickLevel(this.value); });
+    [["set-showmode", "showMode"], ["set-clearmode", "clearMode"], ["set-spacing", "spacing"], ["set-contrast", "contrast"], ["set-textsize", "textSize"], ["set-boardcolor", "boardColor"]].forEach(function (p) {
+      $(p[0]).addEventListener("change", function () { settings[p[1]] = this.value; if (p[1] === "showMode") settings.showPictures = this.value !== "text"; saveSettings(); applyLook(); renderVisibility(); });
+    });
+    $("set-holdms").addEventListener("change", function () { settings.holdMs = +this.value || 0; saveSettings(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#level-start [data-level]"), function (b) {
+      b.addEventListener("click", function () { pickLevel(b.getAttribute("data-level")); });
+    });
+    bindShare();
     $("set-levelfolders").addEventListener("change", function () { settings.levelInFolders = this.checked; saveSettings(); syncSettingsUI(); renderVisibility(); });
-    [["set-pictures", "showPictures"], ["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
+    [["set-prediction", "prediction"], ["set-sayletters", "sayLetters"], ["set-highlight", "highlight"],
      ["set-returnhome", "returnHome"], ["set-triple", "gateTripleTap"], ["set-log", "logEnabled"]].forEach(function (p) {
       $(p[0]).addEventListener("change", function () { settings[p[1]] = this.checked; saveSettings(); });
     });
@@ -7464,6 +7967,40 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
       saveFile("word-board-usage-" + today() + ".json", new Blob([JSON.stringify(readJSON(LS.log, []), null, 1)], { type: "application/json" }), false);
     });
     $("log-clear").addEventListener("click", function () { if (confirm("Delete the whole usage log on this device?")) { localStorage.removeItem(LS.log); showLog(); } });
+  }
+
+  /* ---------- look + access (body classes; nothing moves unless big buttons is chosen) ---------- */
+  function applyLook() {
+    var c = document.body.classList;
+    c.toggle("hc", settings.contrast === "high");
+    c.toggle("ts-large", settings.textSize === "large");
+    c.toggle("ts-larger", settings.textSize === "larger");
+    c.toggle("space-more", settings.spacing === "more");
+    c.toggle("bg-light", settings.boardColor === "light");
+    c.toggle("bg-blue", settings.boardColor === "blue");
+    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
+  }
+  /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
+  function shareMsg(t) { $("share-msg").textContent = t; }
+  function copyLink() {
+    function fallback() {
+      var i = $("share-url"); i.focus(); i.select();
+      try { document.execCommand("copy"); shareMsg("Link copied."); } catch (e) { shareMsg("Select the link above and copy it."); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(SHARE_URL).then(function () { shareMsg("Link copied."); }, fallback);
+    else fallback();
+  }
+  function bindShare() {
+    $("share-url").value = SHARE_URL;
+    $("share-btn").addEventListener("click", function () {
+      if (navigator.share) {
+        navigator.share({ title: "Word Board", text: "Word Board: a free talking word board for iPad. Open the link, then Share > Add to Home Screen.", url: SHARE_URL })
+          .then(function () { shareMsg(""); }, function () {});
+      } else copyLink();
+    });
+    $("share-copy").addEventListener("click", copyLink);
+    $("feedback-link").href = "mailto:" + FEEDBACK_EMAIL + "?subject=" + encodeURIComponent("Word Board feedback") +
+      "&body=" + encodeURIComponent("\n\n(Word Board " + APP_VERSION + ")");
   }
 
   /* ---------- personal pack import / export ---------- */
@@ -7708,8 +8245,10 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     Speech.init();
     onTap($("btn-speak"), "a:speak", speakMessage);
     onTap($("btn-del"), "a:del", del);
-    onTap($("btn-clear"), "a:clear", clearMsg);
-    onTap($("msg"), "a:msg", speakMessage, { scroll: true });   // the message bar scrolls when long
+    onTap($("btn-clear"), "a:clear", clearMsg, { holdMs: clearHoldMs });
+    applyLook();
+    onTap($("msg"), "a:msg", speakMessage, { scroll: true });
+    $("msg").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speakMessage(); } });   // the message bar scrolls when long
     onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
     onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
     onTap($("nav-paths"), "n:paths", function () {
@@ -7745,7 +8284,7 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
           visible: window.AAC_PATHS ? window.AAC_PATHS.visible(ctx).map(function (p) { return p.id; }) : [],
           pathId: state.pathId, step: state.pathStep,
           picks: state.pathPicks.map(function (w) { return w ? w.label : null; }),
-          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx).map(function (w) { return w.label; }) : [],
+          choices: pat && state.pathStep < pat.steps.length && window.AAC_PATHS ? window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks).map(function (w) { return w.label; }) : [],
           requiredDone: pathRequiredDone(pat)
         };
       } };
@@ -7756,8 +8295,8 @@ body.has-try-notice #app { top: var(--try-h, 0px); }
     if (!/\.github\.io$/i.test(location.hostname) || standalone || window.AAC_PRIVATE || window.AAC_SINGLE_FILE) return;
     try { if (localStorage.getItem("wb.tryNoticeDismissed")) return; } catch (e) {}
     var n = el("div", "try-notice"); n.id = "try-notice"; n.setAttribute("role", "note");
-    var t = el("span", null, "Voice quality depends on your device and browser: Chrome, Edge or an iPad sound best. To use it for real, ");
-    var a = el("a", null, "get your own copy"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/blob/main/docs/SETUP.md"; a.target = "_blank"; a.rel = "noopener";
+    var t = el("span", null, "Free, no account, no tracking. To keep it on an iPad: tap Share, then Add to Home Screen. Parents: hold ⚙ for 2 seconds for levels, sharing and feedback. ");
+    var a = el("a", null, "help"); a.href = "https://github.com/neuresthetics/anova_language_dev_public/#readme"; a.target = "_blank"; a.rel = "noopener";
     t.appendChild(a); t.appendChild(document.createTextNode("."));
     var x = el("button", "try-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "dismiss notice");
     x.addEventListener("click", function () { try { localStorage.setItem("wb.tryNoticeDismissed", "1"); } catch (e) {} n.remove();

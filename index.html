@@ -43,6 +43,19 @@
   </div>
   <div class="set-body">
 
+    <section id="level-start" class="level-start" hidden>
+      <h2>Pick a starting level</h2>
+      <p class="note">Ages are rough guides, not a test. Start where it feels easy, and turn it up any time if your child is ahead. You can change this whenever you like.</p>
+      <div class="btns">
+        <button type="button" class="pbtn" data-level="starter">Starter (about 2)</button>
+        <button type="button" class="pbtn" data-level="starter-big">Starter, big buttons</button>
+        <button type="button" class="pbtn" data-level="middle">Middle (about 3)</button>
+        <button type="button" class="pbtn" data-level="expanded">Expanded (about 4)</button>
+        <button type="button" class="pbtn" data-level="sentences">Sentences (about 5)</button>
+        <button type="button" class="pbtn" data-level="full">Full (about 6+)</button>
+      </div>
+    </section>
+
     <section>
       <h2>Words shown</h2>
       <label class="row">Words on the board
@@ -53,8 +66,10 @@
           <option value="custom">Custom: tap words below to show / hide</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-levelfolders"> also use this level inside folders (Sentences and Conversation words always follow the level)</label>
+      <label class="row chk"><input type="checkbox" id="set-levelfolders"> <span>also use this level inside folders</span></label>
+      <p class="note">Sentences and Conversation words always follow the level.</p>
       <p class="note" id="level-note"></p>
+      <p class="note">Levels go up roughly by age (about 2, 3, 4, 5, 6+). The ages are approximate, not a test or assessment: turn it up if your child is ahead.</p>
     </section>
 
     <section>
@@ -76,6 +91,31 @@
       <div class="row"><button id="set-test" type="button" class="pbtn">Test voice</button></div>
     </section>
 
+    <section id="look-section">
+      <h2>Look</h2>
+      <p class="note">Let her try these and keep what she likes. Nothing moves around.</p>
+      <label class="row">Contrast
+        <select id="set-contrast">
+          <option value="normal">normal</option>
+          <option value="high">high (black, white, thick edges)</option>
+        </select>
+      </label>
+      <label class="row">Text size
+        <select id="set-textsize">
+          <option value="normal">normal</option>
+          <option value="large">large</option>
+          <option value="larger">larger</option>
+        </select>
+      </label>
+      <label class="row">Board colour
+        <select id="set-boardcolor">
+          <option value="dark">dark (as now)</option>
+          <option value="light">light</option>
+          <option value="blue">deep blue</option>
+        </select>
+      </label>
+    </section>
+
     <section>
       <h2>Display &amp; behaviour</h2>
       <label class="row">Word buttons
@@ -91,7 +131,35 @@
           <option value="lower">a b c (lowercase)</option>
         </select>
       </label>
-      <label class="row chk"><input type="checkbox" id="set-pictures"> show pictures (emoji) above words</label>
+      <label class="row">Buttons show
+        <select id="set-showmode">
+          <option value="both">picture and word</option>
+          <option value="pic">picture only (word if there is no picture)</option>
+          <option value="text">word only</option>
+        </select>
+      </label>
+      <label class="row">Clear button
+        <select id="set-clearmode">
+          <option value="hold">hold to clear (then tap "undo clear" within 5 s)</option>
+          <option value="tap">tap to clear (then "undo clear" within 5 s)</option>
+          <option value="hide">hidden</option>
+        </select>
+      </label>
+      <label class="row">Hold time before a press counts
+        <select id="set-holdms">
+          <option value="0">off (counts when the finger lifts)</option>
+          <option value="300">0.3 s</option>
+          <option value="500">0.5 s</option>
+          <option value="800">0.8 s</option>
+          <option value="1200">1.2 s</option>
+        </select>
+      </label>
+      <label class="row">Space between buttons
+        <select id="set-spacing">
+          <option value="normal">normal</option>
+          <option value="more">more</option>
+        </select>
+      </label>
       <label class="row chk"><input type="checkbox" id="set-prediction"> word prediction on keyboard</label>
       <label class="row chk"><input type="checkbox" id="set-sayletters"> say each letter when typed</label>
       <label class="row chk"><input type="checkbox" id="set-highlight"> highlight each word in the bar while speaking</label>
@@ -195,6 +263,25 @@
         <button id="log-clear" type="button" class="pbtn warn">Clear log</button>
       </div>
       <div id="log-out"></div>
+    </section>
+
+    <section id="share-section">
+      <h2>Share Word Board</h2>
+      <p class="note">Free to share. Anyone can open this link, then on iPad tap Share, then Add to Home Screen. Ready the same day; no account, no download store.</p>
+      <input id="share-url" class="share-url" type="text" readonly aria-label="Word Board link">
+      <div class="btns">
+        <button id="share-btn" type="button" class="pbtn primary">Share link…</button>
+        <button id="share-copy" type="button" class="pbtn">Copy link</button>
+      </div>
+      <div class="share-qr"><svg id="share-qr" role="img" aria-label="QR code for the Word Board link" width="180" height="180" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h37v37H0z"/><path stroke="#000000" d="M2 2.5h7m2 0h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h3m2 0h7M2 3.5h1m5 0h1m2 0h1m3 0h3m4 0h1m1 0h1m3 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h2m3 0h1m2 0h1m2 0h1m1 0h2m3 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h1m1 0h2m2 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h4m1 0h1m1 0h1m1 0h5m1 0h1m2 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h3m1 0h1m2 0h3m8 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h3m1 0h1m1 0h2m2 0h1m2 0h2m1 0h1M2 10.5h1m1 0h5m3 0h6m1 0h1m2 0h1m1 0h1m1 0h1m1 0h5M3 11.5h2m2 0h1m4 0h3m5 0h6m2 0h2m1 0h2m1 0h1M5 12.5h2m1 0h1m2 0h2m1 0h1m2 0h1m1 0h2m1 0h3m1 0h3m1 0h1m1 0h2M2 13.5h1m1 0h3m4 0h1m1 0h1m2 0h1m3 0h2m1 0h4m3 0h4M4 14.5h2m1 0h4m2 0h1m3 0h1m1 0h1m2 0h3m1 0h2m1 0h3M2 15.5h3m2 0h1m2 0h3m2 0h4m1 0h6m2 0h1m2 0h1m1 0h2M3 16.5h1m3 0h2m2 0h2m1 0h2m3 0h1m2 0h3m2 0h2m1 0h1m2 0h1M2 17.5h2m2 0h2m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m2 0h3m3 0h2m1 0h3M3 18.5h1m4 0h2m3 0h1m2 0h1m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2m3 0h1M3 19.5h1m7 0h1m1 0h2m3 0h5m2 0h1m2 0h2m1 0h2m1 0h1M2 20.5h4m2 0h1m2 0h1m1 0h1m2 0h3m3 0h1m1 0h1m4 0h2m1 0h2M3 21.5h1m2 0h1m3 0h2m1 0h2m1 0h3m1 0h1m2 0h2m2 0h1m1 0h6M3 22.5h1m1 0h1m2 0h2m3 0h5m1 0h1m1 0h2m1 0h1m2 0h1m3 0h1m1 0h2M2 23.5h1m2 0h1m1 0h1m1 0h1m4 0h4m1 0h2m1 0h1m2 0h1m2 0h1m2 0h1m2 0h1M2 24.5h1m3 0h3m1 0h2m3 0h1m1 0h2m1 0h1m2 0h1m3 0h2m2 0h1m1 0h1M2 25.5h1m2 0h1m3 0h1m1 0h1m1 0h2m3 0h1m2 0h3m1 0h1m2 0h2m1 0h2m1 0h1M2 26.5h1m1 0h1m1 0h4m2 0h1m1 0h3m1 0h2m4 0h1m1 0h6m2 0h1M10 27.5h4m4 0h2m1 0h3m1 0h2m3 0h1m1 0h1m1 0h1M2 28.5h7m5 0h4m2 0h1m2 0h4m1 0h1m1 0h1m1 0h1M2 29.5h1m5 0h1m1 0h4m1 0h1m1 0h1m4 0h2m1 0h2m3 0h5M2 30.5h1m1 0h3m1 0h1m1 0h6m3 0h1m2 0h1m1 0h1m1 0h6m1 0h2M2 31.5h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h1m3 0h4m1 0h3m2 0h5M2 32.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h2m3 0h5m1 0h2M2 33.5h1m5 0h1m3 0h1m7 0h1m1 0h3m2 0h2m1 0h3M2 34.5h7m1 0h2m2 0h2m1 0h1m1 0h1m2 0h1m1 0h3m1 0h2m3 0h1"/></svg></div>
+      <p class="note">Scan with a phone or iPad camera to open it.</p>
+      <p class="note" id="share-msg" role="status"></p>
+    </section>
+
+    <section id="feedback-section">
+      <h2>Send feedback</h2>
+      <p class="note">Ideas, word or pattern requests, or something not working? <a id="feedback-link" href="mailto:neuresthetics@gmail.com?subject=Word%20Board%20feedback">Email neuresthetics@gmail.com</a>. Only the app version is filled in; write what you like. Requests can also go on <a href="https://github.com/neuresthetics/anova_language_dev_public/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+      <p class="note"><strong>Privacy:</strong> no accounts, no analytics, no tracking. Everything stays on this device; nothing leaves it unless you send it yourself.</p>
     </section>
 
     <section>

@@ -154,11 +154,11 @@ button, [role="button"] {
 }
 .cell .lbl {
   /* --len = longest word in the label (min 4): long words shrink to fit */
-  font-size: min(calc(150cqw / var(--len, 4)), 30cqh, 64px);
+  font-size: calc(var(--ts, 1) * min(calc(150cqw / var(--len, 4)), 30cqh, 64px));
   line-height: 1.02; text-align: center; overflow-wrap: normal; word-break: keep-all;
   letter-spacing: 0.01em;
 }
-.cell.nopic .lbl { font-size: min(calc(165cqw / var(--len, 4)), 42cqh, 84px); }
+.cell.nopic .lbl { font-size: calc(var(--ts, 1) * min(calc(165cqw / var(--len, 4)), 42cqh, 84px)); }
 .cell.key .lbl { font-size: min(62cqh, 62cqw); line-height: 1; }
 .cell.space .lbl { font-size: min(40cqh, 20cqw); }
 .cell.pred .lbl { font-size: min(calc(150cqw / var(--len, 4)), 44cqh, 60px); }
@@ -257,8 +257,9 @@ button, [role="button"] {
 }
 .path-btn.say { background: #0b5; color: #000; border-color: #000; }
 .path-btn.to-words { background: #fff; color: #000; }
-.path-btn:disabled { opacity: 0.35; border-color: #555; color: #ddd; }
-.path-btn.say:disabled { color: #222; }
+/* off state: no opacity fade; dashed edge + muted (but readable, > 4.5:1) text */
+.path-btn:disabled { background: #262626; border: 4px dashed #8a8a8a; color: #c4c4c4; }
+.path-btn.say:disabled { background: #17402a; color: #d8f5e4; border-color: #6fbf8f; }
 
 /* ---------- stories ---------- */
 .story-list { height: 100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: calc((100% - var(--gap)) / 2); gap: var(--gap); overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -317,3 +318,84 @@ button, [role="button"] {
 .try-notice a { color: #9cf; }
 .try-notice .try-x { flex: none; background: none; border: 1px solid #777; color: #eee; border-radius: 6px; width: 28px; height: 26px; font-size: 14px; padding: 0; }
 body.has-try-notice #app { top: var(--try-h, 0px); }
+
+/* 1.5.3 share / feedback / starting level (parent settings only) */
+.level-start { border: 2px solid #f0b400; border-radius: 12px; padding: 10px 12px; background: #fff8e0; }
+.share-url { width: 100%; max-width: 520px; font-size: 16px; padding: 8px; box-sizing: border-box; }
+.share-qr { margin: 10px 0 0; }
+.share-qr svg { display: block; width: 180px; height: 180px; border: 1px solid #ddd; border-radius: 8px; }
+
+/* ===== 1.5.3 look + access ===== */
+/* visible focus for keyboard and iPad Switch Control */
+button:focus-visible, select:focus-visible, input:focus-visible, [role="button"]:focus-visible, a:focus-visible {
+  outline: 5px solid #FFE14D !important; outline-offset: 2px; box-shadow: 0 0 0 9px #000;
+}
+#settings .row.chk { flex-wrap: nowrap; align-items: center; }
+#settings .row.chk > span { flex: 1 1 auto; min-width: 0; }
+/* just tapped + newest word */
+.cell.btn.just { outline: 6px solid #FFE14D; outline-offset: -2px; border-color: #000; }
+#msg .tok.fresh { background: #FFE14D; color: #000; border-radius: 6px; padding: 0 4px; }
+/* speaking indicator */
+body.speaking #btn-speak { background: #FFE14D; color: #000; outline: 4px solid #fff; }
+body.speaking #msg { box-shadow: inset 0 0 0 4px #FFE14D; }
+/* hold-to-press: shows when the hold is long enough */
+.ready { box-shadow: inset 0 0 0 6px #0b5 !important; }
+#btn-clear.undo { background: #FFE14D; color: #000; }
+#btn-clear.is-hidden { visibility: hidden; pointer-events: none; }
+/* picture only */
+.cell.btn.piconly .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.cell.btn.piconly .emo { font-size: min(70cqh, 70cqw); }
+/* spacing */
+body.space-more { --gap: clamp(10px, 2vmin, 20px); }
+/* text size */
+body.ts-large { --ts: 1.18; } body.ts-larger { --ts: 1.36; }
+body.ts-large #msg { font-size: 1.15em; } body.ts-larger #msg { font-size: 1.3em; }
+/* board colour */
+body.bg-light { --bg: #e9e6df; background: #e9e6df; } body.bg-light #page-title { color: #111; }
+body.bg-blue { --bg: #0d2240; background: #0d2240; }
+/* high contrast */
+body.hc { --bg: #000; background: #000; }
+body.hc .cell.btn { border: 5px solid #000; box-shadow: 0 0 0 2px #fff; }
+body.hc .cell.btn .lbl { color: #000; font-weight: 900; }
+body.hc .action, body.hc .tab, body.hc .path-btn { border-color: #fff; }
+body.hc #msg { background: #fff; color: #000; }
+/* Starter (big buttons): tighter gaps, bigger pictures and words */
+.grid.big { gap: max(3px, calc(var(--gap) * 0.6)); }
+.grid.big .cell.btn { border-width: 3px; padding: 1px; }
+.grid.big .cell.btn .emo { font-size: min(44cqh, 50cqw); margin-bottom: 1cqh; }
+/* Paths: the dashed boxes show the chosen picture + word large */
+.path-slot.filled .path-emo { font-size: 1.25em; }
+/* Paths 1.5.3: joining words, grouped menu, calm finished state */
+.path-pre { font-weight: 700; color: rgba(0, 0, 0, 0.74); font-size: 0.8em; }
+.path-slot.empty .path-pre { display: none; }
+.path-card .path-group {
+  font-size: min(8cqh, 14px); font-weight: 700; text-transform: lowercase;
+  color: #333; opacity: 0.75; letter-spacing: 0.02em;
+}
+.path-finish {
+  height: 100%; min-height: 0; display: grid; gap: var(--gap);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.path-made { text-align: center; color: #bdbdbd; font-weight: 600; font-size: clamp(14px, 2.4vmin, 22px); }
+.path-sentence {
+  text-align: center; color: #fff; font-weight: 800; line-height: 1.1;
+  font-size: clamp(26px, 6vmin, 64px); padding: 2px 8px; overflow-wrap: anywhere;
+}
+.path-finish .path-done { height: auto; min-height: 0; }
+.path-acts { display: grid; gap: var(--gap); }
+.path-act {
+  min-height: 56px; padding: 6px 10px; border-radius: 14px;
+  border: 3px solid #666; background: #2a2a2a; color: #fff; font-weight: 800;
+  font-size: clamp(16px, 2.8vmin, 28px);
+}
+.path-act.say { background: #00B050; border-color: #00B050; color: #000; }
+.path-act.to-words { background: #fff; border-color: #fff; color: #000; }
+body.hc .path-made { color: #fff; }
+body.hc .path-act:not(.say):not(.to-words) { border-color: #fff; background: #000; }
+.path-chrome.finished .say, .path-chrome.finished .to-words { visibility: hidden; }
+/* light board: finished view + empty slot text stay readable */
+body.bg-light .path-made { color: #444; }
+body.bg-light .path-sentence { color: #111; }
+body.bg-light .path-slot.empty { color: #555; border-color: #888; }
+body.bg-light .path-slot.empty.now { color: #111; border-color: #b8860b; }
+body.bg-light .note-dark { color: #333; }

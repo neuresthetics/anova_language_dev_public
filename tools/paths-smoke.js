@@ -51,6 +51,7 @@ async function tapChoice(page, label) {
     return false;
   }, label);
   if (!found) throw new Error("no choice " + label);
+  await new Promise(function (r) { setTimeout(r, 260); });   // past the double-tap hold
   await tap(page, "[data-smoke=pick]");
 }
 async function tap(page, selector) {
@@ -141,14 +142,14 @@ async function main() {
     let snap = await page.evaluate(function () { return window.WB.paths(); });
     check(snap.picks.join("|") === "who|is|it" && snap.requiredDone, "who is it walks to the end");
     const said = await page.evaluate(function () { return window.__spoken.slice(); });
-    check(said.indexOf("who") >= 0 && said.indexOf("is") >= 0 && said.indexOf("it") >= 0, "each tap is spoken (" + said.join(" / ") + ")");
+    check(said.map(function (x) { return x.toLowerCase(); }).indexOf("who") >= 0 && said.indexOf("is") >= 0 && said.some(function (x) { return /^who is it\?$/i.test(x); }), "each tap is spoken, the finish says the whole sentence is spoken (" + said.join(" / ") + ")");
 
     await tap(page, '[aria-label="undo last word"]');
     snap = await page.evaluate(function () { return window.WB.paths(); });
     check(snap.picks.join("|") === "who|is|" && snap.step === 2, "undo removes the last word");
     await tapChoice(page, "that");
     await page.evaluate(function () { window.__spoken = []; });
-    await tap(page, '[aria-label="say whole phrase"]');
+    await tap(page, '.path-finish .say');
     const whole = await page.evaluate(function () { return window.__spoken.join(" | "); });
     check(/who is that\?/i.test(whole), "say whole speaks the question (" + whole + ")");
 
@@ -161,7 +162,7 @@ async function main() {
     await tap(page, '[data-pattern="help"]');
     await tapChoice(page, "help");
     await tapChoice(page, "me");
-    await tap(page, '[aria-label="copy phrase to Words"]');
+    await tap(page, '.path-finish .to-words');
     const copied = await page.evaluate(function () {
       return { msg: document.getElementById("msg").textContent, home: document.getElementById("nav-home").classList.contains("on"), view: window.WB.state.view };
     });
@@ -202,9 +203,12 @@ async function main() {
     check(!!activity, "I like …ing has an activity (" + activity + ")");
     await tapChoice(page, activity);
     const early = await page.evaluate(function () { return document.querySelector('[aria-label="copy phrase to Words"]').disabled; });
-    check(!early, "→ words is available before the optional ending");
+    check(early, "the -ing ending is part of the sentence, so → words waits for it");
     await tapChoice(page, "-ing");
-    await tap(page, '[aria-label="copy phrase to Words"]');
+    const late = await page.evaluate(function () { return { off: !document.querySelector(".path-finish .to-words"), s: (document.querySelector(".path-sentence") || {}).textContent }; });
+    check(!late.off && /^I like \w+ing\.$/.test(late.s), "finished: " + late.s);
+    check(await page.evaluate(function () { return !!document.querySelector('.path-finish [aria-label="put the sentence in Words"]') && !!document.querySelector('.path-finish [aria-label="say the sentence again"]'); }), "finished view has say again and → Words");
+    await tap(page, '.path-finish .to-words');
     const liked = await page.evaluate(function () { return document.getElementById("msg").textContent; });
     check(/like/i.test(liked) && /ing/i.test(liked) && liked.indexOf("-ing") < 0, "ending inflects into the message (" + liked + ")");
 
@@ -237,6 +241,30 @@ async function main() {
     });
     check(sendOff.done && sendOff.disabled, "copy to Words can be turned off");
 
+    /* ---- improvement passes ---- */
+    const doneActs = await page.evaluate(function () {
+      return [].map.call(document.querySelectorAll(".path-finish .path-act"), function (b) { return b.getAttribute("aria-label"); });
+    });
+    check(doneActs.length >= 2 && doneActs.indexOf("put the sentence in Words") < 0, "finished view: say again + another, no Words button when that is off (" + doneActs + ")");
+    await tap(page, ".path-again");
+    const again = await page.evaluate(function () { const p = window.WB.paths(); return { picks: p.picks.filter(Boolean), step: p.step }; });
+    check(again.picks.join("|") === "I|want" && again.step === 2, "make another keeps the frame (" + JSON.stringify(again) + ")");
+    await page.evaluate(function () { window.WB.state.pathStep = 0; window.WB.state.pathPicks = []; });
+    await tap(page, '[aria-label="show all patterns"]');
+    await new Promise(function (r) { setTimeout(r, 450); });
+    await tap(page, '[data-pattern="want"]');
+    await new Promise(function (r) { setTimeout(r, 450); });
+    const dbl = await page.evaluate(function () {
+      function hit() {
+        const n = document.querySelector("[data-choice]"), r = n.getBoundingClientRect();
+        const o = { bubbles: true, cancelable: true, clientX: r.left + 20, clientY: r.top + 20, pointerId: 1, pointerType: "touch", button: 0, isPrimary: true };
+        n.dispatchEvent(new PointerEvent("pointerdown", o)); n.dispatchEvent(new PointerEvent("pointerup", o));
+      }
+      hit(); hit();
+      return window.WB.paths().picks.filter(Boolean).length;
+    });
+    check(dbl === 1, "a fast double tap picks one word, not two (" + dbl + ")");
+    //PASSES
     await page.evaluate(function () { window.WB.openSettings(); });
     await page.$eval("#set-pathsshow", function (el) { el.checked = false; el.dispatchEvent(new Event("change", { bubbles: true })); });
     await page.$eval("#set-close", function (el) { el.click(); });

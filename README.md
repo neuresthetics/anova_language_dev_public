@@ -1,5 +1,34 @@
 # Word Board
 
+**A free talking word board (AAC) for iPad. No account, no app store, no tracking.**
+
+## Start today (2 minutes)
+
+1. On the iPad, open **https://neuresthetics.github.io/anova_language_dev_public/** in Safari.
+2. Tap **Share** (the square with the arrow), then **Add to Home Screen**, then **Add**.
+3. Open **Word Board** from the home screen. Done. It works offline after the first open.
+
+**Pick a level.** Hold the ⚙ gear for 2 seconds to open parent settings. Words are tiered
+roughly by age: **Starter (about 2)**, **Middle (about 3)**, **Expanded (about 4)**,
+**Sentences (about 5)**, **Full (about 6+)**. The ages are approximate, not a test or an
+assessment. Start where it feels easy and turn it up any time if your child is ahead.
+
+**Share it.** Parent settings → *Share Word Board* has a share button, a copy-link button and a
+QR code. (Sharing is only in parent settings, never on the child's board.)
+
+**Feedback or requests.** Email **[neuresthetics@gmail.com](mailto:neuresthetics@gmail.com?subject=Word%20Board%20feedback)**
+(subject "Word Board feedback"), or open an issue on
+[GitHub](https://github.com/neuresthetics/anova_language_dev_public/issues/new/choose).
+
+**Privacy.** No accounts, no analytics, no tracking, no ads. Everything stays on the device;
+nothing leaves it unless you send it yourself (for example, an email you write).
+
+*Want your own copy to change?* Fork the repo and follow [docs/SETUP.md](docs/SETUP.md).
+
+---
+
+## How it works
+
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 

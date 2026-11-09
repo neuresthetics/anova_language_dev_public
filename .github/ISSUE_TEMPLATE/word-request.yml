@@ -1,0 +1,31 @@
+name: Word or pattern request
+description: Ask for a word, a folder, or a Paths sentence pattern
+title: "[Request] "
+labels: [request]
+body:
+  - type: markdown
+    attributes:
+      value: "Issues are public, so please leave out names and personal details."
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of request?
+      options: [A word, A folder / category, A Paths sentence pattern, Something else]
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: The word(s) or pattern
+      placeholder: "e.g. 'I need …' with choices like help, a break, water"
+    validations:
+      required: true
+  - type: input
+    id: level
+    attributes:
+      label: Which level would it fit? (optional)
+      placeholder: "Starter, Middle, Expanded, Sentences, Full"
+  - type: textarea
+    id: why
+    attributes:
+      label: Anything else? (optional)
