@@ -142,7 +142,7 @@ async function main() {
     let snap = await page.evaluate(function () { return window.WB.paths(); });
     check(snap.picks.join("|") === "who|is|it" && snap.requiredDone, "who is it walks to the end");
     const said = await page.evaluate(function () { return window.__spoken.slice(); });
-    check(said.indexOf("who") >= 0 && said.indexOf("is") >= 0 && said.some(function (x) { return /^who is it\?$/i.test(x); }), "each tap is spoken, the finish says the whole sentence is spoken (" + said.join(" / ") + ")");
+    check(said.map(function (x) { return x.toLowerCase(); }).indexOf("who") >= 0 && said.indexOf("is") >= 0 && said.some(function (x) { return /^who is it\?$/i.test(x); }), "each tap is spoken, the finish says the whole sentence is spoken (" + said.join(" / ") + ")");
 
     await tap(page, '[aria-label="undo last word"]');
     snap = await page.evaluate(function () { return window.WB.paths(); });

@@ -9,6 +9,21 @@ const DETS = new Set(["a", "an", "the", "my", "your", "more", "some", "to"]);
 const AWKWARD = [/\bon the (cup|bath|bag|pot)\b/, /\bin the (chair|mat)\b/, /\b(open|close) the (cup|toy|ball|hat)\b/,
   /\bgo to (home|outside|inside)\b/, /\bgo to (the )?(car|bus|van|boat|jet)\b/, /\bwhere is (outside|inside|me)\b/i,
   /\b(want|like|can) to (can|cares|know|think|remember|forget)\b/, /\bsee me\b/];
+/* Grammatical, but not what a parent would say. */
+const ODD = [/\bsee (music|rain|chicken)\b/, /\bwhere is the (music|rain)\b/, /\bwant (more |to )?rain\b/, /\bwant (more )?music\b/,
+  /\blike (bites|squeezes)\b/, /\bthe (friend|teacher)\b/, /\ba (friend|teacher)\b/];
+const SPELL = [/\bmosquitos\b/, /\bpotatos\b/, /\btomatos\b/, /\bheros\b/];
+const SAME_PLURAL = new Set(["sheep", "fish", "deer", "moose", "bison", "shrimp", "squid", "jellyfish", "goldfish"]);
+const ALWAYS_PLURAL = new Set(["eggs", "pants", "shoes", "socks", "scissors", "hands", "feet", "teeth", "eyes", "children", "people", "mice", "geese"]);
+function isPluralNoun(word, c) {
+  if (!word) return false;
+  if (ALWAYS_PLURAL.has(word)) return true;
+  if (SAME_PLURAL.has(word) || c.nouns.has(word) || MASS.has(word)) return false;
+  if (/ies$/.test(word) && c.nouns.has(word.slice(0, -3) + "y")) return true;
+  if (/es$/.test(word) && c.nouns.has(word.slice(0, -2))) return true;
+  if (/s$/.test(word) && c.nouns.has(word.slice(0, -1))) return true;
+  return false;
+}
 function classes(words) {
   const verbs = new Set(), nouns = new Set();
   (words || []).forEach(function (w) {
@@ -50,6 +65,15 @@ function check(sentence, info) {
   });
   // please / thank you wrapper
   if (/\w (please|thank you)[.?!]$/i.test(s)) out.push("needs a comma before " + (s.match(/(please|thank you)/i) || [""])[0]);
+  // "Where is the shoes?" -> "Where are the shoes?"
+  if (/\b(is|was)\b/.test(low) && isPluralNoun(last, c)) out.push("'is' with a plural: " + last);
+  if (/\bare\b/.test(low) && !isPluralNoun(last, c) && !/\byou\b/.test(low)) out.push("'are' with a singular: " + last);
+  // "thank you" thanks someone; it does not ask for something
+  if (/\bwant\b.*\bthank you\b/.test(low)) out.push("'thank you' used to ask for something");
+  // verbs that need an object ("I want to find." / "I can make.")
+  if (/\b(find|make|take|give|put|finding|making|taking|giving)( please)?$/.test(low) && !/^(put|take|give) /.test(low)) out.push("verb needs an object: " + last);
+  ODD.forEach(function (re) { if (re.test(low)) out.push("odd for this sentence: " + (low.match(re) || [""])[0]); });
+  SPELL.forEach(function (re) { if (re.test(low)) out.push("spelling: " + (low.match(re) || [""])[0]); });
   AWKWARD.forEach(function (re) { if (re.test(low)) out.push("awkward: " + (low.match(re) || [""])[0]); });
   return out;
 }

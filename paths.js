@@ -25,8 +25,13 @@
      caps the row at 6. */
   var FOOD = { page: "food", types: ["noun"], prefer: ["milk", "juice", "water", "apple", "banana", "snack", "cheese"] };
   var THINGS = { page: "things", types: ["noun"], prefer: ["ball", "book", "shoes", "door", "box", "toy", "cup", "hat"] };
-  /* Only verbs that make a real sentence after "I want to / I can / I like …ing". */
-  var ACTIVITY_VERBS = ["go", "jog", "stomp", "make", "come", "read", "sleep", "wait", "hug", "find", "walk", "run",
+  /* Things you can see, find or ask for ("I see music." / "I want rain." are not sentences she needs). */
+  var OBJECTS = { page: "things", types: ["noun"], not: ["music", "rain"], prefer: THINGS.prefer };
+  /* Food you'd say you like in general ("I like bites." / "I like squeezes." read oddly). */
+  var FOOD_LIKE = { page: "food", types: ["noun"], not: ["bite", "squeeze"], prefer: FOOD.prefer };
+  /* Only verbs that make a real sentence after "I want to / I can / I like …ing" with nothing
+     after them ("find" and "make" need an object, so they stay on the Words board only). */
+  var ACTIVITY_VERBS = ["go", "jog", "stomp", "come", "read", "sleep", "wait", "hug", "walk", "run",
     "jump", "sit", "stand", "pretend", "write", "draw", "paint", "listen", "talk", "wash", "watch", "brush", "get dressed"];
   var ACTIVITIES = {
     any: [
@@ -74,27 +79,30 @@
      every finished path is a correct sentence without extra taps. */
   var PATTERNS = [
     { id: "want", group: "wants", title: "I want …", frame: "I → want → …", minLevel: 1, stems: ["want"],
-      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] }, np: "a", verb: "to" }] },
+      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS, ACTIVITIES] }, np: "a", verb: "to" }] },
     { id: "more", group: "wants", title: "I want more …", frame: "I → want → more → …", minLevel: 1, stems: ["more"],
-      steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, THINGS] }, np: "more" }] },
+      steps: [{ words: ["I"] }, { words: ["want"] }, { words: ["more"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS] }, np: "more" }] },
     { id: "dont_want", group: "wants", title: "I don't want …", frame: "I → don't → want → …", minLevel: 2, stems: ["don't"],
-      steps: [{ words: ["I"] }, { words: ["don't"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] }, np: "a", verb: "to" }] },
-    { id: "want_please", group: "polite", title: "I want …, please.", frame: "I → want → … → please | thank you", minLevel: 4, stems: ["please", "thank you"],
-      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, THINGS, ACTIVITIES] }, np: "a", verb: "to" }, { words: ["please", "thank you"], comma: true }] },
+      steps: [{ words: ["I"] }, { words: ["don't"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS, ACTIVITIES] }, np: "a", verb: "to" }] },
+    { id: "want_please", group: "polite", title: "I want …, please.", frame: "I → want → … → please", minLevel: 4, stems: ["please"],
+      steps: [{ words: ["I"] }, { words: ["want"] }, { fringe: { max: 6, pools: [FOOD, OBJECTS, ACTIVITIES] }, np: "a", verb: "to" }, { words: ["please"], comma: true }] },
+    /* "Thank you" thanks someone for something given; it is its own sentence, not a way to ask. */
+    { id: "thank_you", group: "polite", title: "Thank you.", frame: "Thank you.", minLevel: 4, stems: ["thank you"],
+      steps: [{ words: ["thank you"] }] },
     { id: "help", group: "quick", title: "Help me.", frame: "Help → me", minLevel: 1, stems: ["help"],
       steps: [{ words: ["help"] }, { words: ["me"] }] },
     { id: "see", group: "people", title: "I see …", frame: "I → see → …", minLevel: 1, stems: ["see"],
-      steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, THINGS] }, np: "a" }] },
+      steps: [{ words: ["I"] }, { words: ["see"] }, { fringe: { max: 6, pools: [ANIMALS, PEOPLE, VEHICLES, OBJECTS] }, np: "a" }] },
     { id: "who_what", group: "questions", title: "Who / what is it?", frame: "Who | What → is → it | that", minLevel: 3, stems: ["who", "what"], punct: "?",
       steps: [{ words: ["who", "what"], emoji: { who: "🧑", what: "❓" } }, { words: ["is"] }, { words: ["it", "that"] }] },
     { id: "where_is", group: "questions", title: "Where is …?", frame: "Where → is → …", minLevel: 3, stems: ["where?"], punct: "?",
-      steps: [{ words: ["where?"] }, { words: ["is"] }, { fringe: { max: 6, pools: [WHERE_PLACES, PEOPLE, THINGS] }, np: "the" }] },
+      steps: [{ words: ["where?"] }, { words: ["is"], agree: true }, { fringe: { max: 6, pools: [WHERE_PLACES, PEOPLE, OBJECTS] }, np: "the" }] },
     { id: "go", group: "places", title: "I go …", frame: "I → go → …", minLevel: 2, stems: ["go"], emoji: "🚶",
       steps: [{ words: ["I"] }, { words: ["go"] }, { fringe: { max: 6, pools: [PLACES, PLACES, VEHICLES] }, np: "go" }] },
     { id: "can", group: "doing", title: "I can …", frame: "I → can → …", minLevel: 4, stems: ["can"],
       steps: [{ words: ["I"] }, { words: ["can"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }] },
     { id: "like", group: "people", title: "I like …", frame: "I → like → …", minLevel: 2, stems: ["like"],
-      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD, ANIMALS, ACTIVITIES, THINGS] }, np: "plural", verb: "to" }] },
+      steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [FOOD_LIKE, ANIMALS, ACTIVITIES, THINGS] }, np: "plural", verb: "to" }] },
     { id: "like_ing", group: "doing", title: "I like …ing", frame: "I → like → … → -ing", minLevel: 4, stems: ["like"],
       steps: [{ words: ["I"] }, { words: ["like"] }, { fringe: { max: 6, pools: [ACTIVITIES] }, verb: "bare" }, { endings: ["ing"] }] },
     { id: "stop", group: "quick", title: "Stop.", frame: "Stop.", minLevel: 1, stems: ["stop"], punct: "!",
@@ -116,9 +124,15 @@
     paper: 1, glue: 1, rain: 1, food: 1, bread: 1, rice: 1, pasta: 1, cereal: 1, yogurt: 1, soup: 1, "ice cream": 1, candy: 1 };
   var ALREADY_PLURAL = { eggs: 1, pants: 1, shoes: 1, socks: 1, scissors: 1, hands: 1, feet: 1, teeth: 1, eyes: 1 };
   var NAMES = { mom: 1, dad: 1, grandma: 1, grandpa: 1, me: 1, everyone: 1, home: 1 };
+  /* Mass only as food: the animal is "a chicken" / "chickens". */
+  var MASS_AS_FOOD_ONLY = { chicken: 1 };
+  /* People you'd call "my …" rather than "the …" / "a …". */
+  var MY_PEOPLE = { friend: 1, teacher: 1 };
+  function isMass(w) { var k = labelKey(w); return !!MASS[k] && !(MASS_AS_FOOD_ONLY[k] && w && w.page && w.page !== "food"); }
+  function isPluralWord(w, text) { var k = labelKey(w); return !!ALREADY_PLURAL[k] || (text != null && text !== k && plural(k) === text && !isMass(w)); }
   var PLURAL = { child: "children", man: "men", woman: "women", mouse: "mice", foot: "feet", tooth: "teeth", person: "people",
     goose: "geese", sheep: "sheep", fish: "fish", deer: "deer", moose: "moose", bison: "bison", shrimp: "shrimp", squid: "squid",
-    jellyfish: "jellyfish", wolf: "wolves", leaf: "leaves", knife: "knives", calf: "calves", potato: "potatoes", tomato: "tomatoes" };
+    jellyfish: "jellyfish", mosquito: "mosquitoes", hero: "heroes", wolf: "wolves", leaf: "leaves", knife: "knives", calf: "calves", potato: "potatoes", tomato: "tomatoes" };
   var ING = { see: "seeing", lie: "lying", tie: "tying", begin: "beginning", forget: "forgetting", visit: "visiting",
     open: "opening", listen: "listening", happen: "happening" };
   /* go: words that take no "to", and vehicles you ride in or on */
@@ -127,9 +141,9 @@
   var RIDE_IN = { car: 1, van: 1 };
   var RIDE_ON = { bus: 1, boat: 1, jet: 1, train: 1, bike: 1 };
 
-  function plural(label) {
+  function plural(label, countable) {
     var w = String(label).toLowerCase();
-    if (ALREADY_PLURAL[w] || MASS[w]) return w;
+    if (ALREADY_PLURAL[w] || (MASS[w] && !countable)) return w;
     var sp = w.lastIndexOf(" ");
     if (sp > 0) return w.slice(0, sp + 1) + plural(w.slice(sp + 1));
     if (PLURAL[w]) return PLURAL[w];
@@ -164,9 +178,10 @@
       return { pre: "to the", text: k };
     }
     if (isName(w) || np === "bare") return { pre: "", text: k };
+    if (MY_PEOPLE[k] && w.type === "people" && np !== "more" && np !== "plural") return { pre: "my", text: k };
     if (np === "the") return { pre: "the", text: k };
-    if (MASS[k] || ALREADY_PLURAL[k]) return { pre: "", text: k };
-    if (np === "more" || np === "plural") return { pre: "", text: plural(k) };
+    if (isMass(w) || ALREADY_PLURAL[k]) return { pre: "", text: k };
+    if (np === "more" || np === "plural") return { pre: "", text: plural(k, true) };
     return { pre: aOrAn(k), text: k };   // np "a"
   }
   /* The sentence for the picks so far. parts[i] = { pre, text } for each step i that has a pick
@@ -187,6 +202,12 @@
       if (step.comma && last >= 0) parts[last].comma = true;
       parts[i] = p; last = i;
     });
+    // "Where is the ball?" / "Where are the shoes?": an agree step follows the last word's number.
+    (pattern.steps || []).forEach(function (step, i) {
+      if (!step.agree || !parts[i]) return;
+      var lastPick = picks[last], lp = parts[last];
+      if (last > i && lastPick && isPluralWord(lastPick, lp.text) && parts[i].text === "is") { parts[i].text = "are"; parts[i].changed = true; }
+    });
     var words = [];
     parts.forEach(function (p) { if (!p || p.ending) return; words.push((p.pre ? p.pre + " " : "") + p.text + (p.comma ? "," : "")); });
     var text = words.join(" ");
@@ -194,6 +215,32 @@
     text = text.replace(/\bi\b/g, "I").replace(/\bi'm\b/g, "I'm");
     if (text && done) text += pattern.punct || ".";
     return { parts: parts, text: text, done: done };
+  }
+
+  /* The words that go to the Words bar and the voice, one entry per board token.
+     pre: a joining word added for her; word: the tapped board word (null for pre);
+     text: what is shown; changed: text differs from the board label (so its recorded
+     voice clip can't be used). The first word gets a capital (opts.capital !== false)
+     and the last gets the sentence's final mark once it is done. */
+  function utterance(pattern, picks, opts) {
+    opts = opts || {};
+    var s = sentence(pattern, picks), out = [];
+    (pattern.steps || []).forEach(function (step, i) {
+      var w = picks && picks[i], part = s.parts[i];
+      if (!w || !part || part.ending) return;
+      if (part.pre) part.pre.split(" ").forEach(function (x) { out.push({ text: x, pre: true, word: null, step: i }); });
+      var plain = String(w.label).replace(/\?$/, "");
+      var text = part.text, changed = text.toLowerCase() !== String(w.label).toLowerCase();
+      if (/^i\b/i.test(plain) && !changed) text = plain;
+      out.push({ text: text, pre: false, word: w, step: i, changed: changed, inflected: part.inflected || null, punct: part.comma ? "," : "" });
+    });
+    if (out.length && opts.capital !== false) {
+      var f = out[0];
+      var cap = f.text.charAt(0).toUpperCase() + f.text.slice(1);
+      if (cap !== f.text) { f.text = cap; f.capitalized = true; }
+    }
+    if (s.done && out.length) out[out.length - 1].punct = pattern.punct || ".";
+    return { tokens: out, text: s.text, done: s.done };
   }
 
   function labelKey(w) { return String(w && w.label || "").toLowerCase(); }
@@ -261,8 +308,19 @@
     return PATTERNS.filter(function (p) {
       if (p.minLevel > cap) return false;
       if (ctx.hideHiddenStem !== false && stemsHidden(p, ctx)) return false;
-      return true;
+      return completable(p, ctx);
     });
+  }
+  /* A pattern only shows when she can finish it: every required step has at least one
+     choice at this level with these hidden words (no "I like stand" with no -ing to tap). */
+  function completable(p, ctx) {
+    for (var i = 0; i < p.steps.length; i++) {
+      var st = p.steps[i];
+      if (st.optional) continue;
+      if (st.fringeBy) continue;            // checked through the step before it (see choices)
+      if (!choices(p, i, ctx, []).length) return false;
+    }
+    return true;
   }
   function matchesPool(w, pool) {
     if (pool.any) {
@@ -373,6 +431,13 @@
         }
         out.push(w);
       });
+      var next = pattern.steps[stepIndex + 1];
+      if (next && next.fringeBy) {
+        out = out.filter(function (w) {
+          var spec = next.fringeBy[labelKey(w)];
+          return !spec || pickFringe(spec, ctx, pattern).length > 0;
+        });
+      }
       return out;
     }
     if (step.endings) return endingChoices(step, ctx);
@@ -389,6 +454,8 @@
     byId: byId,
     groups: GROUPS,
     sentence: sentence,
+    utterance: utterance,
+    completable: completable,
     joinPick: joinPick,
     plural: plural,
     ing: ing

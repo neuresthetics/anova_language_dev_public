@@ -904,27 +904,31 @@
   /* The sentence comes from AAC_PATHS.sentence: it adds the small joining words
      ("a", "the", "to") and endings, so every finished path is a correct sentence. */
   function pathSentence(pat) { return window.AAC_PATHS.sentence(pat, state.pathPicks); }
-  function pathUtterance(forSpeech) {
+  function pathUtterance() {
     var pat = pathById(state.pathId);
     if (!pat) return null;
-    var s = pathSentence(pat), tokens = [], idx = [];
-    pat.steps.forEach(function (step, i) {
-      var w = state.pathPicks[i], part = s.parts[i];
-      if (!w || !part || part.ending) return;
-      if (part.pre) part.pre.split(" ").forEach(function (x) { tokens.push({ text: x, say: null, audio: null, id: null, typed: false, auto: true }); idx.push(i); });
-      var t = tokenFromWord(w);
-      var plain = String(w.label).replace(/\?$/, "");
-      if (part.text.toLowerCase() !== String(w.label).toLowerCase()) {
-        t.text = /^I\b/.test(plain) ? part.text.replace(/^i\b/, "I") : part.text;
-        if (part.inflected === "ing") { t.say = SAY_INFLECTED[String(w.label).toLowerCase() + "@ing"] || null; t.inflected = "ing"; }
-        else t.say = null;
-        t.sayAlone = null; t.audio = null;
+    // A Paths sentence starts with a capital in the Words bar and the voice, unless the
+    // parent chose lowercase or ALL CAPS for words (then the board's own case rule wins).
+    var wc = settings.wordCase;
+    var u = window.AAC_PATHS.utterance(pat, state.pathPicks, { capital: wc !== "lower" && wc !== "upper" });
+    var tokens = [], idx = [];
+    u.tokens.forEach(function (x) {
+      var t;
+      if (x.pre) t = { text: x.text, say: null, audio: null, id: null, typed: false, auto: true };
+      else {
+        var w = x.word;
+        t = tokenFromWord(w);
+        t.text = x.text;
+        if (x.changed) {
+          if (x.inflected === "ing") { t.say = SAY_INFLECTED[String(w.label).toLowerCase() + "@ing"] || null; t.inflected = "ing"; }
+          else t.say = null;
+          t.sayAlone = null; t.audio = null;
+        }
       }
-      if (part.comma) t.punct = ",";
-      tokens.push(t); idx.push(i);
+      if (x.punct) t.punct = x.punct;
+      tokens.push(t); idx.push(x.step);
     });
-    if (s.done && tokens.length) tokens[tokens.length - 1].punct = pat.punct || ".";
-    return { tokens: tokens, idx: idx, text: s.text, done: s.done };
+    return { tokens: tokens, idx: idx, text: u.text, done: u.done };
   }
   function pathFace(pat, i) {
     var part = pathSentence(pat).parts[i];
