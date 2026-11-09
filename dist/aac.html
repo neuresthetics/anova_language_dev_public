@@ -6650,7 +6650,7 @@ body.bg-light .note-dark { color: #333; }
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.4";
+  var APP_VERSION = "1.5.5";
   var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
   var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
@@ -6681,7 +6681,13 @@ body.bg-light .note-dark { color: #333; }
   };
   /* Letter NAMES as the voice should say them (a lone "A" can come out as "uh", and
      capitals as "capital A"), so every key is spoken as its name. */
-  var LETTER_NAMES = { a: "ay", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
+  /* A is the one letter with no safe respelling: iOS Safari reads lowercase "a" as the article
+     "uh" and "ay" as "eye" (Jason heard "eye" on her iPad in 1.5.4; TTS users report the same
+     "Ay says I" problem, community.articulate.com/discussions/discuss/how-to-get-text-to-speech-
+     to-pronounce-phonetics-and-all-the-individual-letters-/933907). A single capital letter
+     followed by a period is read as a letter/initial, i.e. its name /eI/, so A uses "A.".
+     Fallbacks if a voice still gets it wrong: "eigh" (reported to work in that thread), then "eh". */
+  var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
     s: "ess", t: "tee", u: "you", v: "vee", w: "double you", x: "ex", y: "why", z: "zee" };
   /* Spoken forms used when no board word supplies a "say" (iOS reads a lone "I" as "capital I"). */

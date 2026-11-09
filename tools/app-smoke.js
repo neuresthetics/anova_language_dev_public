@@ -166,7 +166,7 @@ async function main() {
       });
       letters.push(await lastSaid());
     }
-    check(letters.join("|") === "ay|bee|double you|zee", "letters said by name (" + letters.join("|") + ")");
+    check(letters.join("|") === "A.|bee|double you|zee", "letters said by name (" + letters.join("|") + ")");
     check(await page.evaluate(function () { return window.WB.settings.sayLetters === true; }), "say-letters is on after the 1.5.4 upgrade");
     const typed = await msgText();
     check(/abwz/i.test(typed), "letters still type (" + typed + ")");
