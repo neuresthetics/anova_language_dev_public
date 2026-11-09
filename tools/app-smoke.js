@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Browser smoke for 1.5.4: word endings, leaving Paths, replaying a finished path,
+/* Browser smoke for 1.5.4 + the 1.5.6 bug-check regressions: word endings, leaving Paths, replaying a finished path,
    ABC letter names, hold-to-clear. Based on paths-smoke.js. Uses system Chrome via puppeteer-core.
    Does not hardcode the old pattern titles; it opens cards by id and
    checks the chrome buttons by their aria-labels.
@@ -244,6 +244,8 @@ async function main() {
     await wait(450);
     await tap(page, "#btn-clear");
     check((await msgText()) === "", "tap mode: one tap clears");
+    await page.close();
+    await regress156(browser, check, wait);
   } finally {
     await browser.close();
     server.close();
@@ -251,4 +253,241 @@ async function main() {
   if (fails.length) { console.error(fails.length + " smoke checks failed"); process.exit(1); }
   console.log("app-smoke ok");
 }
+
+/* ==== 1.5.6 regressions (bug check 2026-11-08, items 1-12 + small fixes) ==== */
+async function regress156(browser, check, wait) {
+  const pages = [];
+  async function fresh(saved, o) {
+    o = o || {};
+    const p = await browser.newPage(); pages.push(p);
+    p.setDefaultTimeout(15000);
+    await p.setViewport({ width: o.w || 1180, height: o.h || 820, hasTouch: true, isMobile: false });
+    p.on("pageerror", function (e) { check(false, "page error " + e.message); });
+    await p.evaluateOnNewDocument(function (o) {
+      window.__spoken = [];
+      if (o.lang) {
+        Object.defineProperty(navigator, "language", { configurable: true, get: function () { return o.lang; } });
+        Object.defineProperty(navigator, "languages", { configurable: true, get: function () { return [o.lang]; } });
+      }
+      function Utterance(text) { this.text = text || ""; }
+      window.SpeechSynthesisUtterance = Utterance;
+      var voices = o.voices || [{ name: "Test", lang: "en-US", localService: true, default: true, voiceURI: "test" }];
+      var fake = { speaking: false, pending: false, paused: false,
+        getVoices: function () { return voices; },
+        addEventListener: function () {}, cancel: function () { this.speaking = false; }, resume: function () {},
+        speak: function (u) { window.__spoken.push(String(u && u.text || "")); window.__lastVoice = u.voice ? u.voice.voiceURI : ""; this.speaking = true; var self = this;
+          if (o.neverEnd) return;   // an engine that never reports the end
+          setTimeout(function () { self.speaking = false; if (u && u.onend) try { u.onend(); } catch (e) {} }, 0); } };
+      try { Object.defineProperty(window, "speechSynthesis", { configurable: true, get: function () { return fake; } }); } catch (e) { window.speechSynthesis = fake; }
+    }, o);
+    await p.goto("http://127.0.0.1:" + port + "/", { waitUntil: "domcontentloaded" });
+    await p.evaluate(function (s, c) {
+      localStorage.clear();
+      localStorage.setItem("wb.settings", JSON.stringify(Object.assign({ levelsVersion: 2, sayLetters: true, clearMode: "hold" }, s)));
+      if (c) localStorage.setItem("wb.custom", JSON.stringify(c));
+    }, saved, o.custom || null);
+    await p.reload({ waitUntil: "domcontentloaded" });
+    await p.waitForFunction(function () { return window.WB && document.getElementById("nav-paths") && document.querySelector("#board .cell"); });
+    await wait(300);
+    return p;
+  }
+  const msgOf = function (p) { return p.evaluate(function () { return document.getElementById("msg").innerText.replace(/\s+/g, " ").trim(); }); };
+  const mark = function (p, fnSrc, tag) { return p.evaluate(new Function("tag", "var n = (" + fnSrc + ")(); if (!n) return false; n.setAttribute('data-r', tag); return true;"), tag); };
+  async function hold(p, sel, ms) {
+    await p.evaluate(function (sel) {
+      const b = document.querySelector(sel), r = b.getBoundingClientRect();
+      window.__ho = { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, pointerId: 7, pointerType: "touch", button: 0, isPrimary: true };
+      window.__hb = b; b.dispatchEvent(new PointerEvent("pointerdown", window.__ho));
+    }, sel);
+    await wait(ms);
+    await p.evaluate(function () { window.__hb.dispatchEvent(new PointerEvent("pointerup", window.__ho)); });
+    await wait(60);
+  }
+  function contrast(a, b) {
+    function L(c) { const m = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; }
+    const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+  try {
+    /* 1. a quick tap right after a folder opens is ignored; a normal tap a moment later works */
+    let p = await fresh({ wordsShown: "full" });
+    check(await mark(p, "function(){ return document.querySelector('#board .cell.t-folder'); }", "folder"), "home has a folder");
+    await tap(p, "[data-r=folder]");
+    await wait(30);
+    await mark(p, "function(){ return [].find.call(document.querySelectorAll('#board .cell.btn'), function(b){ return !b.classList.contains('t-folder') && !b.classList.contains('ending'); }); }", "w1");
+    await tap(p, "[data-r=w1]");
+    check((await msgOf(p)) === "", "1: a tap 0.1 s after a folder opens is ignored (" + await msgOf(p) + ")");
+    await wait(300);
+    await tap(p, "[data-r=w1]");
+    check((await msgOf(p)).length > 0, "1: the same word works 0.3 s later");
+    await p.close();
+
+    /* 2. larger text makes the bar and the word labels BIGGER */
+    const sizes = {};
+    for (const ts of ["normal", "large", "larger"]) {
+      p = await fresh({ wordsShown: "full", textSize: ts });
+      await tap(p, '#board [aria-label="go"]');
+      sizes[ts] = await p.evaluate(function () {
+        const l = [].map.call(document.querySelectorAll("#board .cell.btn:not(.t-folder) .lbl"), function (x) { return parseFloat(getComputedStyle(x).fontSize); });
+        const over = [].filter.call(document.querySelectorAll("#board .cell.btn .lbl"), function (x) { const r = x.getBoundingClientRect(), b = x.closest(".cell").getBoundingClientRect(); return r.bottom > b.bottom + 1 || r.top < b.top - 1; }).length;
+        return { msg: parseFloat(getComputedStyle(document.getElementById("msg")).fontSize), lbl: l.reduce(function (a, b) { return a + b; }, 0) / l.length, over: over };
+      });
+      await p.close();
+    }
+    check(sizes.large.msg > sizes.normal.msg && sizes.larger.msg > sizes.large.msg, "2: bar text grows normal<large<larger (" + [sizes.normal.msg, sizes.large.msg, sizes.larger.msg] + ")");
+    check(sizes.large.lbl > sizes.normal.lbl * 1.05 && sizes.larger.lbl > sizes.large.lbl, "2: word labels grow (" + [sizes.normal.lbl, sizes.large.lbl, sizes.larger.lbl].map(Math.round) + ")");
+    check(sizes.larger.over === 0, "2: no label spills out of its button at larger (" + sizes.larger.over + ")");
+
+    /* 3. light board + high contrast: text stays readable */
+    p = await fresh({ wordsShown: "full", boardColor: "light", contrast: "high" });
+    await mark(p, "function(){ return document.querySelector('#board .cell.t-folder'); }", "folder");
+    await tap(p, "[data-r=folder]");
+    await wait(300);
+    const titleC = await p.evaluate(function () { return [getComputedStyle(document.getElementById("page-title")).color, getComputedStyle(document.body).backgroundColor]; });
+    check(contrast(titleC[0], titleC[1]) >= 4.5, "3: page title readable on light + high contrast (" + titleC.join(" on ") + ")");
+    await tap(p, "#nav-paths");
+    await tap(p, '[data-pattern="want"]');
+    const emptyC = await p.evaluate(function () { const s = document.querySelector(".path-slot.empty"); return s ? [getComputedStyle(s).color, getComputedStyle(document.body).backgroundColor, getComputedStyle(s).backgroundColor] : null; });
+    check(emptyC && (contrast(emptyC[0], emptyC[2].indexOf("0, 0, 0, 0") >= 0 || /rgba\(.*, 0\)/.test(emptyC[2]) ? emptyC[1] : emptyC[2]) >= 3), "3: empty Paths slot readable on light + high contrast (" + emptyC + ")");
+    await p.close();
+
+    /* 4. ABC: double letters typed quickly both count */
+    p = await fresh({ wordsShown: "full", tapGuardMs: 400 });
+    await tap(p, "#nav-kbd");
+    await tap(p, '#board [aria-label="L"]');
+    await wait(110);
+    await tap(p, '#board [aria-label="L"]');
+    await wait(110);
+    await tap(p, '#board [aria-label="O"]');
+    check(/^llo$/i.test(await msgOf(p)), "4: L L O typed 0.15 s apart = 'llo' (" + await msgOf(p) + ")");
+    await p.close();
+
+    /* 5. a long message: the first line can be reached, the newest word is in view */
+    p = await fresh({ wordsShown: "full", tapGuardMs: 0 }, { w: 1180, h: 820 });
+    for (let i = 0; i < 40; i++) { await tap(p, '#board [aria-label="go"]'); }
+    const ms = await p.evaluate(function () { const m = document.getElementById("msg"); const r = { over: m.classList.contains("overflow"), atEnd: Math.abs(m.scrollTop + m.clientHeight - m.scrollHeight) <= 2 }; m.scrollTop = 0; const first = m.querySelector(".tok").getBoundingClientRect(), box = m.getBoundingClientRect(); r.firstVisible = first.top >= box.top - 1; return r; });
+    check(ms.over && ms.atEnd, "5: long message scrolls to the newest word (" + JSON.stringify(ms) + ")");
+    check(ms.firstVisible, "5: the first line can be scrolled back into view");
+    await p.close();
+
+    /* 6. Paths menu is readable at Full in landscape */
+    p = await fresh({ wordsShown: "full", pathsSet: "all" });
+    await tap(p, "#nav-paths");
+    const pm = await p.evaluate(function () { const l = document.querySelector(".path-menu"); const t = [].map.call(l.querySelectorAll(".path-title"), function (x) { return parseFloat(getComputedStyle(x).fontSize); }); return { n: l.children.length, cols: getComputedStyle(l).gridTemplateColumns.split(" ").length, minTitle: Math.min.apply(null, t) }; });
+    check(pm.n < 9 || pm.cols >= 4, "6: landscape Paths menu uses 4+ columns (" + JSON.stringify(pm) + ")");
+    check(pm.minTitle >= 15, "6: Paths titles >= 15px in landscape (" + pm.minTitle + ")");
+    await p.close();
+
+    /* 7. picture only makes the pictures bigger */
+    const emo = {};
+    for (const sm of ["both", "pic"]) {
+      p = await fresh({ wordsShown: "full", showMode: sm });
+      emo[sm] = await p.evaluate(function () { const e = document.querySelector('#board [aria-label="go"] .emo'); return e ? e.getBoundingClientRect().height : 0; });
+      await p.close();
+    }
+    check(emo.pic > emo.both * 1.4, "7: picture-only pictures are bigger (" + Math.round(emo.both) + " -> " + Math.round(emo.pic) + ")");
+
+    /* 8. Paths → Words adds to the bar (with a full stop between) and can be undone */
+    p = await fresh({ wordsShown: "full", tapGuardMs: 0 });
+    await tap(p, '#board [aria-label="go"]');
+    await tap(p, "#nav-paths");
+    await tap(p, '[data-pattern="want"]');
+    for (let s = 0; s < 4; s++) {
+      const st = await p.evaluate(function () { return window.WB.paths(); });
+      if (st.requiredDone || !st.choices.length) break;
+      await p.evaluate(function (l) { const n = [].find.call(document.querySelectorAll("[data-choice]"), function (x) { return x.getAttribute("data-choice") === l; }); n.setAttribute("data-r", "c"); }, st.choices[0]);
+      await wait(260); await tap(p, "[data-r=c]"); await wait(50);
+    }
+    await wait(300);
+    await tap(p, ".path-finish .to-words");
+    const added = await msgOf(p);
+    check(/^go\. I want /i.test(added), "8: Paths → Words adds after 'go.' (" + added + ")");
+    check(await p.evaluate(function () { return document.querySelector("#btn-clear .txt").textContent; }) === "undo add", "8: clear offers 'undo add'");
+    await wait(450);
+    await tap(p, "#btn-clear");
+    check(/^go$/i.test(await msgOf(p)), "8: undo add brings back just 'go' (" + await msgOf(p) + ")");
+    await p.close();
+
+    /* 9. hiding a word on Starter (big buttons) keeps big buttons */
+    p = await fresh({ wordsShown: "custom", bigButtons: true }, { custom: { base: 1, shown: { zzz: false } } });
+    const big9 = await p.evaluate(function () { return window.WB.levels().mode + ":" + /fr/.test(document.querySelector("#board .grid, #board > div").style.gridTemplateRows) + ":" + document.querySelector("#board > div").style.gridTemplateRows; });
+    p.close();
+    p = await fresh({ wordsShown: "starter", bigButtons: true });
+    const bigS = await p.evaluate(function () { return document.querySelector("#board > div").style.gridTemplateRows; });
+    check(/^custom/.test(big9) && big9.split(":").slice(2).join(":") === bigS, "9: custom-from-Starter keeps the big-button layout (" + big9 + " vs " + bigS + ")");
+
+    /* 10. Starter landscape folder row is readable */
+    const fr = await p.evaluate(function () { const f = [].filter.call(document.querySelectorAll("#board .cell.t-folder"), function (b) { return true; }); return f.map(function (b) { return [Math.round(b.getBoundingClientRect().height), parseFloat(getComputedStyle(b.querySelector(".lbl")).fontSize)]; }); });
+    check(fr.length > 0 && fr.every(function (x) { return x[0] >= 55 && x[1] >= 14; }), "10: Starter big folders >= 55px tall, labels >= 14px (" + JSON.stringify(fr) + ")");
+    await p.close();
+
+    /* 11. a hold during the undo window clears (never undoes); undo looks different */
+    p = await fresh({ wordsShown: "full", tapGuardMs: 0 });
+    await tap(p, '#board [aria-label="go"]');
+    await hold(p, "#btn-clear", 1000);
+    check((await msgOf(p)) === "", "11: hold clears");
+    const look = await p.evaluate(function () { const b = document.getElementById("btn-clear"), cs = getComputedStyle(b); return { undo: b.classList.contains("undo"), border: cs.borderTopStyle, bg: cs.backgroundColor, txt: b.textContent }; });
+    check(look.undo && look.border === "dashed" && look.bg !== "rgb(45, 45, 45)" && /↶/.test(look.txt), "11: undo state looks different (" + JSON.stringify(look) + ")");
+    await wait(450);
+    await hold(p, "#btn-clear", 1000);
+    check((await msgOf(p)) === "", "11: holding again in the undo window keeps it cleared (" + await msgOf(p) + ")");
+    check(await p.evaluate(function () { return !document.getElementById("btn-clear").classList.contains("undo"); }), "11: ...and the undo is gone");
+    await p.close();
+
+    /* 12. voice menu shows the voice in use; Automatic matches the iPad's English */
+    const V = [{ name: "Samantha", lang: "en-US", localService: true, default: true, voiceURI: "sam" },
+               { name: "Daniel", lang: "en-GB", localService: true, default: false, voiceURI: "dan" },
+               { name: "Amélie", lang: "fr-CA", localService: true, default: false, voiceURI: "ame" }];
+    p = await fresh({ wordsShown: "full", voiceURI: "ame", voiceName: "Amélie" }, { voices: V });
+    await p.evaluate(function () { window.WB.openSettings && window.WB.openSettings(); });
+    await wait(200);
+    const vsel = await p.evaluate(function () { const s = document.getElementById("set-voice"); return s.value + "|" + (s.selectedOptions[0] ? s.selectedOptions[0].textContent : ""); });
+    await tap(p, '#board [aria-label="go"]').catch(function () {});
+    check(/^ame\|/.test(vsel), "12: the voice menu shows the saved voice that is in use (" + vsel + ")");
+    await p.close();
+    p = await fresh({ wordsShown: "full" }, { voices: V, lang: "en-GB" });
+    check(await p.evaluate(function () { const v = window.WB.bestVoice(); return v && v.voiceURI; }) === "dan", "12: Automatic on an en-GB iPad picks the en-GB voice");
+    await p.close();
+    p = await fresh({ wordsShown: "full" }, { voices: V, lang: "en-US" });
+    check(await p.evaluate(function () { const v = window.WB.bestVoice(); return v && v.voiceURI; }) === "sam", "12: Automatic on an en-US iPad picks the en-US voice");
+    await p.close();
+
+    /* small fixes: speaking indicator gives up if the engine never ends; Enter on a finished tile */
+    p = await fresh({ wordsShown: "full", tapGuardMs: 0 }, { neverEnd: true });
+    await tap(p, '#board [aria-label="go"]');
+    await tap(p, "#btn-speak");
+    await wait(100);
+    const sp1 = await p.evaluate(function () { return document.body.classList.contains("speaking"); });
+    await wait(4200);
+    const sp2 = await p.evaluate(function () { return document.body.classList.contains("speaking"); });
+    check(sp1 && !sp2, "speaking indicator turns off when the engine never reports the end (" + sp1 + "/" + sp2 + ")");
+    await p.close();
+    p = await fresh({ wordsShown: "full", pathsSet: "all" });
+    await tap(p, "#nav-paths");
+    await tap(p, '[data-pattern="want"]');
+    for (let s = 0; s < 4; s++) {
+      const st = await p.evaluate(function () { return window.WB.paths(); });
+      if (st.requiredDone || !st.choices.length) break;
+      await p.evaluate(function (l) { const n = [].find.call(document.querySelectorAll("[data-choice]"), function (x) { return x.getAttribute("data-choice") === l; }); n.setAttribute("data-r", "c"); }, st.choices[0]);
+      await wait(460); await tap(p, "[data-r=c]"); await wait(50);
+    }
+    await wait(500);
+    const n0 = await p.evaluate(function () { return window.__spoken.length; });
+    await p.focus(".path-done .path-replay");
+    await p.keyboard.press("Enter");
+    await wait(100);
+    check(await p.evaluate(function (n) { return window.__spoken.length > n; }, n0), "Enter on a finished big word says the sentence");
+    await p.close();
+    /* speaking label fits at portrait width */
+    p = await fresh({ wordsShown: "full" }, { w: 820, h: 1180 });
+    const lab = await p.evaluate(function () { const t = document.querySelector("#btn-speak .txt"); const old = t.textContent; t.textContent = "speaking"; const r = t.scrollWidth <= t.clientWidth + 1; t.textContent = old; return r; });
+    check(lab, "speak button label 'speaking' fits in portrait");
+    await p.close();
+    /* sw.js installs all-or-nothing */
+    const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
+    check(!/\.catch\(function \(\) \{\}\)/.test(sw) && /throw/.test(sw), "sw.js install fails as a whole if a core file is missing");
+  } finally {
+    for (const p of pages) { try { if (!p.isClosed()) await p.close(); } catch (e) {} }
+  }
+}
+
 main().catch(function (e) { console.error(e); process.exit(1); });

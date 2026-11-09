@@ -79,7 +79,7 @@ button, [role="button"] {
   font-weight: 800; padding: 2px; min-width: 0;
 }
 .action .ico { font-size: clamp(26px, 4.5vmin, 44px); line-height: 1; }
-.action .txt { font-size: clamp(16px, 2.6vmin, 26px); margin-top: 4px; }
+.action .txt { font-size: clamp(14px, min(2.6vmin, 2.05vw), 26px); margin-top: 4px; white-space: nowrap; max-width: 100%; overflow: hidden; }
 .action.speak { background: #0b5; color: #000; border-color: #000; outline: 3px solid #fff; outline-offset: -1px; }
 .action:active, .action.pressed { background: #fff; color: #000; }
 
@@ -237,11 +237,11 @@ button, [role="button"] {
 .path-card .emo { font-size: min(24cqh, 30cqw, 64px); margin-bottom: 1cqh; }
 .path-card .path-title {
   font-weight: 800; text-align: center; line-height: 1.05; max-width: 100%;
-  font-size: min(calc(260cqw / var(--ptlen, 12)), 16cqh, 32px);
+  font-size: min(calc(260cqw / var(--ptlen, 12)), 20cqh, 34px);
 }
 .path-card .path-frame {
   font-weight: 700; text-align: center; line-height: 1.1; color: #222; max-width: 100%;
-  font-size: min(calc(220cqw / var(--pflen, 12)), 11cqh, 18px); padding: 0 4px;
+  font-size: min(calc(220cqw / var(--pflen, 12)), 12cqh, 18px); padding: 0 4px;
 }
 .path-choices, .path-done { height: 100%; min-height: 0; display: grid; gap: var(--gap); }
 .path-chrome {
@@ -349,9 +349,10 @@ body.speaking #msg { box-shadow: inset 0 0 0 4px #FFE14D; }
 body.space-more { --gap: clamp(10px, 2vmin, 20px); }
 /* text size */
 body.ts-large { --ts: 1.18; } body.ts-larger { --ts: 1.36; }
-body.ts-large #msg { font-size: 1.15em; } body.ts-larger #msg { font-size: 1.3em; }
+/* 1.5.6: large / larger make the message bar text bigger (was 1.15em of the 16px body = smaller) */
+body.ts-large #msg { font-size: clamp(32px, 6vmin, 62px); } body.ts-larger #msg { font-size: clamp(36px, 6.9vmin, 70px); }
 /* board colour */
-body.bg-light { --bg: #e9e6df; background: #e9e6df; } body.bg-light #page-title { color: #111; }
+body.bg-light { --bg: #e9e6df; background: #e9e6df; } body.bg-light:not(.hc) #page-title { color: #111; }
 body.bg-blue { --bg: #0d2240; background: #0d2240; }
 /* high contrast */
 body.hc { --bg: #000; background: #000; }
@@ -394,11 +395,11 @@ body.hc .path-made { color: #fff; }
 body.hc .path-act:not(.say):not(.to-words) { border-color: #fff; background: #000; }
 .path-chrome.finished .say, .path-chrome.finished .to-words { visibility: hidden; }
 /* light board: finished view + empty slot text stay readable */
-body.bg-light .path-made { color: #444; }
-body.bg-light .path-sentence { color: #111; }
-body.bg-light .path-slot.empty { color: #555; border-color: #888; }
-body.bg-light .path-slot.empty.now { color: #111; border-color: #b8860b; }
-body.bg-light .note-dark { color: #333; }
+body.bg-light:not(.hc) .path-made { color: #444; }
+body.bg-light:not(.hc) .path-sentence { color: #111; }
+body.bg-light:not(.hc) .path-slot.empty { color: #555; border-color: #888; }
+body.bg-light:not(.hc) .path-slot.empty.now { color: #111; border-color: #b8860b; }
+body.bg-light:not(.hc) .note-dark { color: #333; }
 /* 1.5.4: endings that can't go on the last word are dimmed (layout stays put) */
 .cell.ending.ending-off { opacity: 0.35; filter: grayscale(1); }
 /* 1.5.4: hold-to-clear shows a filling bar while held; the button keeps its own colour */
@@ -409,5 +410,12 @@ body.bg-light .note-dark { color: #333; }
   background: #8fd3ff; transform: scaleX(0); transform-origin: left center; pointer-events: none;
 }
 #btn-clear.hold-mode.pressed:not(.undo)::after { transform: scaleX(1); transition: transform var(--hold-ms, 800ms) linear; }
-#btn-clear.undo::after { display: none; }
 .path-replay { cursor: pointer; }
+
+/* 1.5.6: a long message starts at the top so every line can be scrolled to */
+#msg.overflow { align-content: flex-start; }
+/* 1.5.6: the undo button looks different from clear (yellow, dashed edge, ↶) and is a plain tap;
+   a hold still means clear, so its fill bar shows there too */
+#btn-clear.undo { border-style: dashed; border-color: #000; outline: 3px solid #FFE14D; }
+#btn-clear.hold-mode.undo::after { display: block; background: #000; }
+#btn-clear.hold-mode.pressed.undo::after { transform: scaleX(1); transition: transform var(--hold-ms, 800ms) linear; }
