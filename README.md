@@ -1,6 +1,7 @@
 # Word Board
 
 **A free talking word board (AAC) for iPad. No account, no app store, no tracking.**
+Version **1.6.0**.
 
 ## Start today (2 minutes)
 
@@ -8,10 +9,22 @@
 2. Tap **Share** (the square with the arrow), then **Add to Home Screen**, then **Add**.
 3. Open **Word Board** from the home screen. Done. It works offline after the first open.
 
+![Word Board on an iPad in landscape: the Full level with chunky 3D buttons. The message bar reads "I want more"; below it are home, abc and paths tabs and a 9 by 10 grid of colour-coded word buttons with folders along the bottom row.](docs/screenshots/chunky-full-landscape.png)
+
+*Full level, Button look: chunky. [Portrait](docs/screenshots/chunky-full-portrait.png) ·
+[Paths menu](docs/screenshots/chunky-paths-landscape.png) ·
+[a finished Paths sentence](docs/screenshots/chunky-paths-sentence-landscape.png)*
+
 **Pick a level.** Hold the ⚙ gear for 2 seconds to open parent settings. Words are tiered
 roughly by age: **Starter (about 2)**, **Middle (about 3)**, **Expanded (about 4)**,
 **Sentences (about 5)**, **Full (about 6+)**. The ages are approximate, not a test or an
 assessment. Start where it feels easy and turn it up any time if your child is ahead.
+
+**Make it look right.** Parent settings → *Look*: contrast (normal or high), text size
+(normal, large, larger), board colour (dark, light, deep blue) and **Button look**:
+**classic** (the default), **chunky** (3D keys that sink when pressed), **tint** (pale tiles
+with a thick colour edge and bigger pictures) or **pebble** (soft rounded pastel buttons).
+Only the surface of the buttons changes: every word keeps its place and its colour.
 
 **Share it.** Parent settings → *Share Word Board* has a share button, a copy-link button and a
 QR code. (Sharing is only in parent settings, never on the child's board.)
@@ -32,19 +45,17 @@ nothing leaves it unless you send it yourself (for example, an email you write).
 A simple, offline-capable AAC (communication board) web app for iPad. Plain HTML/CSS/JS:
 no build step, no frameworks, no CDNs, no analytics, no network calls.
 
-**Since 1.3.0 the whole board is built in.** `words.js` holds every word (starter, middle and
-full tiers, with fixed positions and levels) and `stories.js` holds the non-personal stories,
-with their illustrations in `media/stories/`. Nothing needs to be imported: new words arrive
-with app updates. The parent setting *Words shown* (starter / middle / full / custom) picks
-the tier.
+**The whole board is built in.** `words.js` holds every word (about 420, with fixed
+positions and age-tiered levels), `paths.js` the Paths sentence patterns and `stories.js` the
+non-personal stories, with their illustrations in `media/stories/`. Nothing needs to be
+imported or downloaded: new words arrive with app updates. The parent setting *Words shown*
+picks the level.
 
 **Private content** (family photos, the "My family" story, recordings) lives only in
 `private/overlay.js` (+ `private/photos/…`, `private/recordings/…`) in the private copy of the
 app. `index.html` loads it if it exists; the public copy simply doesn't have that folder
 (`private/` is git-ignored here). Photos/recordings added on the iPad stay in IndexedDB on that
-device and are merged on top. Pack import (below) still works as a fallback: an imported pack
-adds its photos/recordings/stories on top of the built-in board; it only replaces the board if
-its pack.json has `"replace": true`.
+device. Parent settings can save a backup of those device additions and restore it later.
 
 ## What it does
 
@@ -59,9 +70,10 @@ its pack.json has `"replace": true`.
 - **abc (KEYBOARD).** A–Z in **alphabetical order**, **.** and **?**, plus a wide **space**
   bar. Pressing space speaks the finished word. **.** or **?** ends the last word; it shows in
   the message bar and stays in the spoken sentence (so **?** gets question intonation). The prediction row above the keys suggests words that start with the
-  typed letters (from the visible buttons plus the pack's `knownWords`); tapping a
+  typed letters (from the visible buttons plus the board's `knownWords` list); tapping a
   suggestion finishes and speaks the word. It can be turned off.
-- **paths (1.5.2).** Speech-pattern practice. The tab bar is **home**, **abc**, **paths**.
+- **paths.** Speech-pattern practice that builds short, grammatical sentences ("I want
+  milk.", "I like swimming."); an automatic grammar audit checks every path. The tab bar is **home**, **abc**, **paths**.
   Large pattern cards open a short sentence one blank at a time. Starter: **I want …**,
   **I want more …**, **Help me**, **I see …**, **Stop.**, **I'm all done.** Middle adds
   **I don't want …**, **I go to …**, **I like …**. Expanded adds **Who / what is …?**,
@@ -86,23 +98,27 @@ its pack.json has `"replace": true`.
 - **Presses.** A button counts when the finger lifts, however long it was held, as long as the
   finger is still on the button or within about 28 px of it. Slow presses, holds and wiggles
   all work; sliding well off the button cancels. Long-press menus and text selection are off.
-- **Words shown** (parent settings, top section): **Starter** (about 20–24 most-used words),
-  **Middle** (about 36–40), **Full** (every word) or **Custom** (tap words in the editor to show or
-  hide them). Words are **masked, never moved**: a hidden word leaves an empty cell, so every
-  visible button keeps its place as more words are revealed. Folder buttons always show; the level
-  applies to Home, and optionally inside folders too. Each word's priority comes from its optional
-  `level` field (1 = starter, 2 = middle, 3 = full) or a generic core-word default. A pack can set
-  its default with `config.wordsShown`; once a parent picks a level it is saved on the device and
-  kept when a pack is imported again.
+- **Words shown** (parent settings, top section), roughly by age. On the home board:
+  **Starter** (about 2): the 49 most-used words, also as **Starter (big buttons)**;
+  **Middle** (about 3): 67; **Expanded** (about 4): 75; **Sentences** (about 5): 78, adding
+  *when*, word endings and more little words; **Full** (about 6+): every word, about 420 in
+  all, including the Conversation words (time, thinking, school, social phrases).
+  **Custom** lets you tap words to show or hide them one at a time. Words are **masked, never
+  moved**: a hidden word leaves an empty cell, so every visible button keeps its place as more
+  words are revealed. Folder buttons always show; the level applies to Home, and optionally
+  inside folders too. A level a parent picks is saved on the device and kept across updates.
 - **Parent settings** (hold the dim ⚙ gear for 2 seconds; triple tap is optional):
-  voice, speed, pitch, volume; text case; pictures on/off; prediction; tap-repeat guard;
+  voice, speed, pitch, volume; **Look** (contrast, text size, board colour, Button look);
+  text case; picture and word / picture only / word only; clear button (hold, tap or
+  hidden); hold time; spacing; prediction; tap-repeat guard;
   story read mode; Paths (show the tab, speak each word, copy to Words, which pattern set,
   how many open-slot choices, hide a pattern whose word is hidden, prefer recent words from
   the usage log); **go back to Home after picking a word in a folder** (off by default:
   she stays in the folder; when on, the word is still spoken and added, then the board
-  returns to Home); personal pack import/export; hide/show words; add photos from the
-  camera or photo library; opt-in usage log. The choice is saved on this device with the
-  other parent settings.
+  returns to Home); hide/show words; add photos from the camera or photo library; a
+  backup of photos and recordings added on the device; opt-in usage log; **Share Word
+  Board** (share button, copy link, QR code) and **Send feedback** (an email you write).
+  Everything is saved on this device.
 
 No animations, no ads, no sounds except speech and recordings.
 
@@ -124,7 +140,7 @@ with the negation words, as many core boards do. Change a word's `type` to recol
 
 ## Motor planning: positions never move
 
-Every button has an explicit `row`/`col` on a fixed grid (5 × 8 by default). Empty cells
+Every button has an explicit `row`/`col` on a fixed grid (home is 9 × 10). Empty cells
 stay blank. Hiding a word blanks its cell and moves nothing else. Adding a word only fills
 an empty cell. Keep these rules when editing:
 
@@ -139,10 +155,8 @@ and the first word keeps the cell.
 
 ## Editing words
 
-**Generic board:** `words.js` (comments at the top explain every field).
-
-**Personal board:** edit the pack's `pack.json`. It uses the same `pages`/`words` format
-under `config`. Rebuild the pack and import it again (see below).
+The board is `words.js` (comments at the top explain every field). In your own copy, edit
+it and publish; devices pick up the change on their next update.
 
 ```js
 { id: "juice", label: "juice", page: "food", row: 1, col: 5, type: "noun", emoji: "🧃" }
@@ -151,48 +165,26 @@ under `config`. Rebuild the pack and import it again (see below).
 Optional fields:
 - `say`: what the voice says if it should differ from the label. The starter board uses
   `say: "eye"` on **I**, because iOS reads a lone "I" as "capital I". The app also applies
-  "eye" to a typed **i** and to "I" in stories, even if a pack forgets the `say` field.
-- `audio`: a recording, e.g. `"recordings/milk.m4a"`. If the recording is in the pack it
+  "eye" to a typed **i** and to "I" in stories.
+- `audio`: a recording, e.g. `"recordings/milk.m4a"`. If the recording is there it
   plays; if it is missing or cannot play, the voice says the word instead.
 - `image`: a photo, e.g. `"photos/cup.jpg"` (or add one on the iPad).
 - `hidden: true`.
 
-## Personal packs
+## Photos, recordings and backups
 
-A pack is either a `.zip` (holding `pack.json` plus `photos/…` and `recordings/…`) or a
-single `.json` with the media embedded. `pack.json` looks like this:
+Photos can be added on the iPad: parent settings → *Words* ("add or change its photo", then
+tap a word) or *Stories*. They are shrunk to 640 px and stay on that device. Do this in the
+**Home Screen app itself**: iOS keeps a Home Screen app's storage separate from Safari's.
 
-```json
-{ "format": "wordboard-pack", "version": 1, "name": "My pack",
-  "config": { "pages": [...], "words": [...], "knownWords": ["cat", "dog"], "wordsShown": "starter" },
-  "stories": [ { "id": "s1", "title": "…", "emoji": "🚌", "pages": [ { "text": "…", "scene": ["🐶", "👀", "🌧️"], "sceneMain": 2, "emoji": "🌧️" },
-                                                                 { "text": "…", "pic": "photos/p1.jpg" } ] } ],
-  "includeSampleStories": true }
-```
-
-To build importable files from a pack folder:
-
-```
-node tools/make-pack.js <pack-folder> <out-folder> <name>
-```
-
-This checks the pack for position collisions and writes `<name>.zip` and `<name>.json`.
-
-**On the iPad:** open the app → hold ⚙ for 2 s → *Import pack* → choose the file in Files.
-Import in the **Home Screen app itself**: iOS keeps Home Screen web apps' storage separate
-from Safari's. After importing, photos can be added under *Words* (choose "add or change
-its photo" and tap a word) or under *Stories*. **Export pack (.zip)** or **Share / Save to
-Files** makes a backup with all photos and recordings. Back up after changes: deleting the
-Home Screen app can delete its storage.
-
-Recordings: record in Voice Memos, share/save as `.m4a`, name it like the word
-(`milk.m4a`), put it in the pack's `recordings/` folder, add `audio: "recordings/milk.m4a"`
-to the word, then rebuild and re-import.
+Parent settings → *Board, private content and device backup* can **export** those device
+additions (photos, recordings, stories) as a `.zip`, **Share / Save to Files**, and restore a
+saved backup. Back up after changes: deleting the Home Screen app can delete its storage.
 
 ## Speech notes (iOS)
 
-- Speech uses the Web Speech API (`speechSynthesis`) in en-US and needs no network for
-  on-device voices.
+- Speech uses the Web Speech API (`speechSynthesis`) and needs no network for on-device
+  voices.
 - iOS loads voices late and doesn't always fire `voiceschanged`. The app polls for about
   10 s, and until voices appear it speaks with the default en-US voice.
 - iOS only allows speech/audio to start from a tap. Every sound starts from a tap. The app
@@ -200,23 +192,26 @@ to the word, then rebuild and re-import.
 - **Siri voices are not available to web apps.** For a nicer voice, download an *Enhanced*
   or *Premium* English voice: iPad **Settings → Accessibility → Spoken Content → Voices →
   English**. Then pick it under ⚙ → Voice (or leave it on *Automatic*, which prefers
-  Premium/Enhanced en-US voices). Novelty voices are hidden unless you ask for them.
+  Premium/Enhanced voices in the iPad's own English, for example en-GB, and otherwise
+  en-US). Novelty voices are hidden unless you ask for them.
 - Rate and pitch feel different from voice to voice; some iOS voices ignore pitch.
 - Word highlighting while speaking depends on the voice sending word-boundary events. If
   highlighting drifts in stories, set *Stories ▶ read button* to "one word at a time".
 - Turn the iPad volume up. Speech and recordings follow the media volume.
 
-## Getting it onto the iPad (private options, none done yet)
+## Other ways to host it (optional)
 
-"Add to Home Screen" (Safari → Share → Add to Home Screen) gives a full-screen app icon.
+Most people should just use the live link in *Start today*. These options are for running
+your own copy. "Add to Home Screen" (Safari → Share → Add to Home Screen) gives a full-screen
+app icon.
 Working **offline** needs the service worker, and browsers only run service workers on
 **https://** (or `localhost`).
 
 **(a) Local server on the home network.** Easiest to try:
 `python3 -m http.server 8000` in this folder, then open `http://<computer-ip>:8000` on the
 iPad. Plain `http://` to a LAN address is **not a secure context**, so there is no service
-worker and no offline use. The app works only while the computer is serving, and a pack
-imported on a plain-http address also lives on that address. For offline use on the LAN,
+worker and no offline use. The app works only while the computer is serving, and photos
+added on a plain-http address also live on that address. For offline use on the LAN,
 serve it over HTTPS with a certificate the iPad trusts. One private way:
 [Tailscale](https://tailscale.com) with `tailscale serve`, which gives an HTTPS
 `*.ts.net` address that only your own devices can reach. After the first load it works
@@ -247,18 +242,18 @@ Limits on iPad:
 |---|---|
 | `index.html` | app page |
 | `styles.css` | layout and colours |
-| `app.js` | app logic (speech, grid, keyboard, paths, stories, parent mode, packs) |
+| `app.js` | app logic (speech, grid, keyboard, paths, stories, parent settings, backups) |
 | `store.js` | on-device storage (IndexedDB) and a small zip reader/writer |
-| `words.js` | generic starter board |
+| `words.js` | the board: every word, its place and its level |
 | `paths.js` | Paths patterns (which phrases, which board words fill each blank) |
 | `stories.js` | generic sample stories (not on the tab bar) |
 | `sw.js` | service worker (offline) |
 | `manifest.json`, `icons/` | Home Screen install |
-| `tools/make-pack.js` | builds a pack `.zip`/`.json` from a pack folder |
+| `tools/make-pack.js` | (advanced) builds a device-additions `.zip`/`.json` from a folder |
 | `tools/build-single.js` | builds `dist/aac.html` |
 | `tools/icon.html` | icon source |
 | `dist/aac.html` | single-file build |
-| `screenshots/` | test screenshots of the generic board |
+| `docs/screenshots/` | screenshots of the generic board (the `chunky-*` previews are 1.6.0) |
 
 After changing app files, reopen the app twice: the first launch fetches the update in
 the background and the second shows it. **Bump `CACHE` in `sw.js` on every release** so
