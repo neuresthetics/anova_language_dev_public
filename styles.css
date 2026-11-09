@@ -419,3 +419,60 @@ body.bg-light:not(.hc) .note-dark { color: #333; }
 #btn-clear.undo { border-style: dashed; border-color: #000; outline: 3px solid #FFE14D; }
 #btn-clear.hold-mode.undo::after { display: block; background: #000; }
 #btn-clear.hold-mode.pressed.undo::after { transform: scaleX(1); transition: transform var(--hold-ms, 800ms) linear; }
+
+/* ================= 1.6: button looks (Settings → Look → Button look) =================
+   Only the surface of each button changes: same grid, same positions, same colours by word type
+   (modified Fitzgerald key), labels stay dark on light. Press feedback is an instant state (the
+   app has no animations); with "reduce motion" on, buttons don't move when pressed. */
+
+/* --- A. Chunky: tactile 3D keys with a darker ledge underneath; pressing sinks the key --- */
+body.look-chunky .cell.btn, body.look-chunky .path-slot.filled {
+  border: 3px solid rgba(0, 0, 0, 0.38); border-radius: 18px;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.55), inset 0 -7px 0 rgba(0, 0, 0, 0.16), 0 6px 0 rgba(0, 0, 0, 0.55);
+  margin-bottom: 6px;
+}
+body.look-chunky .cell.btn.pressed, body.look-chunky .cell.btn:active {
+  transform: translateY(5px); outline: 4px solid #fff; filter: none;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.16), 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+body.look-chunky .t-folder { border-radius: 6px 18px 18px 18px; }
+body.look-chunky .cell .lbl { font-weight: 900; }
+
+/* --- B. Tinted: pale tile + a thick band of the word-type colour, bigger pictures --- */
+body.look-tint { --tint-people: #FFF6C7; --tint-verb: #DDF5DD; --tint-descriptor: #DCEBFF; --tint-noun: #FFE7CC;
+  --tint-social: #FFE3F2; --tint-negation: #FFDADA; }
+body.look-tint .cell.btn { border-width: 6px; border-style: solid; border-radius: 22px; }
+body.look-tint .cell.btn.t-people { background: var(--tint-people); border-color: var(--people); }
+body.look-tint .cell.btn.t-verb { background: var(--tint-verb); border-color: var(--verb); }
+body.look-tint .cell.btn.t-descriptor { background: var(--tint-descriptor); border-color: var(--descriptor); }
+body.look-tint .cell.btn.t-noun { background: var(--tint-noun); border-color: var(--noun); }
+body.look-tint .cell.btn.t-social { background: var(--tint-social); border-color: var(--social); }
+body.look-tint .cell.btn.t-negation { background: var(--tint-negation); border-color: var(--negation); }
+body.look-tint .cell.btn.t-little { background: #fff; border-color: #cfcfcf; }
+body.look-tint .cell.btn.t-folder { border-radius: 6px 22px 22px 22px; border-width: 4px; }
+body.look-tint .cell.btn.pressed, body.look-tint .cell.btn:active { outline: 5px solid #fff; filter: brightness(0.9); }
+body.look-tint .cell .lbl { color: #111; }
+
+/* --- C. Pebble: soft rounded pebbles in calmer pastels, soft shadow, no hard edges --- */
+body.look-pebble { --people: #FFE680; --verb: #9EDD9E; --descriptor: #A6CDFF; --noun: #FFC587;
+  --social: #FFB8DD; --negation: #FF9C9C; }
+body.look-pebble .cell.btn, body.look-pebble .path-slot.filled {
+  border: 0; border-radius: 30px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 -4px 0 rgba(0, 0, 0, 0.08);
+}
+body.look-pebble .cell.btn.t-folder { border-radius: 8px 30px 30px 30px; border: 0 !important; }
+body.look-pebble .cell.btn.pressed, body.look-pebble .cell.btn:active { transform: scale(0.95); outline: 4px solid #fff; filter: brightness(0.92); }
+body.look-pebble .cell .lbl { color: #1a1a1a; }
+
+/* light board: shadows lighter so the board stays calm */
+body.bg-light.look-chunky .cell.btn { box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.55), inset 0 -7px 0 rgba(0, 0, 0, 0.14), 0 6px 0 rgba(0, 0, 0, 0.3); }
+body.bg-light.look-pebble .cell.btn { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22); }
+/* high contrast wins over any look: solid black edge + white ring, full-strength colours */
+body.hc[class*="look-"] .cell.btn { border: 5px solid #000 !important; box-shadow: 0 0 0 2px #fff; margin-bottom: 0; }
+body.hc.look-tint .cell.btn.t-people { background: var(--people); } body.hc.look-tint .cell.btn.t-verb { background: var(--verb); }
+body.hc.look-tint .cell.btn.t-descriptor { background: var(--descriptor); } body.hc.look-tint .cell.btn.t-noun { background: var(--noun); }
+body.hc.look-tint .cell.btn.t-social { background: var(--social); } body.hc.look-tint .cell.btn.t-negation { background: var(--negation); }
+@media (prefers-reduced-motion: reduce) {
+  body.look-chunky .cell.btn.pressed, body.look-chunky .cell.btn:active,
+  body.look-pebble .cell.btn.pressed, body.look-pebble .cell.btn:active { transform: none; }
+}

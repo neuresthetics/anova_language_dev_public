@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Browser smoke for 1.5.4 + the 1.5.6 bug-check regressions: word endings, leaving Paths, replaying a finished path,
+/* Browser smoke for 1.5.4 + the 1.5.6 bug-check regressions + 1.6 button looks: word endings, leaving Paths, replaying a finished path,
    ABC letter names, hold-to-clear. Based on paths-smoke.js. Uses system Chrome via puppeteer-core.
    Does not hardcode the old pattern titles; it opens cards by id and
    checks the chrome buttons by their aria-labels.
@@ -246,6 +246,7 @@ async function main() {
     check((await msgText()) === "", "tap mode: one tap clears");
     await page.close();
     await regress156(browser, check, wait);
+    await regress160(browser, check, wait);
   } finally {
     await browser.close();
     server.close();
@@ -487,6 +488,102 @@ async function regress156(browser, check, wait) {
     check(!/\.catch\(function \(\) \{\}\)/.test(sw) && /throw/.test(sw), "sw.js install fails as a whole if a core file is missing");
   } finally {
     for (const p of pages) { try { if (!p.isClosed()) await p.close(); } catch (e) {} }
+  }
+}
+
+/* ==== 1.6.0: button looks (classic / chunky / tint / pebble) ==== */
+async function regress160(browser, check, wait) {
+  const LOOKS = ["classic", "chunky", "tint", "pebble"];
+  async function fresh(saved, o) {
+    o = o || {};
+    const p = await browser.newPage();
+    p.setDefaultTimeout(15000);
+    await p.setViewport({ width: o.w || 1180, height: o.h || 820 });
+    p.on("pageerror", function (e) { check(false, "page error " + e.message); });
+    if (o.reduce) await p.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    await p.evaluateOnNewDocument(function () {
+      var fake = { speaking: false, pending: false, paused: false, getVoices: function () { return []; }, addEventListener: function () {}, cancel: function () {}, resume: function () {},
+        speak: function (u) { setTimeout(function () { if (u.onend) u.onend(); }, 0); } };
+      window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      try { Object.defineProperty(window, "speechSynthesis", { configurable: true, get: function () { return fake; } }); } catch (e) {}
+    });
+    await p.goto("http://127.0.0.1:" + port + "/", { waitUntil: "domcontentloaded" });
+    if (saved) await p.evaluate(function (s) { localStorage.clear(); localStorage.setItem("wb.settings", JSON.stringify(s)); }, saved);
+    await p.reload({ waitUntil: "domcontentloaded" });
+    await p.waitForFunction(function () { return window.WB && document.querySelector("#board .cell"); });
+    await wait(300);
+    return p;
+  }
+  function lum(c) { const m = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; }
+  function ratio(a, b) { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  const scan = function (p) {
+    return p.evaluate(function () {
+      const btns = [].slice.call(document.querySelectorAll("#board .cell.btn"));
+      return {
+        body: document.body.className,
+        layout: btns.map(function (b) { return b.style.gridRow + "/" + b.style.gridColumn + ":" + b.getAttribute("aria-label"); }).join("|"),
+        over: btns.filter(function (b) { const l = b.querySelector(".lbl"); if (!l || b.classList.contains("piconly")) return false; const r = l.getBoundingClientRect(), x = b.getBoundingClientRect(); return r.bottom > x.bottom + 1 || r.top < x.top - 1 || r.left < x.left - 1 || r.right > x.right + 1; }).map(function (b) { return b.getAttribute("aria-label"); }),
+        colours: btns.filter(function (b) { return !b.classList.contains("piconly"); }).map(function (b) { return [getComputedStyle(b.querySelector(".lbl")).color, getComputedStyle(b).backgroundColor, b.getAttribute("aria-label")]; }),
+        hcEdge: btns.every(function (b) { const cs = getComputedStyle(b); return cs.borderTopWidth === "5px" && cs.borderTopStyle === "solid" && cs.borderTopColor === "rgb(0, 0, 0)"; }),
+        emo: (function () { const e = document.querySelector('#board [aria-label="go"] .emo'); return e ? e.getBoundingClientRect().height : 0; })()
+      };
+    });
+  };
+  const lowContrast = function (s) { return s.colours.filter(function (c) { return !/rgba\(0, 0, 0, 0\)/.test(c[1]) && ratio(c[0], c[1]) < 4.5; }).map(function (c) { return c[2]; }); };
+
+  /* a 1.5.6 setup (no buttonLook saved) stays classic; nonsense values fall back to classic */
+  let p = await fresh({ levelsVersion: 2, wordsShown: "full", sayLetters: true, clearMode: "hold", textSize: "normal", boardColor: "dark", bigButtons: false });
+  const mig = await p.evaluate(function () { return { look: window.WB.settings.buttonLook, cls: /look-/.test(document.body.className), sel: (window.WB.openSettings(), document.getElementById("set-buttonlook").value), radius: getComputedStyle(document.querySelector("#board .cell.btn")).borderTopLeftRadius }; });
+  check(mig.look === "classic" && !mig.cls && mig.sel === "classic" && mig.radius === "14px", "1.6: a 1.5.6 setup keeps the classic buttons (" + JSON.stringify(mig) + ")");
+  const classicLayout = (await scan(p)).layout;
+  /* choosing a look in settings applies it at once and survives a reload */
+  await p.evaluate(function () { const s = document.getElementById("set-buttonlook"); s.value = "chunky"; s.dispatchEvent(new Event("change")); });
+  await wait(100);
+  check(await p.evaluate(function () { return document.body.classList.contains("look-chunky") && JSON.parse(localStorage.getItem("wb.settings")).buttonLook === "chunky"; }), "1.6: picking chunky applies and is saved");
+  await p.reload({ waitUntil: "domcontentloaded" });
+  await p.waitForFunction(function () { return window.WB && document.querySelector("#board .cell"); });
+  check(await p.evaluate(function () { window.WB.openSettings(); return document.body.classList.contains("look-chunky") && document.getElementById("set-buttonlook").value === "chunky"; }), "1.6: the look persists after reopening the app (and settings shows it)");
+  await p.evaluate(function () { const s = document.getElementById("set-buttonlook"); s.value = "classic"; s.dispatchEvent(new Event("change")); });
+  check(await p.evaluate(function () { return !/look-/.test(document.body.className); }), "1.6: back to classic removes the look");
+  await p.close();
+  p = await fresh({ levelsVersion: 2, wordsShown: "full", buttonLook: "sparkly" });
+  check(await p.evaluate(function () { return window.WB.settings.buttonLook === "classic" && !/look-/.test(document.body.className); }), "1.6: an unknown saved look falls back to classic");
+  await p.close();
+
+  /* every look with every Look setting: same positions, labels inside, readable text */
+  const combos = [["dark", {}], ["light", { boardColor: "light" }], ["blue", { boardColor: "blue" }], ["hc", { contrast: "high" }], ["hc+light", { contrast: "high", boardColor: "light" }],
+                  ["larger", { textSize: "larger" }], ["starter-big", { wordsShown: "starter", bigButtons: true }], ["picture-only", { showMode: "pic" }]];
+  const picBase = {};
+  for (const look of LOOKS) {
+    for (const [name, extra] of combos) {
+      p = await fresh(Object.assign({ levelsVersion: 2, wordsShown: "full", buttonLook: look }, extra));
+      const s = await scan(p);
+      const tag = look + "/" + name;
+      if (name === "dark") check(s.layout === classicLayout, "1.6 " + tag + ": every button in the same place as classic");
+      if (name === "starter-big") {
+        if (look === "classic") picBase.starter = s.layout;
+        else check(s.layout === picBase.starter, "1.6 " + tag + ": Starter big buttons keep their places");
+      }
+      check(s.over.length === 0, "1.6 " + tag + ": labels stay inside their buttons (" + s.over.slice(0, 5) + ")");
+      const low = lowContrast(s);
+      check(low.length === 0, "1.6 " + tag + ": label contrast >= 4.5 (" + low.slice(0, 5) + ")");
+      if (/^hc/.test(name) && look !== "classic") check(s.hcEdge, "1.6 " + tag + ": high contrast keeps the solid black edge");
+      if (name === "picture-only") {
+        if (look === "classic") picBase.emo = s.emo;
+        else check(s.emo >= picBase.emo * 0.9, "1.6 " + tag + ": picture-only pictures stay big (" + Math.round(s.emo) + " vs classic " + Math.round(picBase.emo) + ")");
+      }
+      await p.close();
+    }
+  }
+
+  /* pressing: chunky / pebble move the button, but not with reduce motion on */
+  for (const look of ["chunky", "pebble"]) {
+    for (const reduce of [false, true]) {
+      p = await fresh({ levelsVersion: 2, wordsShown: "full", buttonLook: look }, { reduce: reduce });
+      const tf = await p.evaluate(function () { const b = document.querySelector('#board [aria-label="want"]'); b.classList.add("pressed"); const t = getComputedStyle(b).transform; b.classList.remove("pressed"); return t; });
+      check(reduce ? tf === "none" : tf !== "none", "1.6 " + look + (reduce ? " + reduce motion: pressed button does not move" : ": pressed button moves") + " (" + tf + ")");
+      await p.close();
+    }
   }
 }
 
