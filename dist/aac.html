@@ -416,6 +416,18 @@ body.bg-light .path-sentence { color: #111; }
 body.bg-light .path-slot.empty { color: #555; border-color: #888; }
 body.bg-light .path-slot.empty.now { color: #111; border-color: #b8860b; }
 body.bg-light .note-dark { color: #333; }
+/* 1.5.4: endings that can't go on the last word are dimmed (layout stays put) */
+.cell.ending.ending-off { opacity: 0.35; filter: grayscale(1); }
+/* 1.5.4: hold-to-clear shows a filling bar while held; the button keeps its own colour */
+#btn-clear { position: relative; overflow: hidden; }
+#btn-clear.hold-mode.pressed:not(.undo) { background: #2d2d2d; color: #fff; }
+#btn-clear.hold-mode::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 12px;
+  background: #8fd3ff; transform: scaleX(0); transform-origin: left center; pointer-events: none;
+}
+#btn-clear.hold-mode.pressed:not(.undo)::after { transform: scaleX(1); transition: transform var(--hold-ms, 800ms) linear; }
+#btn-clear.undo::after { display: none; }
+.path-replay { cursor: pointer; }
 
 </style>
 </head>
@@ -6508,6 +6520,124 @@ body.bg-light .note-dark { color: #333; }
 
 </script>
 <script>
+/* Word endings for the Words board (-s, -ing, -ed, 's). No DOM; app.js and tools/endings-check.js use it.
+   allowed(word, kind) says whether an ending makes a real English word for THIS board word
+   (by its type and page), and form(word, kind) spells it. Words that take no ending
+   (again, more, stop, help me, yes, I, the, in, …) get none, so the ending button dims. */
+(function (root) {
+  "use strict";
+  var IRREGULAR_PAST = { go: "went", eat: "ate", see: "saw", run: "ran", come: "came", do: "did", make: "made",
+    get: "got", give: "gave", take: "took", sit: "sat", stand: "stood", find: "found", sleep: "slept", read: "read",
+    drink: "drank", have: "had", say: "said", think: "thought", know: "knew", feel: "felt", fall: "fell",
+    break: "broke", throw: "threw", catch: "caught", buy: "bought", bring: "brought", build: "built", draw: "drew",
+    write: "wrote", ride: "rode", swim: "swam", sing: "sang", tell: "told", hold: "held", put: "put", cut: "cut",
+    hurt: "hurt", hit: "hit", win: "won", lose: "lost", wake: "woke", wear: "wore", fly: "flew", forget: "forgot",
+    begin: "began", leave: "left", keep: "kept", teach: "taught", hide: "hid", bite: "bit", blow: "blew",
+    grow: "grew", feed: "fed", meet: "met", send: "sent", spend: "spent", pay: "paid", lay: "laid" };
+  var VERB_S = { go: "goes", do: "does", have: "has", be: "is" };
+  var IRREGULAR_PLURAL = { child: "children", man: "men", woman: "women", mouse: "mice", foot: "feet",
+    tooth: "teeth", person: "people", goose: "geese", leaf: "leaves", knife: "knives", wolf: "wolves",
+    shelf: "shelves", half: "halves", wife: "wives", life: "lives", calf: "calves", ox: "oxen",
+    potato: "potatoes", tomato: "tomatoes", hero: "heroes", mosquito: "mosquitoes", echo: "echoes", volcano: "volcanoes",
+    octopus: "octopuses", bus: "buses" };
+  /* the same word for one or many ("two fish") */
+  var SAME_PLURAL = { sheep: 1, fish: 1, deer: 1, moose: 1, bison: 1, shrimp: 1, squid: 1, jellyfish: 1, goldfish: 1 };
+  /* already plural or uncountable: no -s */
+  var NO_PLURAL = { pants: 1, eggs: 1, scissors: 1, shoes: 1, socks: 1, hands: 1, feet: 1, teeth: 1, eyes: 1,
+    milk: 1, water: 1, juice: 1, cheese: 1, toast: 1, bacon: 1, steak: 1, paper: 1, glue: 1, rain: 1, music: 1 };
+  /* mass only as food ("chicken" the animal counts: "chickens") */
+  var MASS_AS_FOOD = { chicken: 1 };
+  var IRREGULAR_ING = { be: "being", see: "seeing", lie: "lying", die: "dying", tie: "tying", begin: "beginning",
+    forget: "forgetting", visit: "visiting", open: "opening", happen: "happening", listen: "listening", ski: "skiing" };
+  var DOUBLE_LONG = { begin: 1, forget: 1, regret: 1, prefer: 1, admit: 1, permit: 1, upset: 1 };
+  /* verbs on the board that take no ending: modals, forms of be/do/have that are already inflected,
+     and "help" (on this board it is a call for help, so Jason wants it to stay as it is) */
+  var VERB_NO_ENDING = { can: 1, "can't": 1, will: 1, "won't": 1, would: 1, could: 1, should: 1, must: 1, may: 1, might: 1,
+    am: 1, is: 1, are: 1, help: 1, was: 1, were: 1, did: 1, does: 1, has: 1, had: 1, cares: 1, "don't": 1, "doesn't": 1 };
+  /* people words that are names or pronouns (only "'s": mom's, dad's) vs people you can count */
+  var NAME_PEOPLE = { mom: 1, dad: 1, grandma: 1, grandpa: 1, everyone: 1 };
+  var COUNT_PEOPLE = { kid: 1, man: 1, woman: 1, vet: 1, teacher: 1, friend: 1, baby: 1, boy: 1, girl: 1, brother: 1, sister: 1,
+    tummy: 1, head: 1, mouth: 1, nose: 1, hand: 1, foot: 1, eye: 1, ear: 1, arm: 1, leg: 1 };
+  var BODY = { tummy: 1, head: 1, mouth: 1, nose: 1, hand: 1, foot: 1, eye: 1, ear: 1, arm: 1, leg: 1 };
+  /* who can own something ("dog's", "mom's"); not body parts ("nose's") */
+  var POSS_PAGES = { people: 1, animals: 1 };
+
+  function low(w) { return String(w && (w.label != null ? w.label : w) || "").toLowerCase(); }
+  function lastWord(s) { var i = s.lastIndexOf(" "); return i < 0 ? s : s.slice(i + 1); }
+  function cvc(w) { return /^[^aeiou]*[aeiou][^aeiouwxy]$/.test(w) || !!DOUBLE_LONG[w]; }
+
+  function ing(w) {
+    if (IRREGULAR_ING[w]) return IRREGULAR_ING[w];
+    if (/ie$/.test(w)) return w.slice(0, -2) + "ying";
+    if (/ee$/.test(w)) return w + "ing";
+    if (/[^aeiouy]e$/.test(w) || (/[aiu]e$/.test(w) && w.length > 3)) return w.slice(0, -1) + "ing";
+    if (cvc(w)) return w + w.slice(-1) + "ing";
+    return w + "ing";
+  }
+  function past(w) {
+    if (IRREGULAR_PAST[w]) return IRREGULAR_PAST[w];
+    if (/e$/.test(w)) return w + "d";
+    if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ied";
+    if (cvc(w)) return w + w.slice(-1) + "ed";
+    return w + "ed";
+  }
+  function verbS(w) {
+    if (VERB_S[w]) return VERB_S[w];
+    if (/(s|x|z|sh|ch)$/.test(w)) return w + "es";
+    if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
+    return w + "s";
+  }
+  function plural(w) {
+    if (IRREGULAR_PLURAL[w]) return IRREGULAR_PLURAL[w];
+    if (SAME_PLURAL[w]) return w;
+    if (/(s|x|z|sh|ch)$/.test(w)) return w + "es";
+    if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
+    return w + "s";
+  }
+  function poss(w) { return w + "'s"; }   // singular owner: "the octopus's", "mom's"
+
+  /* What kind of word this is for endings: "verb", "noun", "name", or "" (takes none). */
+  function wordClass(word) {
+    if (!word || word.ending || word.type === "folder") return "";
+    var k = low(word);
+    if (!/^[a-z' ]+$/.test(k)) return "";
+    if (word.type === "verb") return VERB_NO_ENDING[k] ? "" : "verb";
+    if (word.type === "noun") return "noun";
+    if (word.type === "people") {
+      if (NAME_PEOPLE[k]) return "name";
+      if (COUNT_PEOPLE[k]) return "noun";
+      return "";        // I, you, me, it, he, she, my, …
+    }
+    return "";          // descriptors, little words, social, negation, questions
+  }
+  function allowed(word, kind) { return !!form(word, kind); }
+  /* The inflected text, or null when this word can't take this ending. */
+  function form(word, kind) {
+    var cls = wordClass(word);
+    if (!cls) return null;
+    var k = low(word);
+    if (cls === "verb") {
+      // phrasal verbs change their first word ("get dressed" → "getting dressed")
+      var sp = k.indexOf(" "), head = sp > 0 ? k.slice(0, sp) : k, tail = sp > 0 ? k.slice(sp) : "";
+      if (kind === "ing") return ing(head) + tail;
+      if (kind === "ed") return past(head) + tail;
+      if (kind === "s") return verbS(head) + tail;
+      return null;      // no "'s" on a verb
+    }
+    if (cls === "name") return kind === "poss" ? poss(k) : null;
+    // nouns
+    var last = lastWord(k), mass = NO_PLURAL[last] || (MASS_AS_FOOD[last] && word.page === "food");
+    if (kind === "s") return mass ? null : k.slice(0, k.length - last.length) + plural(last);
+    if (kind === "poss") return POSS_PAGES[word.page] && !mass && !BODY[last] ? poss(k) : null;
+    return null;        // nouns take no -ing / -ed
+  }
+  root.AAC_ENDINGS = { form: form, allowed: allowed, wordClass: wordClass, plural: plural, ing: ing, past: past, verbS: verbS };
+})(typeof self !== "undefined" ? self : globalThis);
+
+</script>
+<!-- optional family-only content; present only in the private copy (missing = fine) -->
+<script src="private/overlay.js" onerror="this.remove()"></script>
+<script>
 /* Word Board – AAC app shell. Plain JS, no dependencies, works offline.
    Since 1.3.0 the full board (all tiers) and the non-personal stories are built in
    (words.js, stories.js). Paths (paths.js) practices short phrases from those
@@ -6520,14 +6650,14 @@ body.bg-light .note-dark { color: #333; }
    imported pack (fallback), are stored on this device only (IndexedDB) and merged on top. */
 (function () {
   "use strict";
-  var APP_VERSION = "1.5.3";
+  var APP_VERSION = "1.5.4";
   var SHARE_URL = "https://neuresthetics.github.io/anova_language_dev_public/";
   var FEEDBACK_EMAIL = "neuresthetics@gmail.com";
   var LS = { settings: "wb.settings", hidden: "wb.hidden", log: "wb.log", custom: "wb.custom" };
   var DEFAULT_SETTINGS = {
     voiceURI: "", voiceName: "", rate: 0.9, pitch: 1.0, volume: 1.0,
     wordCase: "asis", keyCase: "upper",
-    showPictures: true, prediction: true, sayLetters: false, highlight: true,
+    showPictures: true, prediction: true, sayLetters: true, highlight: true,
     storyMode: "smooth", returnHome: false, tapGuardMs: 400, gateTripleTap: false,
     logEnabled: false, allVoices: false,
     wordsShown: "",          // "" = the pack's default (config.wordsShown), else starter | middle | full | custom
@@ -6549,7 +6679,9 @@ body.bg-light .note-dark { color: #333; }
     boardColor: "dark",      // dark | light | blue
     bigButtons: false        // "Starter (big buttons)": same words and order, empty rows/columns closed up
   };
-  var LETTER_NAMES = { a: "A.", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
+  /* Letter NAMES as the voice should say them (a lone "A" can come out as "uh", and
+     capitals as "capital A"), so every key is spoken as its name. */
+  var LETTER_NAMES = { a: "ay", b: "bee", c: "see", d: "dee", e: "ee", f: "ef", g: "gee", h: "aitch",
     i: "eye", j: "jay", k: "kay", l: "el", m: "em", n: "en", o: "oh", p: "pee", q: "cue", r: "ar",
     s: "ess", t: "tee", u: "you", v: "vee", w: "double you", x: "ex", y: "why", z: "zee" };
   /* Spoken forms used when no board word supplies a "say" (iOS reads a lone "I" as "capital I"). */
@@ -6599,6 +6731,9 @@ body.bg-light .note-dark { color: #333; }
   function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 
   var settings = Object.assign({}, DEFAULT_SETTINGS, readJSON(LS.settings, {}));
+  /* 1.5.4: letters are said by name when typed. Saved settings from before this carry the old
+     "off" default, so turn it on once; a parent can still switch it off afterwards. */
+  if (!settings.migrated154) { settings.sayLetters = true; settings.migrated154 = true; try { localStorage.setItem(LS.settings, JSON.stringify(settings)); } catch (e) { /* private mode */ } }
   function saveSettings() { writeJSON(LS.settings, settings); }
 
   /* ------------------------------------------------------------ pack + media (on-device only) */
@@ -7014,6 +7149,10 @@ body.bg-light .note-dark { color: #333; }
       m.appendChild(b);
     }
     m.scrollTop = m.scrollHeight;
+    // Something new went in after a clear: the old message can't come back over it, and the
+    // button is a plain clear again (before, a tap brought the OLD message back over the new one).
+    if (undoClear && (msg.tokens.length || msg.buf)) { clearTimeout(undoClear.t); undoClear = null; clearLabel(); }
+    updateEndingButtons();
   }
   function tokenFromWord(w) { return { text: w.label, say: w.say || (w.type !== "folder" ? SAY_DEFAULTS[String(w.label).toLowerCase()] : null), sayAlone: w.sayAlone, audio: w.audio, id: w.id, typed: false }; }
   function tokenFromTyped(text) { var w = wordByLabel[text.toLowerCase()]; return { text: text.toLowerCase(), say: sayFor(text), audio: w && w.audio, id: w ? w.id : null, typed: true }; }
@@ -7082,12 +7221,39 @@ body.bg-light .note-dark { color: #333; }
     }
     return null;
   }
+  /* Endings only go on words that can take them (endings.js knows each board word's kind):
+     "door" + -ing or "again" + -s does nothing, and the ending button is dimmed. */
+  function endingWordFor(t) {
+    if (!t) return null;
+    var w = null;
+    if (t.id) for (var i = 0; i < config.words.length; i++) if (config.words[i].id === t.id && !config.words[i].ending) { w = config.words[i]; break; }
+    return w || wordByLabel[String(t.text).toLowerCase()] || null;
+  }
+  function endingForm(t, kind) {
+    if (!t || t.punct || t.inflected || t.prev || !window.AAC_ENDINGS) return null;
+    var E = window.AAC_ENDINGS, w = endingWordFor(t), text = String(t.text);
+    if (w) return text.toLowerCase() === String(w.label).toLowerCase() ? E.form(w, kind) : null;
+    // a typed word the board doesn't know: trust the spelling rules
+    if (!t.typed || !/^[a-z]+$/i.test(text)) return null;
+    var k = text.toLowerCase();
+    return kind === "s" ? E.plural(k) : kind === "ing" ? E.ing(k) : kind === "ed" ? E.past(k) : kind === "poss" ? k + "'s" : null;
+  }
+  function lastTokenForEnding() { return msg.buf ? { text: msg.buf, typed: true } : msg.tokens[msg.tokens.length - 1]; }
+  function updateEndingButtons() {
+    var t = lastTokenForEnding();
+    [].forEach.call(document.querySelectorAll("#board .cell.ending[data-ending]"), function (b) {
+      var ok = !!endingForm(t, b.getAttribute("data-ending"));
+      b.classList.toggle("ending-off", !ok);
+      b.setAttribute("aria-disabled", ok ? "false" : "true");
+    });
+  }
   function applyEnding(w) {
     var kind = w.ending;
+    if (!endingForm(lastTokenForEnding(), kind)) { updateEndingButtons(); return; }   // dimmed: the tap does nothing
     commitBuf(false);
     var t = msg.tokens[msg.tokens.length - 1];
-    var out = t && !t.punct && !/\s/.test(t.text) ? inflect(t.text, kind) : null;
-    if (!out) { stopAll(); Speech.speak(ENDING_SAY[kind] || w.label); renderMsg(); return; }
+    var out = endingForm(t, kind);
+    if (!out) { renderMsg(); return; }
     var keepCase = t.typed ? out : (/^[A-Z]/.test(t.text) && t.text !== "I" ? out.charAt(0).toUpperCase() + out.slice(1) : out);
     t.prev = { text: t.text, say: t.say, sayAlone: t.sayAlone, audio: t.audio, id: t.id, prev: t.prev };
     var base = t.prev.text.toLowerCase();
@@ -7259,6 +7425,7 @@ body.bg-light .note-dark { color: #333; }
   }
   function wordButton(w) {
     var b = el("button", "cell btn t-" + (w.type || "noun") + (w.ending ? " ending" : "")); b.type = "button";
+    if (w.ending) b.setAttribute("data-ending", w.ending);
     var pic = picFor(w);
     if (pic) b.appendChild(pic); else b.classList.add("nopic");
     b.appendChild(el("span", "lbl", caseWord(w.label)));
@@ -7306,7 +7473,7 @@ body.bg-light .note-dark { color: #333; }
   }
   function typeLetter(ch) {
     msg.buf += ch; renderMsg(); renderPreds();
-    if (settings.sayLetters) { stopAll(); Speech.speak(LETTER_NAMES[ch] || ch); }
+    if (settings.sayLetters !== false) { stopAll(); Speech.speak(LETTER_NAMES[String(ch).toLowerCase()] || ch); }
   }
   /* keyboard backspace: removes one character at a time ("." / "?" first, then letters,
      including letters of a word tapped from the board). The top-bar delete is unchanged. */
@@ -7456,7 +7623,17 @@ body.bg-light .note-dark { color: #333; }
   function speakPath() {
     var u = pathUtterance();
     if (!u || !u.tokens.length) return;
+    stopAll();   // a new tap restarts the sentence; speech never stacks
     talk(u.tokens, u.idx, { hl: pathHl });
+  }
+  /* Finished view: every big word (and its slot) says the whole sentence again. One key for all
+     of them, so the tap guard covers quick taps across buttons, and not while a pick is settling. */
+  function replayButton(node, label) {
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    node.setAttribute("aria-label", label);
+    node.classList.add("path-replay");
+    onTap(node, "path:replay", function () { if (pathLocked()) return; flashTapped(node); speakPath(); });
   }
   /* A quick second tap lands on the NEW button in the same spot (a different key, so the
      per-key guard misses it) and would pick a word she never saw. Hold path taps briefly. */
@@ -7508,6 +7685,8 @@ body.bg-light .note-dark { color: #333; }
     }
     state.pathPicks = state.pathPicks.slice(0, keep); state.pathStep = keep; render();
   }
+  /* Leaving Paths drops a half-made sentence, so Paths opens at its menu next time. */
+  function leavePaths() { state.pathId = null; state.pathPicks = []; state.pathStep = 0; }
   function pathHome() {
     stopAll();
     state.pathId = null; state.pathPicks = []; state.pathStep = 0; render();
@@ -7607,6 +7786,7 @@ body.bg-light .note-dark { color: #333; }
       lab.appendChild(document.createTextNode(w ? caseWord(pathFace(pat, i)) : "?"));
       slot.appendChild(lab);
       slot.setAttribute("aria-label", w ? (pre ? pre + " " : "") + pathFace(pat, i) : "next word");
+      if (w && state.pathStep >= pat.steps.length && pathRequiredDone(pat)) replayButton(slot, (pathUtterance() || {}).text + " (say it again)");
       phrase.appendChild(slot);
     });
     var choices = state.pathStep >= pat.steps.length ? [] : window.AAC_PATHS.choices(pat, state.pathStep, ctx, state.pathPicks);
@@ -7628,6 +7808,7 @@ body.bg-light .note-dark { color: #333; }
         var pic = picFor(w);
         if (pic) tile.appendChild(pic); else { tile.classList.add("nopic"); tile.classList.remove("piconly"); }
         tile.appendChild(el("span", "lbl", caseWord(pathFace(pat, i))));
+        replayButton(tile, (u ? u.text : "") + " (say it again)");
         tiles.appendChild(tile);
       });
       tiles.style.gridTemplateColumns = "repeat(" + Math.max(1, Math.min(n, 4)) + ", minmax(0, 1fr))";
@@ -7978,7 +8159,8 @@ body.bg-light .note-dark { color: #333; }
     c.toggle("space-more", settings.spacing === "more");
     c.toggle("bg-light", settings.boardColor === "light");
     c.toggle("bg-blue", settings.boardColor === "blue");
-    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
+    var cl = $("btn-clear"); if (cl) { cl.classList.toggle("hold-mode", settings.clearMode === "hold"); cl.style.setProperty("--hold-ms", Math.max(800, +settings.holdMs || 0) + "ms"); }
+    if (cl) { cl.classList.toggle("is-hidden", settings.clearMode === "hide"); cl.tabIndex = settings.clearMode === "hide" ? -1 : 0; cl.setAttribute("aria-hidden", settings.clearMode === "hide" ? "true" : "false"); }
   }
   /* ---------- share + feedback (parent settings only; never on the child-facing board) ---------- */
   function shareMsg(t) { $("share-msg").textContent = t; }
@@ -8249,13 +8431,19 @@ body.bg-light .note-dark { color: #333; }
     applyLook();
     onTap($("msg"), "a:msg", speakMessage, { scroll: true });
     $("msg").addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); speakMessage(); } });   // the message bar scrolls when long
-    onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); state.view = "words"; state.page = "home"; render(); });
-    onTap($("nav-kbd"), "n:kbd", function () { stopAll(); state.view = "keyboard"; render(); });
+    onTap($("nav-home"), "n:home", function () { stopAll(); commitBuf(false); leavePaths(); state.view = "words"; state.page = "home"; render(); });
+    onTap($("nav-kbd"), "n:kbd", function () { stopAll(); leavePaths(); state.view = "keyboard"; render(); });
     onTap($("nav-paths"), "n:paths", function () {
       if (settings.pathsShowTab === false) return;
       stopAll(); commitBuf(false); state.view = "paths"; render();
     });
-    if ($("nav-stories")) onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
+    // Going away (another app, the lock button) and coming back starts Paths at its menu again.
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "hidden" || state.view !== "paths" || !state.pathId) return;
+      stopAll(); leavePaths(); render();
+    });
+    window.addEventListener("pagehide", function () { if (state.view === "paths") leavePaths(); });
+    if ($("nav-stories")) onTap($("nav-stories"), "n:stories", function () { stopAll(); commitBuf(false); leavePaths(); state.story = null; state.storyPage = 0; state.view = "stories"; render(); });
     setupGate(); bindSettings();
     document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
     $("app").addEventListener("contextmenu", function (e) { e.preventDefault(); });
